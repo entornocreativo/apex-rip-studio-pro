@@ -114,13 +114,40 @@ while ($Listener.IsListening) {
                     }
                 } else {
                     $Tcp.Close()
-                    Write-Host "  -> SIN RESPUESTA en $TargetHost`:$TargetPort" -ForegroundColor Red
-                    Send-JsonResponse $Res @{
-                        reachable = $false
-                        host = $TargetHost
-                        port = $TargetPort
-                        latency_ms = $Sw.ElapsedMilliseconds
-                        message = "SIN RESPUESTA en $TargetHost`:$TargetPort. Verifica que la impresora este encendida y en la misma red."
+                    # Si fallo puerto 9100, probar puerto 11110 (Mimaki Ethernet UJV100/JV100)
+                    $AltPort = if ($TargetPort -eq 9100) { 11110 } else { 9100 }
+                    $AltConnected = $false
+                    $SwAlt = [System.Diagnostics.Stopwatch]::StartNew()
+                    $TcpAlt = New-Object System.Net.Sockets.TcpClient
+                    try {
+                        $AsyncAlt = $TcpAlt.BeginConnect($TargetHost, $AltPort, $null, $null)
+                        $WaitAlt = $AsyncAlt.AsyncWaitHandle.WaitOne(1500, $false)
+                        $SwAlt.Stop()
+                        if ($WaitAlt -and $TcpAlt.Connected) {
+                            $TcpAlt.EndConnect($AsyncAlt)
+                            $AltConnected = $true
+                        }
+                    } catch {}
+                    try { $TcpAlt.Close() } catch {}
+
+                    if ($AltConnected) {
+                        Write-Host "  -> CONECTADO EN PUERTO ALTERNO $TargetHost`:$AltPort ($($SwAlt.ElapsedMilliseconds) ms)" -ForegroundColor Green
+                        Send-JsonResponse $Res @{
+                            reachable = $true
+                            host = $TargetHost
+                            port = $AltPort
+                            latency_ms = $SwAlt.ElapsedMilliseconds
+                            message = "CONECTADO (Mimaki/Alterno): La impresora en $TargetHost respondio en el puerto TCP $AltPort ($($SwAlt.ElapsedMilliseconds) ms)."
+                        }
+                    } else {
+                        Write-Host "  -> SIN RESPUESTA en $TargetHost`:$TargetPort ni :$AltPort" -ForegroundColor Red
+                        Send-JsonResponse $Res @{
+                            reachable = $false
+                            host = $TargetHost
+                            port = $TargetPort
+                            latency_ms = $Sw.ElapsedMilliseconds
+                            message = "SIN RESPUESTA en $TargetHost (puertos $TargetPort y $AltPort). Pulsa 'Buscar Red' o ejecuta BUSCAR_IMPRESORAS_RED.bat para localizar su IP actual en el switch."
+                        }
                     }
                 }
             } catch {
@@ -137,40 +164,83 @@ while ($Listener.IsListening) {
         }
 
         if ($Path -eq "/api/network/scan") {
-            $CurIp = Get-LocalLanIp
-            $Parts = $CurIp.Split(".")
-            $Prefix = "$($Parts[0]).$($Parts[1]).$($Parts[2])"
-            Write-Host "[SCAN] Buscando impresoras en la red $Prefix.1-254 (Puerto 9100)..." -ForegroundColor Cyan
+            $AllIps = @()
+            try {
+                $AllIps = @(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+                    $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.PrefixOrigin -ne "WellKnown"
+                } | Select-Object -ExpandProperty IPAddress)
+            } catch {}
+            if ($AllIps.Count -eq 0) { $AllIps = @(Get-LocalLanIp) }
+
+            $Subnets = @()
+            foreach ($ip in $AllIps) {
+                $Parts = $ip.Split(".")
+                if ($Parts.Length -eq 4) {
+                    $Pref = "$($Parts[0]).$($Parts[1]).$($Parts[2])"
+                    if ($Subnets -notcontains $Pref) { $Subnets += $Pref }
+                }
+            }
+
+            Write-Host "[SCAN] Buscando impresoras en subredes ($($Subnets -join ', ')) puertos 9100 (Mutoh/RAW) y 11110 (Mimaki)..." -ForegroundColor Cyan
 
             $Found = @()
-            $Pending = @()
-            for ($i = 1; $i -le 254; $i++) {
-                $TestIp = "$Prefix.$i"
-                $Client = New-Object System.Net.Sockets.TcpClient
-                $Async = $Client.BeginConnect($TestIp, 9100, $null, $null)
-                $Pending += [PSCustomObject]@{ Ip = $TestIp; Client = $Client; Async = $Async }
-            }
-            Start-Sleep -Milliseconds 450
-            foreach ($Item in $Pending) {
-                try {
-                    if ($Item.Async.IsCompleted -and $Item.Client.Connected) {
-                        $Found += @{
-                            ip = $Item.Ip
-                            port = 9100
-                            hostname = "Impresora detectada en Red (Puerto 9100)"
-                            latency_ms = 12
+            $ScanSpecs = @(
+                @{ Port = 9100;  Label = "Mutoh / Impresora RAW (Puerto 9100)" },
+                @{ Port = 11110; Label = "Mimaki Ethernet (Puerto 11110)" }
+            )
+
+            foreach ($Prefix in $Subnets) {
+                foreach ($Spec in $ScanSpecs) {
+                    $PNum = $Spec.Port
+                    $Pending = @()
+                    for ($i = 1; $i -le 254; $i++) {
+                        $TestIp = "$Prefix.$i"
+                        $Client = New-Object System.Net.Sockets.TcpClient
+                        try {
+                            $Async = $Client.BeginConnect($TestIp, $PNum, $null, $null)
+                            $Pending += [PSCustomObject]@{ Ip = $TestIp; Client = $Client; Async = $Async }
+                        } catch {
+                            try { $Client.Close() } catch {}
                         }
-                        Write-Host "  -> IMPRESORA ENCONTRADA: $($Item.Ip):9100" -ForegroundColor Green
                     }
-                } catch {}
-                try { $Item.Client.Close() } catch {}
+                    Start-Sleep -Milliseconds 600
+                    foreach ($Item in $Pending) {
+                        try {
+                            if ($Item.Async.IsCompleted -and $Item.Client.Connected) {
+                                $Found += @{
+                                    ip = $Item.Ip
+                                    port = $PNum
+                                    hostname = $Spec.Label
+                                    latency_ms = 12
+                                }
+                                Write-Host "  -> IMPRESORA ENCONTRADA: $($Item.Ip):$PNum [$($Spec.Label)]" -ForegroundColor Green
+                            }
+                        } catch {}
+                        try { $Item.Client.Close() } catch {}
+                    }
+                }
             }
 
+            # Incluir tambien vecinos ARP del switch (para detectar equipos aunque bloqueen ping/puerto)
+            $ArpDevices = @()
+            try {
+                foreach ($line in (arp -a)) {
+                    if ($line -match "^\s*(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5})\s+(\S+)") {
+                        $aIp = $Matches[1]
+                        $aMac = $Matches[2].ToUpper()
+                        if ($aIp -notlike "224.*" -and $aIp -notlike "239.*" -and $aIp -notlike "*.255" -and $aMac -ne "FF-FF-FF-FF-FF-FF") {
+                            $ArpDevices += @{ ip = $aIp; mac = $aMac }
+                        }
+                    }
+                }
+            } catch {}
+
             Send-JsonResponse $Res @{
-                local_ip = $CurIp
-                subnet = "$Prefix.0/24"
-                port_scanned = 9100
+                local_ip = ($AllIps -join ", ")
+                subnet = (($Subnets | ForEach-Object { "$_.0/24" }) -join ", ")
+                port_scanned = "9100, 11110"
                 found = $Found
+                arp_devices = $ArpDevices
             }
             continue
         }

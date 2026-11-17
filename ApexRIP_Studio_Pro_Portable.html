@@ -5064,7 +5064,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     async function scanLocalNetworkPrinters() {
       const port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
       const box = document.getElementById('network-test-result-box');
-      box.innerHTML = `<span class="text-sky-300">🔍 Escaneando tu red local buscando impresoras encendidas en el puerto TCP ${port}... (tarda ~2 segundos)</span>`;
+      box.innerHTML = `<span class="text-sky-300">🔍 Escaneando todas tus subredes locales en puertos 9100 (Mutoh/RAW) y 11110 (Mimaki Ethernet) + tabla del switch... (tarda ~2 segundos)</span>`;
 
       try {
         const res = await fetch(`${BRIDGE_BASE_URL}/api/network/scan?port=${port}`);
@@ -5072,28 +5072,51 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         BRIDGE_ONLINE = true;
         updateBridgeToolbarBadge();
 
+        let htmlOut = '';
         if (data.found && data.found.length > 0) {
-          const btns = data.found.map((p) => `
-            <button onclick="selectDiscoveredPrinterIp('${p.ip}', ${p.port})" class="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 border border-emerald-400 text-white font-bold text-xs cursor-pointer mr-2 mt-1">
-              🖨️ Usar ${p.ip}:${p.port} (${p.latency_ms} ms)
-            </button>
-          `).join('');
-          box.innerHTML = `
+          const btns = data.found.map((p) => {
+            const isMimakiPort = Number(p.port) === 11110;
+            const cls = isMimakiPort
+              ? 'bg-emerald-800 hover:bg-emerald-700 border-emerald-400'
+              : 'bg-sky-800 hover:bg-sky-700 border-sky-400';
+            const tag = p.hostname || (isMimakiPort ? 'Mimaki (11110)' : 'Mutoh/RAW (9100)');
+            return `
+              <button onclick="selectDiscoveredPrinterIp('${p.ip}', ${p.port})" class="px-2.5 py-1 rounded ${cls} border text-white font-bold text-xs cursor-pointer mr-2 mt-1">
+                🖨️ ${p.ip}:${p.port} — ${tag}
+              </button>
+            `;
+          }).join('');
+          htmlOut += `
             <div class="text-emerald-300 font-bold">✅ Se encontraron ${data.found.length} impresora(s) en tu red (${data.subnet}):</div>
-            <div class="mt-1">${btns}</div>
+            <div class="mt-1 flex flex-wrap">${btns}</div>
           `;
         } else {
-          box.innerHTML = `
+          htmlOut += `
             <div class="text-amber-300">
-              ℹ️ Escaneo completado en tu red <b>${data.subnet}</b> (Tu PC es <b>${data.local_ip}</b>): No se detectaron impresoras con el puerto ${port} abierto en este momento. Verifica que la Mutoh VJ-1624 o Mimaki UJV100-160 esté encendida y conectada al router/switch, o escribe su IP manualmente arriba.
+              ℹ️ Escaneo completado en <b>${data.subnet}</b> (PC: <b>${data.local_ip}</b>): No respondieron puertos 9100 ni 11110.
             </div>
           `;
         }
+
+        if (data.arp_devices && data.arp_devices.length > 0) {
+          const arpBtns = data.arp_devices.slice(0, 14).map((d) => `
+            <button onclick="selectDiscoveredPrinterIp('${d.ip}', ${STATE.activeUnit === 'unit2' ? 11110 : 9100})" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-mono text-[11px] cursor-pointer mr-1.5 mt-1" title="MAC ${d.mac}">
+              ${d.ip} <span class="text-slate-400">(${d.mac.slice(0, 8)})</span>
+            </button>
+          `).join('');
+          htmlOut += `
+            <div class="mt-2 pt-2 border-t border-slate-700/80 text-[11px] text-slate-300">
+              <div class="font-bold text-sky-300">🔌 Equipos visibles en tu switch (tabla ARP):</div>
+              <div class="mt-1 flex flex-wrap">${arpBtns}</div>
+            </div>
+          `;
+        }
+        box.innerHTML = htmlOut;
       } catch (err) {
         box.innerHTML = `
           <div class="space-y-1 text-amber-200">
             <div class="font-bold text-amber-400">⚠️ Para escanear tu red local automáticamente:</div>
-            <div>Ejecuta con doble clic el archivo <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> incluido en la carpeta del programa y vuelve a pulsar <b>"🔍 Buscar Red"</b>.</div>
+            <div>Ejecuta con doble clic <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> (o directamente <b><code class="text-white bg-slate-800 px-1 rounded">BUSCAR_IMPRESORAS_RED.bat</code></b>) en tu PC y vuelve a pulsar <b>"🔍 Buscar Red"</b>.</div>
           </div>
         `;
       }
