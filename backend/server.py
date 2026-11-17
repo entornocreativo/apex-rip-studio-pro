@@ -503,6 +503,84 @@ def api_spool_send_raw(req: RawPrnSendRequest) -> Dict[str, Any]:
     return {"spool": spool_result}
 
 
+class HotFolderExportRequest(BaseModel):
+    job_title: str = "ApexRIP_Job"
+    hot_folder_path: str = ""
+    file_ext: str = "pdf"
+    file_base64: str
+
+
+@app.get("/api/hotfolder/detect")
+def api_hotfolder_detect() -> Dict[str, Any]:
+    candidates = [
+        os.path.join(SPOOL_DIR, "HotFolder_Mutoh"),
+        os.path.join(SPOOL_DIR, "HotFolder_Mimaki"),
+        r"C:\ApexRIP_HotFolder_Mutoh",
+        r"C:\ApexRIP_HotFolder_Mimaki",
+        r"C:\MijSuite\HotFolder",
+        r"C:\RasterLink7\HotFolder",
+    ]
+    folders = []
+    for path_item in candidates:
+        exists = os.path.isdir(path_item)
+        if exists or "ApexRIP_HotFolder" in path_item or "HotFolder_" in path_item:
+            folders.append({
+                "path": path_item,
+                "exists": exists,
+                "software": "Wasatch SoftRIP (Mutoh)" if "Mutoh" in path_item else "Mimaki RasterLink 7",
+            })
+    return {
+        "folders": folders,
+        "default_mutoh": r"C:\ApexRIP_HotFolder_Mutoh" if os.name == "nt" else os.path.join(SPOOL_DIR, "HotFolder_Mutoh"),
+        "default_mimaki": r"C:\ApexRIP_HotFolder_Mimaki" if os.name == "nt" else os.path.join(SPOOL_DIR, "HotFolder_Mimaki"),
+    }
+
+
+@app.post("/api/hotfolder/export")
+def api_hotfolder_export(req: HotFolderExportRequest) -> Dict[str, Any]:
+    hot_folder = (req.hot_folder_path or "").strip() or os.path.join(SPOOL_DIR, "HotFolder_Mutoh")
+    safe_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in (req.job_title or "ApexRIP_Job"))
+    ext = (req.file_ext or "pdf").strip().lstrip(".") or "pdf"
+    raw_bytes = base64.b64decode(req.file_base64)
+    try:
+        os.makedirs(hot_folder, exist_ok=True)
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        final_name = f"{safe_name}_{stamp}.{ext}"
+        tmp_path = os.path.join(hot_folder, f"{final_name}.tmp")
+        final_path = os.path.join(hot_folder, final_name)
+        with open(tmp_path, "wb") as f:
+            f.write(raw_bytes)
+        os.replace(tmp_path, final_path)
+
+        backup_path = os.path.join(SPOOL_DIR, final_name)
+        with open(backup_path, "wb") as bf:
+            bf.write(raw_bytes)
+
+        return {
+            "spool": {
+                "success": True,
+                "tcp_delivered": True,
+                "mode": "Hot Folder 1:1 (Wasatch / RasterLink)",
+                "target": final_path,
+                "bytes_sent": len(raw_bytes),
+                "spool_backup": backup_path,
+                "message": f"IMPRESIÓN ENVIADA A HOT FOLDER (1:1 Real): {final_path} ({len(raw_bytes):,} bytes).",
+            }
+        }
+    except Exception as exc:
+        return {
+            "spool": {
+                "success": False,
+                "tcp_delivered": False,
+                "mode": "Error Hot Folder",
+                "target": hot_folder,
+                "bytes_sent": 0,
+                "message": f"No se pudo escribir en la Hot Folder '{hot_folder}': {exc}",
+            }
+        }
+
+
+
 
 @app.post("/api/spool/send")
 def api_spool_send(req: SpoolSendRequest) -> Dict[str, Any]:

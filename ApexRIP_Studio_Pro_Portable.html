@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ApexRIP SoftRIP Edition v3.4 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
+  <title>ApexRIP SoftRIP Edition v3.6 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.min.js"></script>
@@ -354,7 +354,7 @@
     <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
     <span id="top-toast-msg" class="ml-4 px-2 py-0.5 rounded bg-sky-900/60 border border-sky-500/40 text-sky-200 font-mono text-xs hidden"></span>
     <span class="ml-auto font-mono text-xs text-slate-400">
-      ApexRIP SoftRIP v3.5 • Menú Clic Derecho + Panelación + Marcas T Acostada + PDF 1:1
+      ApexRIP SoftRIP v3.6 • Hot Folder 1:1 (Wasatch / RasterLink 7) + Panelación + Marcas T
     </span>
   </div>
 
@@ -1001,27 +1001,58 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </div>
 
             <div class="grid grid-cols-12 items-center gap-2">
-              <label class="col-span-3 font-semibold text-sky-300">Modo de Conexión</label>
+              <label class="col-span-3 font-semibold text-sky-300">Modo de Impresión</label>
               <select id="setup-conn-mode" class="col-span-5 px-2.5 py-1.5 rounded font-semibold" onchange="onConnModeChange()">
-                <option value="tcp_raw">Red TCP/IP Directa (Socket RAW Puerto 9100)</option>
-                <option value="windows_spooler">Cola de Impresora Instalada en Windows</option>
-                <option value="spool_file">Solo Descargar Archivo .PRN</option>
+                <option value="hot_folder">📂 Hot Folder 1:1 (Wasatch / RasterLink 7 — Recomendado)</option>
+                <option value="pdf_1to1_download">📄 Descargar PDF 1:1 (mm exactos para Wasatch/RasterLink)</option>
+                <option value="tcp_raw">📡 Red TCP/IP Directa (Puerto 9100 — Requiere .PRN nativo)</option>
+                <option value="windows_spooler">🖨️ Cola de Impresora Instalada en Windows</option>
               </select>
               <div class="col-span-4 flex gap-1.5">
                 <button onclick="testPrinterNetworkPing()" class="flex-1 py-1.5 px-2 rounded border border-sky-500 bg-sky-800 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer">
-                  📡 Probar Ping
+                  📡 Ping IP
                 </button>
                 <button onclick="scanLocalNetworkPrinters()" class="flex-1 py-1.5 px-2 rounded border border-amber-500 bg-amber-800/80 hover:bg-amber-700 text-amber-100 font-bold text-xs cursor-pointer">
-                  🔍 Buscar en Red
+                  🔍 Buscar Red
                 </button>
               </div>
             </div>
 
-            <div id="row-tcp-settings" class="grid grid-cols-12 items-center gap-2">
-              <label class="col-span-3 font-semibold text-emerald-300">IP de la Impresora en Red</label>
-              <input id="setup-printer-ip" type="text" value="192.168.1.201" placeholder="Ej: 192.168.1.201" class="col-span-4 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
-              <label class="col-span-2 text-right font-semibold text-slate-300">Puerto TCP:</label>
-              <input id="setup-printer-port" type="number" value="9100" min="1" max="65535" class="col-span-3 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+            <div id="row-hot-folder" class="space-y-2">
+              <div class="grid grid-cols-12 items-center gap-2">
+                <label class="col-span-3 font-semibold text-emerald-300">Carpeta Hot Folder</label>
+                <input id="setup-hot-folder" type="text" value="C:\ApexRIP_HotFolder_Mutoh" placeholder="Ej: C:\ApexRIP_HotFolder_Mutoh" class="col-span-6 px-2.5 py-1.5 rounded font-mono text-xs font-bold" />
+                <button onclick="detectWindowsHotFolders()" class="col-span-3 py-1.5 px-2 rounded border border-emerald-500 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-bold text-xs cursor-pointer">
+                  📂 Detectar Carpetas
+                </button>
+              </div>
+              <div class="grid grid-cols-12 items-center gap-2">
+                <label class="col-span-3 font-semibold text-slate-300">Resolución PDF 1:1</label>
+                <select id="setup-export-dpi" class="col-span-4 px-2.5 py-1 rounded font-mono text-xs font-bold">
+                  <option value="150">150 DPI (Rápido / Lona y Gran Formato)</option>
+                  <option value="200">200 DPI (Producción Equilibrada)</option>
+                  <option value="300">300 DPI (Alta Definición / Stickers)</option>
+                </select>
+                <span class="col-span-5 text-[11px] text-emerald-300/90">
+                  ✓ Conserva medida 1:1 en mm, copias pegadas 0mm, panelación y marcas T acostada.
+                </span>
+              </div>
+            </div>
+
+            <div id="row-tcp-settings" class="space-y-1.5">
+              <div class="grid grid-cols-12 items-center gap-2">
+                <label class="col-span-3 font-semibold text-sky-300">IP Impresora (Red)</label>
+                <input id="setup-printer-ip" type="text" value="192.168.1.240" placeholder="Ej: 192.168.1.240" class="col-span-4 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+                <label class="col-span-2 text-right font-semibold text-slate-300">Puerto TCP:</label>
+                <input id="setup-printer-port" type="number" value="9100" min="1" max="65535" class="col-span-3 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 pl-1 text-[11px]">
+                <span class="text-slate-400">IPs guardadas:</span>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.240', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .240</button>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.249', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .249</button>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.253', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .253</button>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.73', 9100)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-800 border border-emerald-600 font-mono text-emerald-300 font-bold cursor-pointer">Mimaki UJV100: 192.168.1.73</button>
+              </div>
             </div>
 
             <div id="row-win-spooler" class="grid grid-cols-12 items-center gap-2 hidden">
@@ -1030,13 +1061,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </div>
 
             <div id="network-test-result-box" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-slate-300 leading-relaxed">
-              💡 Escribe arriba la <strong>Dirección IP</strong> que tiene tu <strong>Mutoh VJ-1624</strong> o <strong>Mimaki UJV100-160</strong> en la red (puerto estándar <strong>9100</strong>) y pulsa <strong>"📡 Probar Ping"</strong> o <strong>"🔍 Buscar en Red"</strong>. Para imprimir directo por red en Windows, abre el programa con <strong>CONECTAR_IMPRESORAS_RED_WINDOWS.bat</strong>.
+              ✅ <strong>Modo Recomendado (Impresión Real sin "Converting"):</strong> Usa <strong>Hot Folder 1:1</strong> con <strong>CONECTAR_IMPRESORAS_RED_WINDOWS.bat</strong>. En <strong>Wasatch SoftRIP</strong> (Mutoh) o <strong>RasterLink 7</strong> (Mimaki <code>192.168.1.73</code>), activa su Hot Folder apuntando a la carpeta de arriba: al pulsar <strong>🖨️ IMPRIMIR</strong> en ApexRIP, se genera el <strong>PDF 1:1 exacto</strong> y tu impresora arranca a imprimir con perfiles ICC, calentadores y lámpara UV reales.
             </div>
           </div>
 
           <div class="md:col-span-3 flex flex-col gap-2 pl-2 border-l border-slate-700">
-            <button onclick="saveAndCloseSetupModal()" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer shadow">✓ Guardar IP y Aplicar</button>
-            <button onclick="actionRipAndPrint()" class="w-full py-2 rounded border border-emerald-500 bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">🖨️ Imprimir Prueba Ahora</button>
+            <button onclick="saveAndCloseSetupModal()" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer shadow">✓ Guardar y Aplicar</button>
+            <button onclick="actionRipAndPrint()" class="w-full py-2 rounded border border-emerald-500 bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">🖨️ Imprimir Ahora (1:1)</button>
             <button onclick="closeSetupModal()" class="w-full py-2 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
           </div>
         </div>
@@ -4840,20 +4871,41 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     // ============================================================================
-    // CONEXIÓN REAL EN RED TCP/IP (PUERTO 9100) Y COLA WINDOWS PARA MUTOH & MIMAKI
+    // IMPRESIÓN REAL 1:1 (HOT FOLDER WASATCH/RASTERLINK 7, PDF 1:1 Y RED TCP/IP 9100)
     // ============================================================================
     const BRIDGE_BASE_URL = 'http://127.0.0.1:8765';
     const DEFAULT_NET_CONFIG = {
-      unit1: { connMode: 'tcp_raw', ip: '192.168.1.201', port: 9100, winQueue: 'Mutoh_VJ1624' },
-      unit2: { connMode: 'tcp_raw', ip: '192.168.1.202', port: 9100, winQueue: 'Mimaki_UJV100' }
+      unit1: {
+        connMode: 'hot_folder',
+        ip: '192.168.1.240',
+        port: 9100,
+        hotFolder: 'C:\\ApexRIP_HotFolder_Mutoh',
+        exportDpi: 150,
+        winQueue: 'Mutoh_VJ1624'
+      },
+      unit2: {
+        connMode: 'hot_folder',
+        ip: '192.168.1.73',
+        port: 9100,
+        hotFolder: 'C:\\ApexRIP_HotFolder_Mimaki',
+        exportDpi: 150,
+        winQueue: 'Mimaki_UJV100'
+      }
     };
 
     let NET_CONFIG = JSON.parse(JSON.stringify(DEFAULT_NET_CONFIG));
     try {
-      const savedNet = localStorage.getItem('wasatch_softrip_net_v33');
+      const savedNet = localStorage.getItem('wasatch_softrip_net_v36') || localStorage.getItem('wasatch_softrip_net_v33');
       if (savedNet) {
         const parsedNet = JSON.parse(savedNet);
-        if (parsedNet.unit1 && parsedNet.unit2) NET_CONFIG = parsedNet;
+        if (parsedNet.unit1) NET_CONFIG.unit1 = { ...DEFAULT_NET_CONFIG.unit1, ...parsedNet.unit1 };
+        if (parsedNet.unit2) NET_CONFIG.unit2 = { ...DEFAULT_NET_CONFIG.unit2, ...parsedNet.unit2 };
+        // Si venia de v3.3 con tcp_raw por defecto y nunca configuro hotFolder, migrar a hot_folder 1:1 seguro
+        if (!localStorage.getItem('wasatch_softrip_net_v36')) {
+          NET_CONFIG.unit1.connMode = 'hot_folder';
+          NET_CONFIG.unit2.connMode = 'hot_folder';
+          NET_CONFIG.unit2.ip = '192.168.1.73';
+        }
       }
     } catch (e) {}
 
@@ -4861,7 +4913,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     function saveNetConfigToStorage() {
       try {
-        localStorage.setItem('wasatch_softrip_net_v33', JSON.stringify(NET_CONFIG));
+        localStorage.setItem('wasatch_softrip_net_v36', JSON.stringify(NET_CONFIG));
       } catch (e) {}
       updateBridgeToolbarBadge();
     }
@@ -4874,13 +4926,21 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const badge = document.getElementById('bridge-status-badge');
       if (!badge) return;
       const cfg = getActiveUnitNetConfig();
-      const targetStr = cfg.connMode === 'windows_spooler' ? `Cola Win: ${cfg.winQueue}` : `${cfg.ip}:${cfg.port}`;
+      const isMimaki = STATE.activeUnit === 'unit2';
+      let targetStr = `${cfg.ip}:${cfg.port}`;
+      if (cfg.connMode === 'hot_folder') {
+        targetStr = isMimaki ? `RasterLink HotFolder (192.168.1.73)` : `Wasatch HotFolder`;
+      } else if (cfg.connMode === 'pdf_1to1_download') {
+        targetStr = `PDF 1:1 (${cfg.exportDpi || 150} DPI)`;
+      } else if (cfg.connMode === 'windows_spooler') {
+        targetStr = `Cola Win: ${cfg.winQueue}`;
+      }
       if (BRIDGE_ONLINE) {
         badge.className = 'px-2.5 py-1 rounded bg-emerald-950/90 border border-emerald-500 font-mono text-[11px] text-emerald-300 font-bold cursor-pointer';
-        badge.textContent = `🟢 Red Activa → ${targetStr}`;
+        badge.textContent = `🟢 Listo → ${targetStr}`;
       } else {
         badge.className = 'px-2.5 py-1 rounded bg-slate-800 border border-amber-500/70 font-mono text-[11px] text-amber-200 cursor-pointer';
-        badge.textContent = `📡 IP: ${targetStr} (Configurar Red)`;
+        badge.textContent = `📂 ${targetStr} (Setup)`;
       }
     }
 
@@ -4900,8 +4960,68 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     function onConnModeChange() {
       const mode = document.getElementById('setup-conn-mode').value;
+      document.getElementById('row-hot-folder').classList.toggle('hidden', mode !== 'hot_folder' && mode !== 'pdf_1to1_download');
       document.getElementById('row-tcp-settings').classList.toggle('hidden', mode !== 'tcp_raw');
       document.getElementById('row-win-spooler').classList.toggle('hidden', mode !== 'windows_spooler');
+
+      const box = document.getElementById('network-test-result-box');
+      if (!box) return;
+      if (mode === 'tcp_raw') {
+        box.innerHTML = `
+          <div class="space-y-1 text-amber-200">
+            <div class="font-bold text-amber-400">⚠️ Aviso técnico sobre Puerto 9100 Directo (Mutoh "Converting" / Mimaki MRL-V):</div>
+            <div>Mutoh VJ-1624 usa el protocolo cerrado <b>MH-RTL</b> y Mimaki UJV100-160 usa <b>MRL-V</b>. Enviar un .PRN genérico por puerto 9100 hace que la Mutoh se quede en <b>"Converting"</b>.</div>
+            <div>👉 Para imprimir <b>HOY mismo sin errores</b> elige arriba <b>"📂 Hot Folder 1:1 (Wasatch / RasterLink 7)"</b>. Si deseas activar el driver binario nativo, ejecuta <b><code class="text-white bg-slate-800 px-1 rounded">CAPTURAR_PRN_TEST.bat</code></b> en tu PC para capturar un .prn de prueba de 5×5 cm.</div>
+          </div>
+        `;
+      } else if (mode === 'hot_folder') {
+        const isMimaki = STATE.activeUnit === 'unit2';
+        box.innerHTML = isMimaki
+          ? `✅ <strong>Mimaki UJV100-160 (IP 192.168.1.73) vía RasterLink 7 Hot Folder:</strong> Crea/asigna la Hot Folder de arriba en <b>RasterLink 7</b> (Entorno → Hot Folder). Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, el PDF 1:1 exacto se deposita ahí y RasterLink lo imprime automáticamente con tinta UV y perfiles ICC reales.`
+          : `✅ <strong>Mutoh VJ-1624 vía Wasatch SoftRIP Hot Folder:</strong> En <b>Wasatch SoftRIP</b> (Server → Hot Folder), apunta a la carpeta de arriba. Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, se genera el PDF 1:1 exacto (con copias pegadas, panelación y marcas T acostada) y Wasatch lo envía a tu Mutoh sin quedarse en "Converting".`;
+      } else if (mode === 'pdf_1to1_download') {
+        box.innerHTML = `📄 <strong>Descarga directa PDF 1:1:</strong> Genera un archivo PDF a medida real exacta en milímetros (sin deformar ni pasar a A3) listo para arrastrar a <b>Wasatch SoftRIP</b> o <b>RasterLink 7</b>.`;
+      }
+    }
+
+    async function detectWindowsHotFolders() {
+      const box = document.getElementById('network-test-result-box');
+      box.innerHTML = `<span class="text-sky-300">🔍 Buscando carpetas Hot Folder de Wasatch SoftRIP y RasterLink 7 en tu PC...</span>`;
+      try {
+        const res = await fetch(`${BRIDGE_BASE_URL}/api/hotfolder/detect`);
+        const data = await res.json();
+        BRIDGE_ONLINE = true;
+        updateBridgeToolbarBadge();
+        if (data.folders && data.folders.length > 0) {
+          const btns = data.folders.map((f) => {
+            const safePath = String(f.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const badge = f.exists ? '✓ Existe' : '+ Se creará';
+            return `<button type="button" onclick="selectDetectedHotFolder('${safePath}')" class="px-2.5 py-1 rounded bg-emerald-900/90 hover:bg-emerald-700 border border-emerald-500 text-white font-mono text-[11px] cursor-pointer mr-1.5 mt-1">📂 ${f.path} <span class="text-emerald-300">(${f.software} • ${badge})</span></button>`;
+          }).join('');
+          box.innerHTML = `
+            <div class="text-emerald-300 font-bold">✅ Carpetas Hot Folder disponibles (clic para seleccionar):</div>
+            <div class="mt-1 flex flex-wrap">${btns}</div>
+          `;
+        } else {
+          box.innerHTML = `<span class="text-amber-300">ℹ️ Escribe cualquier ruta (ej. <code>C:\\ApexRIP_HotFolder_Mutoh</code>) y el puente la creará automáticamente al imprimir.</span>`;
+        }
+      } catch (err) {
+        box.innerHTML = `
+          <div class="space-y-1 text-amber-200">
+            <div class="font-bold text-amber-400">⚠️ Para detectar y escribir directo en carpetas de Windows:</div>
+            <div>Ejecuta con doble clic <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> en tu carpeta del programa. Si no lo abres, igual podrás descargar el <b>PDF 1:1 exacto</b> desde el navegador.</div>
+          </div>
+        `;
+      }
+    }
+
+    function selectDetectedHotFolder(folderPath) {
+      const inp = document.getElementById('setup-hot-folder');
+      if (inp) inp.value = folderPath;
+      const cfg = getActiveUnitNetConfig();
+      cfg.hotFolder = folderPath;
+      saveNetConfigToStorage();
+      showToast(`📂 Hot Folder seleccionada: ${folderPath}`);
     }
 
     async function testPrinterNetworkPing() {
@@ -4910,7 +5030,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const box = document.getElementById('network-test-result-box');
 
       if (!ip) {
-        box.innerHTML = `<span class="text-red-400 font-bold">⚠️ Escribe primero la Dirección IP de tu impresora (Ej: 192.168.1.201).</span>`;
+        box.innerHTML = `<span class="text-red-400 font-bold">⚠️ Escribe primero la Dirección IP de tu impresora (Ej: 192.168.1.73).</span>`;
         return;
       }
 
@@ -4937,7 +5057,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           <div class="space-y-1 text-amber-200">
             <div class="font-bold text-amber-400">⚠️ Puente de Red Local no iniciado todavía en tu PC</div>
             <div>Un navegador web por sí solo no puede abrir puertos TCP 9100 directos sin el puente local.</div>
-            <div>👉 En la carpeta descomprimida de tu PC, haz <b>doble clic en <code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> (o <code class="text-white bg-slate-800 px-1 rounded">INICIAR_APEX_RIP_PYTHON.bat</code>) y vuelve a pulsar <b>"📡 Probar Ping"</b>.</div>
+            <div>👉 En la carpeta descomprimida de tu PC, haz <b>doble clic en <code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> (o <code class="text-white bg-slate-800 px-1 rounded">INICIAR_APEX_RIP_PYTHON.bat</code>) y vuelve a pulsar <b>"📡 Ping IP"</b>.</div>
           </div>
         `;
       }
@@ -4975,7 +5095,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         box.innerHTML = `
           <div class="space-y-1 text-amber-200">
             <div class="font-bold text-amber-400">⚠️ Para escanear tu red local automáticamente:</div>
-            <div>Ejecuta con doble clic el archivo <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> incluido en la carpeta del programa y vuelve a pulsar <b>"🔍 Buscar en Red"</b>.</div>
+            <div>Ejecuta con doble clic el archivo <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> incluido en la carpeta del programa y vuelve a pulsar <b>"🔍 Buscar Red"</b>.</div>
           </div>
         `;
       }
@@ -4988,10 +5108,217 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       cfg.ip = ip;
       cfg.port = port || 9100;
       saveNetConfigToStorage();
-      showToast(`📡 IP ${ip}:${port} seleccionada`);
+      showToast(`📡 IP ${ip}:${port || 9100} seleccionada`);
     }
 
-    // Compila el stream binario .PRN real (con separación CMYK halftone de la imagen/layout actual)
+    function selectFoundPrinterIp(ip, port) {
+      selectDiscoveredPrinterIp(ip, port);
+    }
+
+    // ============================================================================
+    // RENDERIZADO DE COMPOSICIÓN REAL 1:1 + GENERADOR PDF 1.4 NATIVO (mm EXACTOS)
+    // ============================================================================
+    function renderExact1to1PrintCanvas(targetDpi = 150) {
+      const useLayout = STATE.layoutItems && STATE.layoutItems.length > 0;
+      const drawTMarks = document.getElementById('chk-layout-t-marks')
+        ? document.getElementById('chk-layout-t-marks').checked
+        : true;
+      const markMarginMm = drawTMarks ? 8 : 0;
+
+      let outWmm = 500;
+      let outHmm = 500;
+      let itemsToRender = [];
+
+      if (useLayout) {
+        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+        STATE.layoutItems.forEach((it) => {
+          minX = Math.min(minX, it.x);
+          minY = Math.min(minY, it.y);
+          maxX = Math.max(maxX, it.x + it.w);
+          maxY = Math.max(maxY, it.y + it.h);
+        });
+        const originX = Math.max(0, minX);
+        const originY = Math.max(0, minY);
+        outWmm = Math.max(20, (maxX - originX) + markMarginMm * 2);
+        outHmm = Math.max(20, (maxY - originY) + markMarginMm * 2);
+        itemsToRender = STATE.layoutItems.map((it) => ({
+          ...it,
+          rx: (it.x - originX) + markMarginMm,
+          ry: (it.y - originY) + markMarginMm
+        }));
+      } else {
+        const jw = Math.max(10, parseFloat(document.getElementById('job-w-mm').value) || 500);
+        const jh = Math.max(10, parseFloat(document.getElementById('job-h-mm').value) || 500);
+        outWmm = jw + markMarginMm * 2;
+        outHmm = jh + markMarginMm * 2;
+        itemsToRender = [{
+          rx: markMarginMm,
+          ry: markMarginMm,
+          w: jw,
+          h: jh,
+          img: STATE.customImage,
+          rotation: STATE.activeRotation || 0,
+          mirror: !!STATE.activeMirror || (document.getElementById('setup-mirror') && document.getElementById('setup-mirror').checked),
+          crop: STATE.activeCrop || null
+        }];
+      }
+
+      // Escala de píxeles segura para canvas del navegador (máx 7200px lado mayor), manteniendo 1:1 en MediaBox PDF
+      const rawPxW = (outWmm / 25.4) * targetDpi;
+      const rawPxH = (outHmm / 25.4) * targetDpi;
+      const maxCanvasSide = 7200;
+      const clampFactor = Math.min(1, maxCanvasSide / Math.max(rawPxW, rawPxH, 1));
+      const pxPerMm = (targetDpi / 25.4) * clampFactor;
+      const canvasW = Math.max(64, Math.round(outWmm * pxPerMm));
+      const canvasH = Math.max(64, Math.round(outHmm * pxPerMm));
+
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = canvasW;
+      outCanvas.height = canvasH;
+      const oCtx = outCanvas.getContext('2d');
+      oCtx.fillStyle = '#ffffff';
+      oCtx.fillRect(0, 0, canvasW, canvasH);
+      oCtx.imageSmoothingEnabled = true;
+      oCtx.imageSmoothingQuality = 'high';
+
+      itemsToRender.forEach((it) => {
+        const dx = it.rx * pxPerMm;
+        const dy = it.ry * pxPerMm;
+        const dw = it.w * pxPerMm;
+        const dh = it.h * pxPerMm;
+        drawArtworkIntoRect(oCtx, dx, dy, dw, dh, it.img || STATE.customImage, {
+          rotation: it.rotation || 0,
+          mirror: !!it.mirror,
+          crop: it.crop || null
+        });
+        if (drawTMarks) {
+          // Dibujar marcas de corte en T acostada (⊣ / ⊢) a escala física real (~6mm brazo, ~4mm tope)
+          const arm = Math.max(8, Math.round(5.5 * pxPerMm));
+          const stem = Math.max(6, Math.round(3.5 * pxPerMm));
+          const lw = Math.max(1.5, Math.round(0.35 * pxPerMm));
+          oCtx.save();
+          oCtx.strokeStyle = '#000000';
+          oCtx.lineWidth = lw;
+          oCtx.lineCap = 'square';
+          // Esquinas izquierdas (⊣)
+          [dy, dy + dh].forEach((cy) => {
+            oCtx.beginPath();
+            oCtx.moveTo(dx - arm, cy);
+            oCtx.lineTo(dx, cy);
+            oCtx.moveTo(dx, cy - stem);
+            oCtx.lineTo(dx, cy + stem);
+            oCtx.stroke();
+          });
+          // Esquinas derechas (⊢)
+          [dy, dy + dh].forEach((cy) => {
+            oCtx.beginPath();
+            oCtx.moveTo(dx + dw, cy);
+            oCtx.lineTo(dx + dw + arm, cy);
+            oCtx.moveTo(dx + dw, cy - stem);
+            oCtx.lineTo(dx + dw, cy + stem);
+            oCtx.stroke();
+          });
+          oCtx.restore();
+        }
+      });
+
+      const effectiveDpi = Math.round(pxPerMm * 25.4);
+      return { canvas: outCanvas, widthMm: outWmm, heightMm: outHmm, effectiveDpi, itemCount: itemsToRender.length };
+    }
+
+    function buildExact1to1PdfBytes(canvas, widthMm, heightMm) {
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.96);
+      const jpegBase64 = jpegDataUrl.split(',')[1];
+      const jpegBinStr = atob(jpegBase64);
+      const jpegBytes = new Uint8Array(jpegBinStr.length);
+      for (let i = 0; i < jpegBinStr.length; i++) {
+        jpegBytes[i] = jpegBinStr.charCodeAt(i);
+      }
+
+      const MM_TO_PT = 72 / 25.4;
+      const wPt = (widthMm * MM_TO_PT).toFixed(3);
+      const hPt = (heightMm * MM_TO_PT).toFixed(3);
+      const enc = new TextEncoder();
+
+      const chunks = [];
+      let offset = 0;
+      const pushStr = (s) => {
+        const b = enc.encode(s);
+        chunks.push(b);
+        offset += b.length;
+      };
+      const pushBytes = (b) => {
+        chunks.push(b);
+        offset += b.length;
+      };
+
+      const xrefOffsets = [0];
+      pushStr('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+
+      // Obj 1: Catalog
+      xrefOffsets.push(offset);
+      pushStr('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+      // Obj 2: Pages
+      xrefOffsets.push(offset);
+      pushStr('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+
+      // Obj 3: Page con MediaBox / TrimBox / CropBox exactos en puntos (1:1 mm)
+      xrefOffsets.push(offset);
+      pushStr(
+        `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt} ${hPt}] /TrimBox [0 0 ${wPt} ${hPt}] /CropBox [0 0 ${wPt} ${hPt}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`
+      );
+
+      // Obj 4: Image XObject (DCTDecode JPEG)
+      xrefOffsets.push(offset);
+      pushStr(
+        `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`
+      );
+      pushBytes(jpegBytes);
+      pushStr('\nendstream\nendobj\n');
+
+      // Obj 5: Content stream
+      const contentStr = `q\n${wPt} 0 0 ${hPt} 0 0 cm\n/Im0 Do\nQ\n`;
+      xrefOffsets.push(offset);
+      pushStr(`5 0 obj\n<< /Length ${contentStr.length} >>\nstream\n${contentStr}endstream\nendobj\n`);
+
+      // XRef table
+      const xrefStart = offset;
+      pushStr(`xref\n0 ${xrefOffsets.length}\n`);
+      pushStr('0000000000 65535 f \n');
+      for (let i = 1; i < xrefOffsets.length; i++) {
+        pushStr(`${String(xrefOffsets[i]).padStart(10, '0')} 00000 n \n`);
+      }
+      pushStr(`trailer\n<< /Size ${xrefOffsets.length} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
+
+      const out = new Uint8Array(offset);
+      let pos = 0;
+      for (const ch of chunks) {
+        out.set(ch, pos);
+        pos += ch.length;
+      }
+      return out;
+    }
+
+    function uint8ArrayToBase64(bytes) {
+      const CHUNK = 0x8000;
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+      }
+      return btoa(bin);
+    }
+
+    function downloadBytesAsFile(bytes, filename, mimeType) {
+      const blob = new Blob([bytes], { type: mimeType });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+
+    // Compila el stream binario .PRN (solo para pruebas / captura de puerto 9100)
     function compileRealPrnBytesAndBase64(jobLabel) {
       const pw = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
       const ph = parseFloat(document.getElementById('quick-paper-height').value) || 50000;
@@ -5001,7 +5328,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const unitName = isMimaki ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
       const cmdLang = isMimaki ? 'MRL-V' : 'MH-RTL/ESC-P2';
 
-      // Extraer banda raster CMYK real desde el canvas de trabajo actual
       const srcCanvas = document.getElementById('job-canvas');
       const sampleW = 128, sampleH = 128;
       const tmp = document.createElement('canvas');
@@ -5039,21 +5365,17 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       totalBytes.set(rasterBytes, headerBytes.length);
       totalBytes.set(footerBytes, headerBytes.length + rasterBytes.length);
 
-      let binaryStr = '';
-      for (let i = 0; i < totalBytes.length; i++) {
-        binaryStr += String.fromCharCode(totalBytes[i]);
-      }
-      const base64Str = btoa(binaryStr);
+      const base64Str = uint8ArrayToBase64(totalBytes);
       return { totalBytes, base64Str, unitName };
     }
 
     function exportPrnFile(jobLabel) {
       const { totalBytes, unitName } = compileRealPrnBytesAndBase64(jobLabel || STATE.activeFileName || 'Impresion');
-      const blob = new Blob([totalBytes], { type: 'application/octet-stream' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`;
-      a.click();
+      downloadBytesAsFile(
+        totalBytes,
+        `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`,
+        'application/octet-stream'
+      );
     }
 
     async function actionRipAndPrint() {
@@ -5061,14 +5383,82 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       actionRipCurrentJob();
 
       const cfg = getActiveUnitNetConfig();
+      const isMimaki = STATE.activeUnit === 'unit2';
+      const targetSoftware = isMimaki ? 'Mimaki RasterLink 7' : 'Wasatch SoftRIP';
+
+      // MODO 1 y 2 (RECOMENDADO): PDF 1:1 exacto en mm -> Hot Folder automático o descarga directa
+      if (cfg.connMode === 'hot_folder' || cfg.connMode === 'pdf_1to1_download') {
+        const dpi = parseInt(cfg.exportDpi, 10) || 150;
+        showToast(`⏳ Generando PDF 1:1 exacto (${dpi} DPI) para ${targetSoftware}...`);
+        const { canvas, widthMm, heightMm, effectiveDpi, itemCount } = renderExact1to1PrintCanvas(dpi);
+        const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
+        const safeBase = (jobLabel || (isMimaki ? 'Mimaki_Job' : 'Mutoh_Job')).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const pdfFileName = `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm_1to1.pdf`;
+
+        if (cfg.connMode === 'pdf_1to1_download') {
+          downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
+          showToast(`📄 PDF 1:1 descargado: ${Math.round(widthMm)}×${Math.round(heightMm)} mm (${effectiveDpi} DPI, ${itemCount} ítem(s))`);
+          return;
+        }
+
+        // Enviar atómicamente a la Hot Folder de Windows vía puente local
+        const pdfBase64 = uint8ArrayToBase64(pdfBytes);
+        const hotFolder = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
+        try {
+          const res = await fetch(`${BRIDGE_BASE_URL}/api/hotfolder/export`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              job_title: `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm`,
+              hot_folder_path: hotFolder,
+              file_ext: 'pdf',
+              file_base64: pdfBase64
+            })
+          });
+          const data = await res.json();
+          BRIDGE_ONLINE = true;
+          updateBridgeToolbarBadge();
+          if (data.spool && data.spool.success) {
+            showToast(`✅ Enviado a Hot Folder (${Math.round(widthMm)}×${Math.round(heightMm)} mm → ${targetSoftware})`);
+            const box = document.getElementById('network-test-result-box');
+            if (box) {
+              box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.spool.message}</span>`;
+            }
+          } else {
+            downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
+            openSetupModal();
+            const box = document.getElementById('network-test-result-box');
+            if (box) {
+              box.innerHTML = `<span class="text-amber-300 font-bold">⚠️ ${data.spool ? data.spool.message : 'Error al escribir en Hot Folder'}. Se descargó el PDF 1:1 como respaldo.</span>`;
+            }
+          }
+        } catch (err) {
+          // Si el puente local no está corriendo, descargamos igualmente el PDF 1:1 exacto (nunca .prn genérico)
+          downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
+          showToast(`📄 PDF 1:1 descargado (${Math.round(widthMm)}×${Math.round(heightMm)} mm). Arrástralo a ${targetSoftware} o inicia CONECTAR_IMPRESORAS_RED_WINDOWS.bat`);
+          const box = document.getElementById('network-test-result-box');
+          if (box) {
+            box.innerHTML = `
+              <div class="space-y-1 text-emerald-200">
+                <div class="font-bold text-emerald-400">📄 Se descargó el PDF 1:1 exacto (${Math.round(widthMm)}×${Math.round(heightMm)} mm, ${effectiveDpi} DPI)</div>
+                <div>• Puedes arrastrar <b>${pdfFileName}</b> directo a <b>${targetSoftware}</b> para imprimir ya mismo.</div>
+                <div>• Para que entre <b>automáticamente</b> sin arrastrar nada, abre <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> y configura la Hot Folder <b><code>${hotFolder}</code></b> en ${targetSoftware}.</div>
+              </div>
+            `;
+          }
+        }
+        return;
+      }
+
+      // MODO 3 y 4: Envío RAW TCP/IP Puerto 9100 o Cola Windows
       if (cfg.connMode === 'spool_file') {
         exportPrnFile(jobLabel);
         showToast(`💾 Archivo .PRN descargado (${jobLabel})`);
         return;
       }
 
-      const { totalBytes, base64Str, unitName } = compileRealPrnBytesAndBase64(jobLabel);
-      showToast(`🖨️ Enviando trabajo a ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port} ...`);
+      const { base64Str } = compileRealPrnBytesAndBase64(jobLabel);
+      showToast(`🖨️ Enviando RAW a ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port} ...`);
 
       try {
         const res = await fetch(`${BRIDGE_BASE_URL}/api/spool/send-raw`, {
@@ -5094,7 +5484,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.spool.message}</span>`;
           }
         } else {
-          // El puente está activo pero la IP de la impresora no respondió (p.ej. IP incorrecta o impresora apagada)
           openSetupModal();
           const box = document.getElementById('network-test-result-box');
           if (box) {
@@ -5103,16 +5492,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           showToast(`⚠️ Verifica la IP de la impresora (${cfg.ip}:${cfg.port})`);
         }
       } catch (err) {
-        // El puente local no está corriendo: descargamos el .PRN y abrimos Setup Unit indicando cómo activar el puente de red
         exportPrnFile(jobLabel);
         openSetupModal();
         const box = document.getElementById('network-test-result-box');
         if (box) {
           box.innerHTML = `
             <div class="space-y-1.5 text-amber-200">
-              <div class="font-bold text-amber-400">📡 ¿Cómo hacer que imprima directo por Red en tu Mutoh o Mimaki?</div>
-              <div>1. Se descargó el archivo <b>.PRN</b> como respaldo, pero para que el botón <b>"🖨️ IMPRIMIR EN RED"</b> envíe los datos directo al cable de red de la impresora (<b>${cfg.ip}:${cfg.port}</b>), abre el archivo <b><code class="text-white bg-slate-800 px-1.5 py-0.5 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> que viene dentro de tu carpeta descargada.</div>
-              <div>2. Escribe arriba la <b>Dirección IP real</b> de tu Mutoh VJ-1624 o Mimaki UJV100-160 (o pulsa <b>"🔍 Buscar en Red"</b>) y haz clic en <b>"✓ Guardar IP y Aplicar"</b>.</div>
+              <div class="font-bold text-amber-400">📡 Abre CONECTAR_IMPRESORAS_RED_WINDOWS.bat para habilitar el envío local</div>
+              <div>Te recomendamos usar el modo <b>"📂 Hot Folder 1:1 (Wasatch / RasterLink 7)"</b> para imprimir en producción sin bloqueos de firmware ("Converting").</div>
             </div>
           `;
         }
@@ -5168,10 +5555,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     function openSetupModal() {
       const cfg = getActiveUnitNetConfig();
-      document.getElementById('setup-conn-mode').value = cfg.connMode || 'tcp_raw';
-      document.getElementById('setup-printer-ip').value = cfg.ip || '192.168.1.201';
+      const isMimaki = STATE.activeUnit === 'unit2';
+      document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
+      document.getElementById('setup-hot-folder').value = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
+      document.getElementById('setup-export-dpi').value = String(cfg.exportDpi || 150);
+      document.getElementById('setup-printer-ip').value = cfg.ip || (isMimaki ? '192.168.1.73' : '192.168.1.240');
       document.getElementById('setup-printer-port').value = cfg.port || 9100;
-      document.getElementById('setup-win-queue').value = cfg.winQueue || 'Mutoh_VJ1624';
+      document.getElementById('setup-win-queue').value = cfg.winQueue || (isMimaki ? 'Mimaki_UJV100' : 'Mutoh_VJ1624');
       onConnModeChange();
       document.getElementById('modal-setup-unit').classList.add('open');
     }
@@ -5180,8 +5570,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
     function saveAndCloseSetupModal() {
       const cfg = getActiveUnitNetConfig();
+      const isMimaki = STATE.activeUnit === 'unit2';
       cfg.connMode = document.getElementById('setup-conn-mode').value;
-      cfg.ip = (document.getElementById('setup-printer-ip').value || '192.168.1.201').trim();
+      cfg.hotFolder = (document.getElementById('setup-hot-folder').value || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh')).trim();
+      cfg.exportDpi = parseInt(document.getElementById('setup-export-dpi').value, 10) || 150;
+      cfg.ip = (document.getElementById('setup-printer-ip').value || (isMimaki ? '192.168.1.73' : '192.168.1.240')).trim();
       cfg.port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
       cfg.winQueue = (document.getElementById('setup-win-queue').value || '').trim();
       saveNetConfigToStorage();
@@ -5190,7 +5583,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('quick-paper-height').value = document.getElementById('setup-paper-h').value;
       syncPaperAndRender();
       closeSetupModal();
-      showToast(`⚙️ Red configurada: ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port}`);
+      const summary = cfg.connMode === 'hot_folder'
+        ? `Hot Folder: ${cfg.hotFolder}`
+        : (cfg.connMode === 'pdf_1to1_download' ? `PDF 1:1 (${cfg.exportDpi} DPI)` : `${cfg.ip}:${cfg.port}`);
+      showToast(`⚙️ Configurado: ${summary}`);
     }
 
     function onSetupPrinterChange() {
@@ -5201,13 +5597,16 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
       document.getElementById('setup-modal-title').textContent =
         STATE.activeUnit === 'unit2'
-          ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160)'
+          ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73)'
           : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624)';
       const cfg = getActiveUnitNetConfig();
-      document.getElementById('setup-conn-mode').value = cfg.connMode || 'tcp_raw';
-      document.getElementById('setup-printer-ip').value = cfg.ip;
-      document.getElementById('setup-printer-port').value = cfg.port;
-      document.getElementById('setup-win-queue').value = cfg.winQueue;
+      const isMimaki = STATE.activeUnit === 'unit2';
+      document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
+      document.getElementById('setup-hot-folder').value = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
+      document.getElementById('setup-export-dpi').value = String(cfg.exportDpi || 150);
+      document.getElementById('setup-printer-ip').value = cfg.ip || (isMimaki ? '192.168.1.73' : '192.168.1.240');
+      document.getElementById('setup-printer-port').value = cfg.port || 9100;
+      document.getElementById('setup-win-queue').value = cfg.winQueue || (isMimaki ? 'Mimaki_UJV100' : 'Mutoh_VJ1624');
       onConnModeChange();
       updateBridgeToolbarBadge();
     }

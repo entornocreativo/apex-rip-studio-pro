@@ -263,6 +263,113 @@ while ($Listener.IsListening) {
             continue
         }
 
+        if ($Path -eq "/api/hotfolder/detect") {
+            Write-Host "[HOTFOLDER] Buscando carpetas Hot Folder de Wasatch SoftRIP y Mimaki RasterLink..." -ForegroundColor Cyan
+            $FoundFolders = @()
+            $Candidates = @(
+                "C:\ApexRIP_HotFolder_Mutoh",
+                "C:\ApexRIP_HotFolder_Mimaki",
+                "C:\MijSuite\HotFolder",
+                "C:\MijSuite\Hot",
+                "C:\RasterLink\HotFolder",
+                "C:\RasterLink7\HotFolder",
+                "C:\ProgramData\Mimaki\RasterLink7\HotFolder"
+            )
+            # Buscar subcarpetas hotfolder dentro de C:\wwrip* (Wasatch) y C:\MijSuite* (RasterLink)
+            try {
+                Get-ChildItem -Path "C:\" -Directory -Filter "wwrip*" -ErrorAction SilentlyContinue | ForEach-Object {
+                    $Candidates += Join-Path $_.FullName "hotfolder"
+                    $Candidates += Join-Path $_.FullName "hotfolders"
+                    Get-ChildItem -Path $_.FullName -Directory -Filter "*hot*" -ErrorAction SilentlyContinue | ForEach-Object {
+                        $Candidates += $_.FullName
+                    }
+                }
+                Get-ChildItem -Path "C:\" -Directory -Filter "*Mij*" -ErrorAction SilentlyContinue | ForEach-Object {
+                    Get-ChildItem -Path $_.FullName -Directory -Recurse -Depth 2 -Filter "*hot*" -ErrorAction SilentlyContinue | ForEach-Object {
+                        $Candidates += $_.FullName
+                    }
+                }
+            } catch {}
+
+            $Seen = @{}
+            foreach ($Dir in $Candidates) {
+                if ($Dir -and !$Seen.ContainsKey($Dir.ToLower())) {
+                    $Seen[$Dir.ToLower()] = $true
+                    $Exists = Test-Path $Dir
+                    if ($Exists -or $Dir -like "C:\ApexRIP_HotFolder_*") {
+                        $FoundFolders += @{
+                            path = $Dir
+                            exists = $Exists
+                            software = $(if ($Dir -like "*wwrip*" -or $Dir -like "*Mutoh*") { "Wasatch SoftRIP (Mutoh)" } else { "Mimaki RasterLink 7" })
+                        }
+                    }
+                }
+            }
+
+            Send-JsonResponse $Res @{
+                folders = $FoundFolders
+                default_mutoh = "C:\ApexRIP_HotFolder_Mutoh"
+                default_mimaki = "C:\ApexRIP_HotFolder_Mimaki"
+            }
+            continue
+        }
+
+        if ($Path -eq "/api/hotfolder/export" -and $Req.HttpMethod -eq "POST") {
+            $Reader = New-Object System.IO.StreamReader($Req.InputStream, [System.Text.Encoding]::UTF8)
+            $Body = $Reader.ReadToEnd() | ConvertFrom-Json
+            $HotFolder = ([string]$Body.hot_folder_path).Trim()
+            if (!$HotFolder) { $HotFolder = "C:\ApexRIP_HotFolder_Mutoh" }
+            $JobTitle = ([string]$Body.job_title) -replace '[^a-zA-Z0-9_-]', '_'
+            if (!$JobTitle) { $JobTitle = "ApexRIP_Job" }
+            $Ext = ([string]$Body.file_ext).Trim().TrimStart('.')
+            if (!$Ext) { $Ext = "pdf" }
+            $FileBytes = [System.Convert]::FromBase64String([string]$Body.file_base64)
+
+            try {
+                if (!(Test-Path $HotFolder)) {
+                    New-Item -ItemType Directory -Path $HotFolder -Force | Out-Null
+                }
+                $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+                $FinalName = "$($JobTitle)_$($Stamp).$Ext"
+                $TmpPath = Join-Path $HotFolder "$($FinalName).tmp"
+                $FinalPath = Join-Path $HotFolder $FinalName
+
+                # Escritura atomica: escribir .tmp y renombrar a .pdf/.tif para que Wasatch/RasterLink no lo lea a medias
+                [System.IO.File]::WriteAllBytes($TmpPath, $FileBytes)
+                Move-Item -Path $TmpPath -Destination $FinalPath -Force
+
+                # Respaldo local en output_spool
+                $BackupPath = Join-Path $SpoolDir $FinalName
+                [System.IO.File]::WriteAllBytes($BackupPath, $FileBytes)
+
+                Write-Host "[HOTFOLDER] Enviado 1:1 ($($FileBytes.Length) bytes) -> $FinalPath" -ForegroundColor Green
+                Send-JsonResponse $Res @{
+                    spool = @{
+                        success = $true
+                        tcp_delivered = $true
+                        mode = "Hot Folder 1:1 (Wasatch / RasterLink)"
+                        target = $FinalPath
+                        bytes_sent = $FileBytes.Length
+                        spool_backup = $BackupPath
+                        message = "IMPRESION ENVIADA A HOT FOLDER (1:1 Real): $FinalPath ($($FileBytes.Length) bytes). Wasatch/RasterLink lo procesara automaticamente."
+                    }
+                }
+            } catch {
+                Write-Host "[HOTFOLDER ERROR] $($_.Exception.Message)" -ForegroundColor Red
+                Send-JsonResponse $Res @{
+                    spool = @{
+                        success = $false
+                        tcp_delivered = $false
+                        mode = "Error Hot Folder"
+                        target = $HotFolder
+                        bytes_sent = 0
+                        message = "No se pudo escribir en la Hot Folder '$HotFolder': $($_.Exception.Message)"
+                    }
+                }
+            }
+            continue
+        }
+
         Send-JsonResponse $Res @{ error = "Ruta no encontrada" } 404
     } catch {
         Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
