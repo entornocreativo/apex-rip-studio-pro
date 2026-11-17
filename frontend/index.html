@@ -1047,10 +1047,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
                 <input id="setup-printer-port" type="number" value="9100" min="1" max="65535" class="col-span-3 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
               </div>
               <div class="flex flex-wrap items-center gap-1.5 pl-1 text-[11px]">
-                <span class="text-slate-400">IPs guardadas:</span>
-                <button type="button" onclick="selectFoundPrinterIp('192.168.1.240', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .240</button>
-                <button type="button" onclick="selectFoundPrinterIp('192.168.1.249', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .249</button>
-                <button type="button" onclick="selectFoundPrinterIp('192.168.1.253', 9100)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-800 border border-slate-600 font-mono text-sky-300 cursor-pointer">Mutoh? .253</button>
+                <span class="text-slate-400">Impresoras confirmadas:</span>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.240', 9100)" class="px-2 py-0.5 rounded bg-sky-950 hover:bg-sky-800 border border-sky-500 font-mono text-sky-300 font-bold cursor-pointer">Mutoh VJ-1624: 192.168.1.240</button>
                 <button type="button" onclick="selectFoundPrinterIp('192.168.1.73', 9100)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-800 border border-emerald-600 font-mono text-emerald-300 font-bold cursor-pointer">Mimaki UJV100: 192.168.1.73</button>
               </div>
             </div>
@@ -1061,7 +1059,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </div>
 
             <div id="network-test-result-box" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-slate-300 leading-relaxed">
-              ✅ <strong>Modo Recomendado (Impresión Real sin "Converting"):</strong> Usa <strong>Hot Folder 1:1</strong> con <strong>CONECTAR_IMPRESORAS_RED_WINDOWS.bat</strong>. En <strong>Wasatch SoftRIP</strong> (Mutoh) o <strong>RasterLink 7</strong> (Mimaki <code>192.168.1.73</code>), activa su Hot Folder apuntando a la carpeta de arriba: al pulsar <strong>🖨️ IMPRIMIR</strong> en ApexRIP, se genera el <strong>PDF 1:1 exacto</strong> y tu impresora arranca a imprimir con perfiles ICC, calentadores y lámpara UV reales.
+              ✅ <strong>Modo Recomendado (Impresión Real sin "Converting"):</strong> Usa <strong>Hot Folder 1:1</strong> con <strong>CONECTAR_IMPRESORAS_RED_WINDOWS.bat</strong>. En <strong>Wasatch SoftRIP</strong> (Mutoh <code>192.168.1.240</code>) o <strong>RasterLink 7</strong> (Mimaki <code>192.168.1.73</code>), activa su Hot Folder apuntando a la carpeta de arriba: al pulsar <strong>🖨️ IMPRIMIR</strong> en ApexRIP, se genera el <strong>PDF 1:1 exacto</strong> y tu impresora arranca a imprimir con perfiles ICC, calentadores y lámpara UV reales.
             </div>
           </div>
 
@@ -4929,7 +4927,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const isMimaki = STATE.activeUnit === 'unit2';
       let targetStr = `${cfg.ip}:${cfg.port}`;
       if (cfg.connMode === 'hot_folder') {
-        targetStr = isMimaki ? `RasterLink HotFolder (192.168.1.73)` : `Wasatch HotFolder`;
+        targetStr = isMimaki ? `RasterLink HotFolder (192.168.1.73)` : `Wasatch HotFolder (192.168.1.240)`;
       } else if (cfg.connMode === 'pdf_1to1_download') {
         targetStr = `PDF 1:1 (${cfg.exportDpi || 150} DPI)`;
       } else if (cfg.connMode === 'windows_spooler') {
@@ -4978,7 +4976,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         const isMimaki = STATE.activeUnit === 'unit2';
         box.innerHTML = isMimaki
           ? `✅ <strong>Mimaki UJV100-160 (IP 192.168.1.73) vía RasterLink 7 Hot Folder:</strong> Crea/asigna la Hot Folder de arriba en <b>RasterLink 7</b> (Entorno → Hot Folder). Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, el PDF 1:1 exacto se deposita ahí y RasterLink lo imprime automáticamente con tinta UV y perfiles ICC reales.`
-          : `✅ <strong>Mutoh VJ-1624 vía Wasatch SoftRIP Hot Folder:</strong> En <b>Wasatch SoftRIP</b> (Server → Hot Folder), apunta a la carpeta de arriba. Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, se genera el PDF 1:1 exacto (con copias pegadas, panelación y marcas T acostada) y Wasatch lo envía a tu Mutoh sin quedarse en "Converting".`;
+          : `✅ <strong>Mutoh VJ-1624 (IP 192.168.1.240) vía Wasatch SoftRIP Hot Folder:</strong> En <b>Wasatch SoftRIP</b> (Server → Hot Folder), apunta a la carpeta de arriba. Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, se genera el PDF 1:1 exacto (con copias pegadas, panelación y marcas T acostada) y Wasatch lo envía a tu Mutoh sin quedarse en "Converting".`;
       } else if (mode === 'pdf_1to1_download') {
         box.innerHTML = `📄 <strong>Descarga directa PDF 1:1:</strong> Genera un archivo PDF a medida real exacta en milímetros (sin deformar ni pasar a A3) listo para arrastrar a <b>Wasatch SoftRIP</b> o <b>RasterLink 7</b>.`;
       }
@@ -5556,6 +5554,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     function openSetupModal() {
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
+      document.getElementById('setup-modal-title').textContent = isMimaki
+        ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73)'
+        : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240)';
       document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
       document.getElementById('setup-hot-folder').value = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
       document.getElementById('setup-export-dpi').value = String(cfg.exportDpi || 150);
@@ -5598,7 +5599,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('setup-modal-title').textContent =
         STATE.activeUnit === 'unit2'
           ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73)'
-          : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624)';
+          : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240)';
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
       document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
