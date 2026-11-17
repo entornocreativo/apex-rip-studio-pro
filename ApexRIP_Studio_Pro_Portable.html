@@ -271,6 +271,66 @@
       outline: 2px dashed #38bdf8 !important;
       background-color: rgba(14, 165, 233, 0.12) !important;
     }
+
+    /* Menú Contextual Clic Derecho (Estilo Wasatch SoftRIP Profesional) */
+    .ws-ctx-menu {
+      position: fixed;
+      z-index: 99999;
+      min-width: 235px;
+      background-color: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.2);
+      padding: 4px 0;
+      display: none;
+      color: #f8fafc;
+      font-size: 12px;
+    }
+    .ws-ctx-menu.open {
+      display: block;
+    }
+    .ws-ctx-header {
+      padding: 5px 12px;
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+    .ws-ctx-item {
+      width: 100%;
+      text-align: left;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: transparent;
+      border: none;
+      color: #f1f5f9;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .ws-ctx-item:hover {
+      background-color: #0284c7;
+      color: #ffffff;
+    }
+    .ws-ctx-item.danger {
+      color: #fca5a5;
+    }
+    .ws-ctx-item.danger:hover {
+      background-color: #dc2626;
+      color: #ffffff;
+    }
+    .ws-ctx-sep {
+      height: 1px;
+      background-color: #334155;
+      margin: 4px 8px;
+    }
   </style>
 </head>
 <body class="ws-window h-screen flex flex-col m-0 p-0 overflow-hidden">
@@ -294,7 +354,7 @@
     <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
     <span id="top-toast-msg" class="ml-4 px-2 py-0.5 rounded bg-sky-900/60 border border-sky-500/40 text-sky-200 font-mono text-xs hidden"></span>
     <span class="ml-auto font-mono text-xs text-slate-400">
-      ApexRIP SoftRIP v3.4 • PDF Nativo 1:1 + Impresión Red TCP/IP (9100) • Mutoh &amp; Mimaki
+      ApexRIP SoftRIP v3.5 • Menú Clic Derecho + Panelación + Marcas T Acostada + PDF 1:1
     </span>
   </div>
 
@@ -650,11 +710,29 @@
         </div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA 1: JOB (Escala 1:1 Sin Deformar + Scroll Libre) -->
+      <!-- CONTENIDO PESTAÑA 1: JOB (Escala 1:1 Sin Deformar + Dimensionar/Cortar + Scroll Libre) -->
       <div id="tab-job" class="center-pane flex-1 flex flex-col p-3 min-h-0 overflow-hidden">
         <div class="bg-[#1e293b] border border-slate-700 rounded px-3 py-1.5 mb-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
-          <div class="text-xs text-slate-300">
-            Vista individual con relación de aspecto bloqueada <strong>1:1</strong> (no deforma la imagen). Arrastra aquí cualquier archivo de tu PC o usa <strong>Abrir Carpeta PC</strong> a la izquierda.
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-200">
+            <span class="font-bold text-sky-400">📐 Dimensionar / Cortar:</span>
+            <label class="flex items-center gap-1">
+              <span>Escala (%):</span>
+              <input id="job-bar-scale-pct" type="number" min="5" max="1000" step="1" value="100" onchange="applyJobBarScalePercent()" class="w-16 px-1.5 py-0.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-white" />
+            </label>
+            <button onclick="applyJobBarScalePercent()" class="ws-tool-btn" style="height:24px;">Aplicar %</button>
+            <span class="h-4 w-px bg-slate-600 mx-0.5"></span>
+            <button id="btn-toggle-crop-mode" onclick="toggleJobInteractiveCropMode()" class="ws-tool-btn" style="height:24px;" title="Arrastra el ratón sobre la imagen para recortar un área específica">
+              ✂️ Recortar con Ratón
+            </button>
+            <button id="btn-apply-crop" onclick="applyJobCropSelection()" class="ws-tool-btn primary-rip hidden" style="height:24px;">
+              ✓ Aplicar Corte
+            </button>
+            <button onclick="resetJobCropSelection()" class="ws-tool-btn" style="height:24px;" title="Restaurar imagen completa sin recorte">
+              🔄 Sin Corte
+            </button>
+            <button onclick="switchCenterTab('tab-layout')" class="ws-tool-btn" style="height:24px;">
+              ↩️ Ir al Layout
+            </button>
           </div>
           <div class="flex items-center gap-1.5">
             <button onclick="actionAddToLayout()" class="ws-tool-btn primary-rip" style="height:24px;">➕ Añadir al Layout</button>
@@ -663,42 +741,66 @@
             <button onclick="changeJobZoom(0.15)" class="ws-tool-btn" style="height:24px;">🔍 +</button>
           </div>
         </div>
+        <div id="job-crop-hint" class="hidden bg-amber-950/80 border border-amber-500/60 text-amber-200 text-xs px-3 py-1 rounded mb-2 font-mono flex items-center justify-between">
+          <span>✂️ MODO CORTE ACTIVO: Haz clic y arrastra sobre la imagen para encerrar el área que deseas conservar y pulsa "✓ Aplicar Corte".</span>
+          <span id="job-crop-dims-lbl" class="font-bold text-emerald-300">Área completa</span>
+        </div>
         <div id="job-dropzone" class="flex-1 bg-[#1e293b] border border-slate-700 rounded p-4 roll-scroll-viewport flex items-start justify-center min-h-0">
           <canvas id="job-canvas" width="600" height="500" class="shadow-lg rounded"></canvas>
         </div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA 2: LAYOUT (Mesa de Montaje Interactiva: Mover Libremente con Ratón + Tecla Suprimir/Delete + Scroll) -->
+      <!-- CONTENIDO PESTAÑA 2: LAYOUT (Mesa de Montaje Interactiva: Menú Clic Derecho + Marcas T Acostada + Imágenes Pegadas 0mm) -->
       <div id="tab-layout" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2 min-h-0 overflow-hidden">
         <!-- Barra de control del elemento seleccionado en el Layout -->
         <div class="bg-[#1e293b] border border-slate-700 rounded px-3 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
           <div class="flex flex-wrap items-center gap-1.5">
-            <span class="font-bold text-sky-400">Pieza Seleccionada:</span>
+            <span class="font-bold text-sky-400">Pieza:</span>
             <label class="text-xs text-slate-400">X:</label>
-            <input id="sel-x-mm" type="number" step="1" value="15" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-slate-600 font-mono text-xs text-white" />
+            <input id="sel-x-mm" type="number" step="1" value="0" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-slate-600 font-mono text-xs text-white" />
             <label class="text-xs text-slate-400">Y:</label>
-            <input id="sel-y-mm" type="number" step="1" value="15" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-slate-600 font-mono text-xs text-white" />
+            <input id="sel-y-mm" type="number" step="1" value="0" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-slate-600 font-mono text-xs text-white" />
             <label class="text-xs text-slate-400">Ancho:</label>
-            <input id="sel-w-mm" type="number" step="1" value="297" class="w-16 px-1.5 py-0.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-xs text-white" />
+            <input id="sel-w-mm" type="number" step="1" value="500" class="w-16 px-1.5 py-0.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-xs text-white" />
             <label class="text-xs text-slate-400">Alto:</label>
-            <input id="sel-h-mm" type="number" step="1" value="420" class="w-16 px-1.5 py-0.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-xs text-white" />
-            <button onclick="duplicateSelectedLayoutItem()" class="ws-tool-btn" style="height:24px;" title="Duplicar la imagen seleccionada al lado">📋 Duplicar</button>
-            <button onclick="deleteSelectedLayoutItem()" class="ws-tool-btn danger-btn" style="height:24px;" title="Eliminar la pieza seleccionada (También puedes pulsar la tecla Suprimir / Delete)">🗑️ Borrar (Supr)</button>
-            <button onclick="clearAllLayoutItems()" class="ws-tool-btn" style="height:24px;" title="Vaciar todas las piezas del Layout">🧹 Vaciar Rollo</button>
+            <input id="sel-h-mm" type="number" step="1" value="500" class="w-16 px-1.5 py-0.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-xs text-white" />
+
+            <span class="h-4 w-px bg-slate-600 mx-0.5"></span>
+
+            <!-- Marcas de Corte en T Acostada e Imágenes Pegadas 0mm -->
+            <label class="flex items-center gap-1 text-xs font-bold text-emerald-400 cursor-pointer bg-slate-900/80 px-2 py-0.5 rounded border border-emerald-500/40" title="Dibuja marcas de corte en forma de T acostada (⊣ ⊢) en las esquinas y uniones">
+              <input id="chk-layout-t-marks" type="checkbox" checked onchange="renderLayoutCanvas(); renderJobCanvas();" />
+              <span>⊢⊣ Marcas T Acostada</span>
+            </label>
+
+            <label class="flex items-center gap-1 text-xs text-slate-200 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-600" title="0 mm = Imágenes pegadas una al lado de la otra sin separación">
+              <span>Separación:</span>
+              <input id="layout-gap-mm" type="number" min="0" max="100" step="1" value="0" onchange="actionSmartNest()" class="w-12 px-1 py-0 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-xs text-white text-center" />
+              <span class="font-mono text-[10px] text-sky-300">mm (0=Pegadas)</span>
+            </label>
+
+            <label class="flex items-center gap-1 text-xs text-sky-300 cursor-pointer" title="Imán magnético al arrastrar para pegar una imagen justo al lado de la otra a 0 mm">
+              <input id="chk-layout-snap" type="checkbox" checked />
+              <span>🧲 Pegar Bordes</span>
+            </label>
           </div>
 
           <div class="flex items-center gap-1.5">
-            <button onclick="changeLayoutZoom(-0.15)" class="ws-tool-btn" style="height:24px;" title="Alejar vista del rollo">🔍 -</button>
+            <button onclick="openAddCopiesModal()" class="ws-tool-btn" style="height:24px;" title="Añadir múltiples copias pegadas o con separación">➕ Añadir Copias</button>
+            <button onclick="openTilingModal()" class="ws-tool-btn" style="height:24px;" title="Panelación para imágenes más grandes que el ancho del material">🧱 Panelación</button>
+            <button onclick="actionSmartNest()" class="ws-tool-btn primary-rip" style="height:24px;" title="Acomodar imágenes pegadas una al lado de la otra según la separación (0 mm)">🧩 Pegar / Acomodar</button>
+            <button onclick="deleteSelectedLayoutItem()" class="ws-tool-btn danger-btn" style="height:24px;" title="Eliminar la pieza seleccionada (Supr)">🗑️ Borrar</button>
+            <button onclick="clearAllLayoutItems()" class="ws-tool-btn" style="height:24px;" title="Vaciar todas las piezas del Layout">🧹 Vaciar</button>
+            <button onclick="changeLayoutZoom(-0.15)" class="ws-tool-btn" style="height:24px;">🔍 -</button>
             <span id="lbl-layout-zoom" class="font-mono text-xs px-1">100%</span>
-            <button onclick="changeLayoutZoom(0.15)" class="ws-tool-btn" style="height:24px;" title="Acercar vista del rollo">🔍 +</button>
-            <button onclick="addMoreRollViewLength()" class="ws-tool-btn" style="height:24px;" title="Ampliar vista de largo de bobina para seguir bajando con el scroll">+ Ver Más Rollo</button>
-            <button onclick="actionSmartNest()" class="ws-tool-btn primary-rip" style="height:24px;">🧩 Auto-Acomodar</button>
+            <button onclick="changeLayoutZoom(0.15)" class="ws-tool-btn" style="height:24px;">🔍 +</button>
+            <button onclick="addMoreRollViewLength()" class="ws-tool-btn" style="height:24px;">+ Rollo</button>
             <span id="layout-count-badge" class="font-bold font-mono text-xs px-2 py-0.5 rounded bg-slate-700 text-white">Piezas: 0</span>
           </div>
         </div>
 
         <div class="text-xs text-slate-300 px-1 flex-shrink-0 flex flex-wrap items-center justify-between gap-2">
-          <span>💡 <strong>Arrastra con el mouse</strong> para mover libremente, tira de la <strong>esquina verde</strong> para escalar sin deformar, usa las <strong>flechas del teclado</strong> para ajuste fino, o presiona <strong>Suprimir / Delete</strong> para borrar la pieza seleccionada.</span>
+          <span>🖱️ <strong>Haz Clic Derecho sobre cualquier imagen</strong> para abrir el menú rápido (<em>Dimensionar/Cortar, Girar, Espejo, Tamaño Rápido, Posición, Panelación, Duplicar, Añadir Copias, Suprimir</em>). Con <strong>Separación = 0 mm</strong> las imágenes quedan <strong>pegadas una al lado de la otra</strong> con marcas de corte en <strong>T acostada (⊣ ⊢)</strong>.</span>
         </div>
 
         <!-- Viewport con Scroll Vertical y Horizontal Real -->
@@ -1240,6 +1342,284 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     </div>
   </div>
 
+  <!-- ========================================================================== -->
+  <!-- MENÚ CONTEXTUAL AL HACER CLIC DERECHO SOBRE UN ARCHIVO / PIEZA             -->
+  <!-- ========================================================================== -->
+  <div id="layout-context-menu" class="ws-ctx-menu" role="menu">
+    <div id="ctx-menu-title" class="ws-ctx-header">Pieza seleccionada</div>
+    <button class="ws-ctx-item" onclick="ctxActionResizeCrop()">
+      <span>✂️ Dimensionar / Cortar</span>
+      <span class="text-[10px] text-slate-400 font-mono">Job + %</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="ctxActionRotateRight()">
+      <span>↻ Girar hacia la derecha</span>
+      <span class="text-[10px] text-slate-400 font-mono">+90°</span>
+    </button>
+    <button class="ws-ctx-item" onclick="ctxActionRotateLeft()">
+      <span>↺ Girar hacia la izquierda</span>
+      <span class="text-[10px] text-slate-400 font-mono">-90°</span>
+    </button>
+    <button class="ws-ctx-item" onclick="ctxActionMirror()">
+      <span>⇄ Espejo</span>
+      <span id="ctx-mirror-state" class="text-[10px] text-slate-400 font-mono">H</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="ctxActionQuickSize()">
+      <span>📐 Tamaño Rápido...</span>
+      <span class="text-[10px] text-slate-400 font-mono">% / mm</span>
+    </button>
+    <button class="ws-ctx-item" onclick="ctxActionPosition()">
+      <span>📍 Posición...</span>
+      <span class="text-[10px] text-slate-400 font-mono">X / Y</span>
+    </button>
+    <button class="ws-ctx-item" onclick="ctxActionTiling()">
+      <span>🧱 Panelación...</span>
+      <span class="text-[10px] text-slate-400 font-mono">Fil × Col</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="ctxActionDuplicate()">
+      <span>📋 Duplicar</span>
+      <span class="text-[10px] text-slate-400 font-mono">+1</span>
+    </button>
+    <button class="ws-ctx-item" onclick="ctxActionAddCopies()">
+      <span>➕ Añadir copias...</span>
+      <span class="text-[10px] text-slate-400 font-mono">× N</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item danger" onclick="ctxActionDelete()">
+      <span>🗑️ Suprimir / Borrar</span>
+      <span class="text-[10px] font-mono">Supr</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL 4: TAMAÑO RÁPIDO (Escala Porcentual, Ancho, Alto + Aceptar/Cancelar) -->
+  <!-- ========================================================================== -->
+  <div id="modal-quick-size" class="ws-modal-backdrop" onclick="if(event.target===this) closeQuickSizeModal()">
+    <div class="ws-modal-box w-full max-w-md">
+      <div class="ws-modal-header">
+        <span>📐 Tamaño Rápido</span>
+        <button onclick="closeQuickSizeModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <div id="qs-file-info" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-sky-300">
+          Pieza actual: 500 × 500 mm
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-emerald-400 mb-1">Escala Porcentual (%)</label>
+            <div class="flex items-center gap-2">
+              <input id="qs-scale-pct" type="number" min="1" max="2000" step="1" value="100" oninput="onQuickSizeScaleInput()" class="flex-1 px-3 py-1.5 rounded font-mono font-bold text-sm" />
+              <span class="font-mono text-xs text-slate-400">%</span>
+            </div>
+            <div class="flex gap-1.5 mt-1.5">
+              <button type="button" onclick="setQuickSizePercentPreset(50)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[11px] font-mono text-white cursor-pointer">50%</button>
+              <button type="button" onclick="setQuickSizePercentPreset(100)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[11px] font-mono text-white cursor-pointer">100%</button>
+              <button type="button" onclick="setQuickSizePercentPreset(150)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[11px] font-mono text-white cursor-pointer">150%</button>
+              <button type="button" onclick="setQuickSizePercentPreset(200)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[11px] font-mono text-white cursor-pointer">200%</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-sky-400 mb-1">Ancho (mm)</label>
+              <input id="qs-w-mm" type="number" min="10" max="50000" step="1" value="500" oninput="onQuickSizeWidthInput()" class="w-full px-3 py-1.5 rounded font-mono font-bold text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-sky-400 mb-1">Alto (mm)</label>
+              <input id="qs-h-mm" type="number" min="10" max="50000" step="1" value="500" oninput="onQuickSizeHeightInput()" class="w-full px-3 py-1.5 rounded font-mono font-bold text-sm" />
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs font-semibold text-sky-300 cursor-pointer pt-1">
+            <input id="qs-lock-ratio" type="checkbox" checked />
+            <span>🔗 Mantener proporción original (sin deformar)</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+          <button onclick="applyQuickSizeModal()" class="py-1.5 px-5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer">✓ Aceptar</button>
+          <button onclick="closeQuickSizeModal()" class="py-1.5 px-4 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL 5: POSICIÓN EXACTA EN EL MATERIAL                                    -->
+  <!-- ========================================================================== -->
+  <div id="modal-position" class="ws-modal-backdrop" onclick="if(event.target===this) closePositionModal()">
+    <div class="ws-modal-box w-full max-w-md">
+      <div class="ws-modal-header">
+        <span>📍 Posición en el Material</span>
+        <button onclick="closePositionModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <div id="pos-material-info" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-sky-300">
+          Material: 1050 mm de ancho
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-sky-400 mb-1">Posición X (mm, desde izq.)</label>
+            <input id="pos-x-mm" type="number" min="0" max="50000" step="1" value="0" class="w-full px-3 py-1.5 rounded font-mono font-bold text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-sky-400 mb-1">Posición Y (mm, largo rollo)</label>
+            <input id="pos-y-mm" type="number" min="0" max="50000" step="1" value="0" class="w-full px-3 py-1.5 rounded font-mono font-bold text-sm" />
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="text-xs text-slate-400 font-semibold">Alineación Rápida:</div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button type="button" onclick="quickAlignPosition('left')" class="py-1.5 px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white cursor-pointer">⬅️ Izquierda (0)</button>
+            <button type="button" onclick="quickAlignPosition('center')" class="py-1.5 px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white cursor-pointer">↔️ Centrar</button>
+            <button type="button" onclick="quickAlignPosition('right')" class="py-1.5 px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white cursor-pointer">➡️ Derecha</button>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" onclick="quickAlignPosition('top')" class="py-1.5 px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white cursor-pointer">⬆️ Inicio Rollo (Y=0)</button>
+            <button type="button" onclick="quickAlignPosition('flush_prev')" class="py-1.5 px-2 rounded bg-emerald-800 hover:bg-emerald-700 text-xs font-semibold text-emerald-100 cursor-pointer">🧲 Pegar al lado (0 mm)</button>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+          <button onclick="applyPositionModal()" class="py-1.5 px-5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer">✓ Aceptar</button>
+          <button onclick="closePositionModal()" class="py-1.5 px-4 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL 6: PANELACIÓN (Cortar imágenes mayores al ancho del material + Overlap) -->
+  <!-- ========================================================================== -->
+  <div id="modal-tiling" class="ws-modal-backdrop" onclick="if(event.target===this) closeTilingModal()">
+    <div class="ws-modal-box w-full max-w-2xl">
+      <div class="ws-modal-header">
+        <span>🧱 Panelación (División de Gran Formato por Ancho de Material)</span>
+        <button onclick="closeTilingModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <!-- Info de Material vs Imagen -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="p-3 rounded bg-[#0b1120] border border-sky-500/60 space-y-1">
+            <div class="text-[11px] uppercase tracking-wide text-slate-400">Ancho del Material Configurado</div>
+            <div id="tm-material-width-lbl" class="font-mono text-lg font-bold text-sky-400">1050 mm (105.0 cm)</div>
+          </div>
+          <div class="p-3 rounded bg-[#0b1120] border border-slate-700 space-y-1">
+            <div class="text-[11px] uppercase tracking-wide text-slate-400">Medida Actual de la Imagen</div>
+            <div id="tm-image-size-lbl" class="font-mono text-lg font-bold text-white">500 × 500 mm</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Controles de Columnas, Filas y Superposición -->
+          <div class="ws-groupbox space-y-3">
+            <span class="ws-groupbox-title">Configuración de Paneles y Superposición</span>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block text-xs font-bold text-sky-400 mb-1">Columnas (Ancho)</label>
+                <input id="tm-cols" type="number" min="1" max="30" step="1" value="2" oninput="updateTilingModalPreview()" class="w-full px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-sky-400 mb-1">Filas (Alto)</label>
+                <input id="tm-rows" type="number" min="1" max="30" step="1" value="1" oninput="updateTilingModalPreview()" class="w-full px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-amber-400 mb-1">Superposición / Overlap entre paneles (mm)</label>
+              <div class="flex items-center gap-2">
+                <input id="tm-overlap" type="number" min="0" max="200" step="1" value="15" oninput="updateTilingModalPreview()" class="flex-1 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+                <span class="font-mono text-xs text-slate-400">mm</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">
+                Se agrega esta medida de solapamiento en las uniones interiores para montar los paños sin huecos.
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" onclick="autoCalcTilingColsByMaterial()" class="py-1 px-2.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-bold text-sky-300 cursor-pointer">
+                ⚡ Auto-Calcular por Ancho de Material
+              </button>
+            </div>
+
+            <div id="tm-summary-box" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs space-y-1 text-slate-200">
+              Total paneles: 2
+            </div>
+          </div>
+
+          <!-- Vista previa gráfica de los paneles y superposición -->
+          <div class="ws-groupbox flex flex-col items-center justify-center">
+            <span class="ws-groupbox-title">Vista Previa de Corte (Naranja = Superposición)</span>
+            <canvas id="tm-preview-canvas" width="280" height="220" class="rounded border border-slate-700 bg-white mt-1"></canvas>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+          <button onclick="applyTilingModal()" class="py-1.5 px-5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer">✂️ Aplicar Panelación en Layout</button>
+          <button onclick="closeTilingModal()" class="py-1.5 px-4 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL 7: AÑADIR COPIAS (Cantidad de repeticiones + Pegadas 0 mm)           -->
+  <!-- ========================================================================== -->
+  <div id="modal-add-copies" class="ws-modal-backdrop" onclick="if(event.target===this) closeAddCopiesModal()">
+    <div class="ws-modal-box w-full max-w-md">
+      <div class="ws-modal-header">
+        <span>➕ Añadir Copias / Repeticiones</span>
+        <button onclick="closeAddCopiesModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <div id="ac-item-info" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-sky-300">
+          Pieza seleccionada: 500 × 500 mm
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-emerald-400 mb-1">Cantidad de copias a añadir</label>
+          <input id="ac-count" type="number" min="1" max="500" step="1" value="1" oninput="updateAddCopiesSummary()" class="w-full px-3 py-1.5 rounded font-mono font-bold text-base" />
+          <div class="flex gap-1.5 mt-1.5">
+            <button type="button" onclick="setAddCopiesPreset(1)" class="px-2.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white cursor-pointer">+1</button>
+            <button type="button" onclick="setAddCopiesPreset(3)" class="px-2.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white cursor-pointer">+3</button>
+            <button type="button" onclick="setAddCopiesPreset(5)" class="px-2.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white cursor-pointer">+5</button>
+            <button type="button" onclick="setAddCopiesPreset(10)" class="px-2.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white cursor-pointer">+10</button>
+            <button type="button" onclick="setAddCopiesPreset(20)" class="px-2.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white cursor-pointer">+20</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-sky-400 mb-1">Separación Horizontal (mm)</label>
+            <input id="ac-gap-x" type="number" min="0" max="200" step="1" value="0" oninput="updateAddCopiesSummary()" class="w-full px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-sky-400 mb-1">Separación Vertical (mm)</label>
+            <input id="ac-gap-y" type="number" min="0" max="200" step="1" value="0" oninput="updateAddCopiesSummary()" class="w-full px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+          </div>
+        </div>
+        <div class="text-[11px] text-emerald-300 font-mono">
+          💡 Deja 0 mm para que las imágenes queden pegadas una al lado de la otra.
+        </div>
+
+        <div id="ac-summary-box" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-slate-200">
+          Se añadirán 1 copia(s) al Layout.
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+          <button onclick="applyAddCopiesModal()" class="py-1.5 px-5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer">✓ Aceptar</button>
+          <button onclick="closeAddCopiesModal()" class="py-1.5 px-4 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ============================================================================
     // MOTOR WASATCH-STYLE SOFTRIP v3.2
@@ -1341,6 +1721,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       customImage: null,
       activeFileName: 'Ningún archivo cargado',
       activeSampleArt: 'empty_placeholder',
+      activeRotation: 0,
+      activeMirror: false,
+      activeCrop: null, // { sx, sy, sw, sh } en coordenadas normalizadas 0..1
+      jobCropMode: false,
+      jobCropRect: null, // rectángulo temporal de recorte en Job { x0, y0, x1, y1 } normalizado 0..1
+      jobCropDrag: null,
+      ctxTargetItemId: null,
+      snapGuides: [],
       profiles: storedProfiles,
       // Explorador de archivos real de la PC (sin archivos falsos pre-cargados)
       pcFiles: [], // { id, name, path, sizeStr, w, h, origW, origH, pxW, pxH, img, fileRef, isDir, dirHandle, dpiInfo }
@@ -2189,6 +2577,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       }
     }
 
+    function getLayoutGapMm() {
+      const el = document.getElementById('layout-gap-mm');
+      if (!el) return 0;
+      const v = parseFloat(el.value);
+      return isNaN(v) ? 0 : Math.max(0, v);
+    }
+
     function selectPcFileEntry(item, switchToJobTab = false) {
       if (!item || item.isDir) return;
       STATE.customImage = item.img;
@@ -2197,6 +2592,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       STATE.currentAspectRatio = item.w / item.h;
       STATE.baseJobWidthMm = item.origW || item.w;
       STATE.baseJobHeightMm = item.origH || item.h;
+      STATE.activeRotation = item.rotation || 0;
+      STATE.activeMirror = !!item.mirror;
+      STATE.activeCrop = item.crop ? { ...item.crop } : null;
 
       const cmStr = `${(item.w / 10).toFixed(1)}×${(item.h / 10).toFixed(1)} cm`;
       document.getElementById('status-file-path').textContent =
@@ -2206,6 +2604,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('job-h-mm').value = item.h;
       document.getElementById('top-w-mm').value = item.w;
       document.getElementById('top-h-mm').value = item.h;
+      const pct = Math.round((item.w / (STATE.baseJobWidthMm || item.w)) * 100);
+      document.getElementById('job-scale-pct').value = pct;
+      const jobBarPct = document.getElementById('job-bar-scale-pct');
+      if (jobBarPct) jobBarPct.value = pct;
+
       const ratioStr = (item.w / item.h).toFixed(3);
       document.getElementById('lbl-orig-aspect').textContent =
         `${item.w} x ${item.h} mm (${cmStr} • ${item.dpiInfo || 'Proporción ' + ratioStr})`;
@@ -2221,7 +2624,15 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const origW = (selItem && selItem.origW) || (activeEntry && activeEntry.origW) || STATE.baseJobWidthMm || 500;
       const origH = (selItem && selItem.origH) || (activeEntry && activeEntry.origH) || STATE.baseJobHeightMm || 500;
       STATE.currentAspectRatio = origW / origH;
+      STATE.activeCrop = null;
+      if (selItem) {
+        selItem.crop = null;
+        selItem.rotation = 0;
+        selItem.aspectRatio = origW / origH;
+      }
       document.getElementById('job-scale-pct').value = 100;
+      const jobBarPct = document.getElementById('job-bar-scale-pct');
+      if (jobBarPct) jobBarPct.value = 100;
       applyNewJobAndSelectedDimensions(origW, origH);
       showToast(`🔄 Medida original restaurada: ${origW} × ${origH} mm (${(origW / 10).toFixed(1)} × ${(origH / 10).toFixed(1)} cm)`);
     }
@@ -2231,17 +2642,18 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const w = Math.round(item.w || 500);
       const h = Math.round(item.h || 500);
       const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const gap = getLayoutGapMm();
 
-      let nextX = 15, nextY = 15;
+      let nextX = 0, nextY = 0;
       if (STATE.layoutItems.length > 0) {
         const last = STATE.layoutItems[STATE.layoutItems.length - 1];
-        if (last.x + last.w + 15 + w <= rollW - 15) {
-          nextX = last.x + last.w + 15;
+        if (last.x + last.w + gap + w <= rollW) {
+          nextX = last.x + last.w + gap;
           nextY = last.y;
         } else {
-          const maxBottom = STATE.layoutItems.reduce((m, it) => Math.max(m, it.y + it.h), 15);
-          nextX = 15;
-          nextY = maxBottom + 15;
+          const maxBottom = STATE.layoutItems.reduce((m, it) => Math.max(m, it.y + it.h), 0);
+          nextX = 0;
+          nextY = maxBottom + gap;
         }
       }
 
@@ -2256,6 +2668,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         origW: item.origW || w,
         origH: item.origH || h,
         aspectRatio: w / h,
+        rotation: item.rotation || 0,
+        mirror: !!item.mirror,
+        crop: item.crop ? { ...item.crop } : null,
         art: 'custom',
         img: item.img,
         selected: true
@@ -2569,63 +2984,150 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       renderLayoutCanvas();
     }
 
-    // Reglas graduadas reales en cm (10 mm = 1 cm) con escala 1:1 exacta en X e Y
+    // ============================================================================
+    // REGLAS GRADUADAS NÍTIDAS (HiDPI 2x) — SIN REGLA LATERAL DERECHA
+    // ============================================================================
     function drawWasatchRulers(ctx, x0, y0, wPx, hPx, maxMmX, maxMmY) {
       ctx.save();
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(x0 - 26, y0 - 22, wPx + 52, 22);
-      ctx.fillRect(x0 - 26, y0 + hPx, wPx + 52, 22);
-      ctx.fillRect(x0 - 26, y0, 26, hPx);
-      ctx.fillRect(x0 + wPx, y0, 26, hPx);
 
-      ctx.strokeStyle = '#64748b';
-      ctx.fillStyle = '#0f172a';
-      ctx.font = '10px monospace';
+      const topH = 26;
+      const leftW = 36;
+
+      // Fondo limpio SOLO arriba y a la izquierda (sin regla lateral derecha)
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(x0 - leftW, y0 - topH, wPx + leftW, topH);
+      ctx.fillRect(x0 - leftW, y0, leftW, hPx);
+
+      // Cuadro de unidad "cm" en la esquina superior izquierda
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(x0 - leftW, y0 - topH, leftW, topH);
+      ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 1;
+      ctx.strokeRect(Math.round(x0 - leftW) + 0.5, Math.round(y0 - topH) + 0.5, leftW, topH);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '700 10px "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('cm', x0 - leftW / 2, y0 - topH / 2);
 
-      const stepMmX = maxMmX > 600 ? 100 : 50;
-      for (let mm = 0; mm <= maxMmX; mm += stepMmX / 5) {
-        const px = x0 + (mm / maxMmX) * wPx;
-        const isMajor = mm % stepMmX === 0;
-        const tickH = isMajor ? 8 : 4;
+      // Líneas divisorias de las reglas (alineadas a medio píxel para nitidez total)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(x0) + 0.5, Math.round(y0) + 0.5);
+      ctx.lineTo(Math.round(x0 + wPx) + 0.5, Math.round(y0) + 0.5);
+      ctx.moveTo(Math.round(x0) + 0.5, Math.round(y0) + 0.5);
+      ctx.lineTo(Math.round(x0) + 0.5, Math.round(y0 + hPx) + 0.5);
+      ctx.stroke();
+
+      // Tipografía ultra nítida para los números de las reglas
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '700 11px "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
+
+      // Regla Horizontal Superior (Ancho del Material en cm)
+      const stepMmX = maxMmX > 900 ? 100 : maxMmX > 400 ? 50 : 20;
+      const minorX = stepMmX / 5;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      for (let mm = 0; mm <= maxMmX + 0.01; mm += minorX) {
+        const px = Math.round(x0 + (mm / maxMmX) * wPx) + 0.5;
+        const isMajor = Math.abs(mm % stepMmX) < 0.01 || Math.abs((mm % stepMmX) - stepMmX) < 0.01;
+        const tickH = isMajor ? 9 : 4;
+        ctx.strokeStyle = isMajor ? '#334155' : '#94a3b8';
         ctx.beginPath();
         ctx.moveTo(px, y0);
         ctx.lineTo(px, y0 - tickH);
-        ctx.moveTo(px, y0 + hPx);
-        ctx.lineTo(px, y0 + hPx + tickH);
         ctx.stroke();
         if (isMajor) {
           const cmLbl = Math.round(mm / 10);
-          ctx.fillText(String(cmLbl), px + 2, y0 - 9);
-          ctx.fillText(String(cmLbl), px + 2, y0 + hPx + 16);
+          const labelX = mm === maxMmX ? px - 18 : px + 3;
+          ctx.fillText(String(cmLbl), labelX, y0 - 11);
         }
       }
 
-      const stepMmY = maxMmY > 600 ? 100 : 50;
-      for (let mm = 0; mm <= maxMmY; mm += stepMmY / 5) {
-        const py = y0 + (mm / maxMmY) * hPx;
-        const isMajor = mm % stepMmY === 0;
-        const tickW = isMajor ? 8 : 4;
+      // Regla Vertical Izquierda ÚNICAMENTE (Largo de Bobina / Alto en cm) — Eliminada la lateral derecha
+      const stepMmY = maxMmY > 900 ? 100 : maxMmY > 400 ? 50 : 20;
+      const minorY = stepMmY / 5;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let mm = 0; mm <= maxMmY + 0.01; mm += minorY) {
+        const py = Math.round(y0 + (mm / maxMmY) * hPx) + 0.5;
+        const isMajor = Math.abs(mm % stepMmY) < 0.01 || Math.abs((mm % stepMmY) - stepMmY) < 0.01;
+        const tickW = isMajor ? 9 : 4;
+        ctx.strokeStyle = isMajor ? '#334155' : '#94a3b8';
         ctx.beginPath();
         ctx.moveTo(x0, py);
         ctx.lineTo(x0 - tickW, py);
-        ctx.moveTo(x0 + wPx, py);
-        ctx.lineTo(x0 + wPx + tickW, py);
         ctx.stroke();
         if (isMajor) {
           const cmLbl = Math.round(mm / 10);
-          ctx.fillText(String(cmLbl), x0 - 23, py + 3);
-          ctx.fillText(String(cmLbl), x0 + wPx + 4, py + 3);
+          ctx.fillText(String(cmLbl), x0 - 11, py);
         }
       }
 
+      // Contorno nítido del área del material
       ctx.strokeStyle = '#334155';
-      ctx.strokeRect(x0, y0, wPx, hPx);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, Math.round(wPx), Math.round(hPx));
       ctx.restore();
     }
 
-    // Dibuja la imagen subida respetando SIEMPRE su relación de aspecto (CERO DEFORMACIÓN)
-    function drawArtworkIntoRect(ctx, artType, customImgObj, x, y, w, h, withTrace = false) {
+    // ============================================================================
+    // MARCAS DE CORTE EN FORMA DE "T ACOSTADA" (⊣ en bordes izquierdos, ⊢ en derechos)
+    // ============================================================================
+    function drawSidewaysTCropMarks(ctx, px, py, pw, ph) {
+      ctx.save();
+      const arm = Math.max(5, Math.min(11, Math.min(pw, ph) * 0.08)); // semialtura de la barra vertical |
+      const stem = Math.max(7, Math.min(14, Math.min(pw, ph) * 0.10)); // largo del palito horizontal -
+
+      const xL = Math.round(px) + 0.5;
+      const xR = Math.round(px + pw) + 0.5;
+      const yT = Math.round(py) + 0.5;
+      const yB = Math.round(py + ph) + 0.5;
+
+      function strokeTPath() {
+        ctx.beginPath();
+        // Esquina Superior Izquierda: T acostada "⊣" (barra vertical en el borde de corte + tallo horizontal a la izquierda)
+        ctx.moveTo(xL, yT - arm * 0.4);
+        ctx.lineTo(xL, yT + arm);
+        ctx.moveTo(xL, yT);
+        ctx.lineTo(xL - stem, yT);
+
+        // Esquina Inferior Izquierda: T acostada "⊣"
+        ctx.moveTo(xL, yB - arm);
+        ctx.lineTo(xL, yB + arm * 0.4);
+        ctx.moveTo(xL, yB);
+        ctx.lineTo(xL - stem, yB);
+
+        // Esquina Superior Derecha: T acostada "⊢" (barra vertical en el borde de corte + tallo horizontal a la derecha)
+        ctx.moveTo(xR, yT - arm * 0.4);
+        ctx.lineTo(xR, yT + arm);
+        ctx.moveTo(xR, yT);
+        ctx.lineTo(xR + stem, yT);
+
+        // Esquina Inferior Derecha: T acostada "⊢"
+        ctx.moveTo(xR, yB - arm);
+        ctx.lineTo(xR, yB + arm * 0.4);
+        ctx.moveTo(xR, yB);
+        ctx.lineTo(xR + stem, yB);
+        ctx.stroke();
+      }
+
+      // Halo blanco fino para garantizar contraste sobre fondos oscuros y claros
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.lineWidth = 2.6;
+      ctx.lineCap = 'butt';
+      strokeTPath();
+
+      // Trazo negro nítido de marca de corte profesional
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.2;
+      strokeTPath();
+      ctx.restore();
+    }
+
+    // Dibuja la imagen respetando SIEMPRE su relación de aspecto, rotación (0/90/180/270), espejo y recorte
+    function drawArtworkIntoRect(ctx, artType, customImgObj, x, y, w, h, withTrace = false, opts = null) {
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x, y, w, h);
@@ -2634,18 +3136,35 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       if (imgToDraw) {
         const iw = imgToDraw.naturalWidth || imgToDraw.width || w;
         const ih = imgToDraw.naturalHeight || imgToDraw.height || h;
-        const scale = Math.min(w / iw, h / ih);
-        const dw = iw * scale;
-        const dh = ih * scale;
-        const dx = x + (w - dw) / 2;
-        const dy = y + (h - dh) / 2;
-        ctx.drawImage(imgToDraw, dx, dy, dw, dh);
+        const crop = opts && opts.crop ? opts.crop : null;
+        const rotation = opts && opts.rotation ? ((opts.rotation % 360) + 360) % 360 : 0;
+        const mirror = !!(opts && opts.mirror);
+
+        const sx = crop ? Math.max(0, Math.min(1, crop.sx)) * iw : 0;
+        const sy = crop ? Math.max(0, Math.min(1, crop.sy)) * ih : 0;
+        const sw = crop ? Math.max(0.02, Math.min(1 - (crop.sx || 0), crop.sw)) * iw : iw;
+        const sh = crop ? Math.max(0.02, Math.min(1 - (crop.sy || 0), crop.sh)) * ih : ih;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.clip();
+
+        ctx.translate(x + w / 2, y + h / 2);
+        if (mirror) ctx.scale(-1, 1);
+        if (rotation !== 0) ctx.rotate((rotation * Math.PI) / 180);
+
+        const drawW = rotation === 90 || rotation === 270 ? h : w;
+        const drawH = rotation === 90 || rotation === 270 ? w : h;
+
+        ctx.drawImage(imgToDraw, sx, sy, sw, sh, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
 
         if (withTrace && document.getElementById('chk-trace-active').checked) {
           ctx.strokeStyle = document.getElementById('trace-color').value || '#fff200';
           ctx.lineWidth = 2;
           ctx.setLineDash([6, 4]);
-          ctx.strokeRect(dx + 2, dy + 2, Math.max(4, dw - 4), Math.max(4, dh - 4));
+          ctx.strokeRect(x + 2, y + 2, Math.max(4, w - 4), Math.max(4, h - 4));
         }
         ctx.restore();
         return;
@@ -2670,36 +3189,51 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     // ============================================================================
-    // VISTA 1: JOB (Escala Isótropa 1:1 en Píxeles — NUNCA DEFORMA LA IMAGEN)
+    // VISTA 1: JOB (HiDPI Nítido + Escala 1:1 + Recorte Interactivo + Marcas T)
     // ============================================================================
-    function renderJobCanvas() {
-      const jobWMm = Math.max(10, parseFloat(document.getElementById('job-w-mm').value) || 297);
-      const jobHMm = Math.max(10, parseFloat(document.getElementById('job-h-mm').value) || 420);
-
+    function getJobCanvasGeometry() {
+      const jobWMm = Math.max(10, parseFloat(document.getElementById('job-w-mm').value) || 500);
+      const jobHMm = Math.max(10, parseFloat(document.getElementById('job-h-mm').value) || 500);
       const baseMaxPx = 460 * STATE.jobZoom;
       const scalePxPerMm = baseMaxPx / Math.max(jobWMm, jobHMm, 100);
       const viewW = Math.max(80, Math.round(jobWMm * scalePxPerMm));
       const viewH = Math.max(80, Math.round(jobHMm * scalePxPerMm));
+      const padLeft = 46, padRight = 24, padTop = 34, padBottom = 46;
+      const cssW = viewW + padLeft + padRight;
+      const cssH = viewH + padTop + padBottom;
+      return { jobWMm, jobHMm, viewW, viewH, padLeft, padRight, padTop, padBottom, cssW, cssH };
+    }
 
-      const padX = 48, padTop = 34, padBottom = 52;
+    function renderJobCanvas() {
+      const { jobWMm, jobHMm, viewW, viewH, padLeft, padTop, cssW, cssH } = getJobCanvasGeometry();
+      const dpr = Math.max(2, Math.min(3, window.devicePixelRatio || 1));
+
       const canvas = document.getElementById('job-canvas');
-      canvas.width = viewW + padX * 2;
-      canvas.height = viewH + padTop + padBottom;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
 
       const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, cssW, cssH);
 
       const off = document.createElement('canvas');
       off.width = viewW;
       off.height = viewH;
       const oCtx = off.getContext('2d');
 
-      if (document.getElementById('setup-mirror').checked) {
-        oCtx.translate(viewW, 0);
-        oCtx.scale(-1, 1);
-      }
-      drawArtworkIntoRect(oCtx, STATE.activeSampleArt, STATE.customImage, 0, 0, viewW, viewH, true);
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      const activeMirror = !!(document.getElementById('setup-mirror').checked || STATE.activeMirror || (selItem && selItem.mirror));
+      const activeRot = selItem ? (selItem.rotation || 0) : (STATE.activeRotation || 0);
+      const activeCrop = selItem && selItem.crop ? selItem.crop : STATE.activeCrop;
+
+      drawArtworkIntoRect(oCtx, STATE.activeSampleArt, STATE.customImage, 0, 0, viewW, viewH, true, {
+        rotation: activeRot,
+        mirror: activeMirror,
+        crop: activeCrop
+      });
 
       // Separación CMYKW en vivo
       const imgData = oCtx.getImageData(0, 0, viewW, viewH);
@@ -2748,7 +3282,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         }
       }
       oCtx.putImageData(imgData, 0, 0);
-      ctx.drawImage(off, padX, padTop);
+      ctx.drawImage(off, padLeft, padTop, viewW, viewH);
 
       // Panelación (Tile) si está activa
       if (document.getElementById('chk-tile-active').checked) {
@@ -2758,32 +3292,62 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ctx.strokeStyle = '#0284c7';
         ctx.lineWidth = 2;
         for (let c = 1; c < tCols; c++) {
-          const tx = padX + (c / tCols) * viewW;
+          const tx = padLeft + (c / tCols) * viewW;
           ctx.beginPath(); ctx.moveTo(tx, padTop); ctx.lineTo(tx, padTop + viewH); ctx.stroke();
         }
         for (let r = 1; r < tRows; r++) {
           const ty = padTop + (r / tRows) * viewH;
-          ctx.beginPath(); ctx.moveTo(padX, ty); ctx.lineTo(padX + viewW, ty); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(padLeft, ty); ctx.lineTo(padLeft + viewW, ty); ctx.stroke();
         }
         document.getElementById('tile-info-box').textContent =
           `${tCols * tRows} paneles de ~${Math.round(jobWMm / tCols + ovMm)} x ${Math.round(jobHMm / tRows)} mm`;
       }
 
-      drawWasatchRulers(ctx, padX, padTop, viewW, viewH, jobWMm, jobHMm);
+      // Overlay de Recorte Interactivo en pestaña Job (Dimensionar / Cortar)
+      if (STATE.jobCropMode && STATE.jobCropRect) {
+        const cr = STATE.jobCropRect;
+        const rx = padLeft + Math.min(cr.x0, cr.x1) * viewW;
+        const ry = padTop + Math.min(cr.y0, cr.y1) * viewH;
+        const rw = Math.abs(cr.x1 - cr.x0) * viewW;
+        const rh = Math.abs(cr.y1 - cr.y0) * viewH;
 
-      // Anotación al pie y patrón CMYK
+        ctx.save();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.58)';
+        // Sombrear zonas fuera del recorte
+        ctx.fillRect(padLeft, padTop, viewW, ry - padTop);
+        ctx.fillRect(padLeft, ry + rh, viewW, padTop + viewH - (ry + rh));
+        ctx.fillRect(padLeft, ry, rx - padLeft, rh);
+        ctx.fillRect(rx + rw, ry, padLeft + viewW - (rx + rw), rh);
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(rx, ry, rw, rh);
+        ctx.restore();
+      }
+
+      // Marcas de corte en T acostada si están activas
+      if (document.getElementById('chk-layout-t-marks')?.checked && STATE.customImage) {
+        drawSidewaysTCropMarks(ctx, padLeft, padTop, viewW, viewH);
+      }
+
+      drawWasatchRulers(ctx, padLeft, padTop, viewW, viewH, jobWMm, jobHMm);
+
+      // Anotación al pie
       if (document.getElementById('setup-annotate').checked) {
-        const ay = padTop + viewH + 24;
+        const ay = padTop + viewH + 14;
         ctx.fillStyle = '#0f172a';
-        ctx.font = '10px monospace';
-        const parts = [`${jobWMm}x${jobHMm}mm`];
+        ctx.font = '700 10px "Segoe UI", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const parts = [`${jobWMm}×${jobHMm} mm`];
         if (document.getElementById('ann-printer').checked) {
           parts.push(STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624');
         }
         if (document.getElementById('ann-comment').checked) {
           parts.push(document.getElementById('ann-comment-txt').value);
         }
-        ctx.fillText(parts.join(' | '), padX, ay + 12);
+        ctx.fillText(parts.join(' | '), padLeft, ay);
       }
 
       const areaM2 = (jobWMm / 1000) * (jobHMm / 1000);
@@ -2793,53 +3357,63 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     // ============================================================================
-    // VISTA 2: LAYOUT (Escala 1:1 Exacta + Drag & Drop Libre + Tecla Supr + Scroll)
+    // VISTA 2: LAYOUT (HiDPI Nítido + Sin Regla Derecha + Marcas T + Imágenes Pegadas)
     // ============================================================================
     function getLayoutGeometry() {
       const rollW_mm = Math.max(200, parseFloat(document.getElementById('quick-paper-width').value) || 1050);
       const viewW = Math.round(680 * STATE.layoutZoom);
       const scale = viewW / rollW_mm;
-      const x0 = 42, y0 = 32;
+      const x0 = 46, y0 = 32;
+      const padRight = 24, padBottom = 34;
       const maxItemY = STATE.layoutItems.reduce((acc, it) => Math.max(acc, it.y + it.h), 450);
       const visibleRollLenMm = Math.min(MAX_COIL_MM, Math.max(STATE.extraRollViewMm, maxItemY + 450));
       const viewH = Math.round(visibleRollLenMm * scale);
-      return { rollW_mm, viewW, viewH, scale, x0, y0, visibleRollLenMm, maxItemY };
+      const cssW = x0 + viewW + padRight;
+      const cssH = y0 + viewH + padBottom;
+      return { rollW_mm, viewW, viewH, scale, x0, y0, padRight, padBottom, cssW, cssH, visibleRollLenMm, maxItemY };
     }
 
     function renderLayoutCanvas() {
       const canvas = document.getElementById('layout-canvas');
-      const { rollW_mm, viewW, viewH, scale, x0, y0, visibleRollLenMm, maxItemY } = getLayoutGeometry();
+      const { rollW_mm, viewW, viewH, scale, x0, y0, cssW, cssH, visibleRollLenMm, maxItemY } = getLayoutGeometry();
+      const dpr = Math.max(2, Math.min(3, window.devicePixelRatio || 1));
 
-      canvas.width = viewW + 84;
-      canvas.height = viewH + 68;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
 
       const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, cssW, cssH);
 
       // Fondo blanco del rollo de material
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x0, y0, viewW, viewH);
 
       // Cuadrícula guía suave cada 10 cm (100 mm)
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.24)';
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
       ctx.lineWidth = 1;
       for (let gx = 100; gx < rollW_mm; gx += 100) {
-        const px = x0 + gx * scale;
+        const px = Math.round(x0 + gx * scale) + 0.5;
         ctx.beginPath(); ctx.moveTo(px, y0); ctx.lineTo(px, y0 + viewH); ctx.stroke();
       }
       for (let gy = 100; gy < visibleRollLenMm; gy += 100) {
-        const py = y0 + gy * scale;
+        const py = Math.round(y0 + gy * scale) + 0.5;
         ctx.beginPath(); ctx.moveTo(x0, py); ctx.lineTo(x0 + viewW, py); ctx.stroke();
       }
 
       if (STATE.layoutItems.length === 0) {
         ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText('Mesa de Rollo Vacía — Haz doble clic en un archivo a la izquierda o pulsa "+ Add to Layout"', x0 + 36, y0 + 80);
+        ctx.font = '700 13px "Segoe UI", sans-serif';
+        ctx.fillText('Mesa de Rollo Vacía — Haz doble clic en un archivo a la izquierda o pulsa "+ Add to Layout"', x0 + 28, y0 + 70);
       }
 
+      const showTMarks = document.getElementById('chk-layout-t-marks')?.checked !== false;
       let usedArea = 0;
+
+      // Paso 1: Dibujar todas las imágenes pegadas limpiamente
       STATE.layoutItems.forEach((it) => {
         const px = x0 + it.x * scale;
         const py = y0 + it.y * scale;
@@ -2847,57 +3421,141 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         const ph = it.h * scale;
         usedArea += it.w * it.h;
 
-        drawArtworkIntoRect(ctx, it.art, it.img, px, py, pw, ph, false);
+        drawArtworkIntoRect(ctx, it.art, it.img, px, py, pw, ph, false, {
+          rotation: it.rotation || 0,
+          mirror: !!it.mirror,
+          crop: it.crop || null
+        });
+      });
 
-        // Etiqueta superior con dimensiones reales en mm
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
-        ctx.fillRect(px + 2, py + 2, Math.min(pw - 4, 175), 18);
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText(`${Math.round(it.w)}x${Math.round(it.h)}mm (${it.name.slice(0, 12)})`, px + 6, py + 14);
+      // Paso 2: Dibujar marcas de corte en T acostada (⊣ ⊢), bordes y etiquetas encima para que no queden tapadas cuando las piezas están pegadas a 0 mm
+      STATE.layoutItems.forEach((it) => {
+        const px = x0 + it.x * scale;
+        const py = y0 + it.y * scale;
+        const pw = it.w * scale;
+        const ph = it.h * scale;
+
+        if (showTMarks) {
+          drawSidewaysTCropMarks(ctx, px, py, pw, ph);
+        }
+
+        // Etiqueta compacta superior con dimensiones reales en mm y estado (rotación / espejo / panel)
+        const badges = [];
+        if (it.rotation) badges.push(`${it.rotation}°`);
+        if (it.mirror) badges.push('⇄');
+        const labelTxt = `${Math.round(it.w)}×${Math.round(it.h)}mm${badges.length ? ' [' + badges.join('') + ']' : ''} ${it.name.slice(0, 14)}`;
+        const boxW = Math.min(Math.max(40, pw - 4), 210);
+        if (pw >= 44 && ph >= 24) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.80)';
+          ctx.fillRect(px + 2, py + 2, boxW, 17);
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = '700 10px "Segoe UI", monospace';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(labelTxt, px + 6, py + 11, boxW - 8);
+        }
 
         ctx.save();
         if (it.selected) {
           ctx.strokeStyle = '#22c55e';
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(px, py, pw, ph);
-          // Tirador de esquina inferior derecha para redimensionar proporcionalmente con el ratón
+          ctx.lineWidth = 2;
+          ctx.strokeRect(Math.round(px) + 0.5, Math.round(py) + 0.5, Math.round(pw), Math.round(ph));
+          // Tirador verde esquina inferior derecha para escalar sin deformar
           ctx.fillStyle = '#22c55e';
-          ctx.fillRect(px + pw - 11, py + ph - 11, 11, 11);
+          ctx.fillRect(px + pw - 10, py + ph - 10, 10, 10);
           ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(px + pw - 11, py + ph - 11, 11, 11);
-        } else {
-          ctx.strokeStyle = '#475569';
           ctx.lineWidth = 1.2;
+          ctx.strokeRect(px + pw - 10, py + ph - 10, 10, 10);
+        } else {
+          ctx.strokeStyle = 'rgba(71, 85, 105, 0.55)';
+          ctx.lineWidth = 0.9;
           ctx.setLineDash([4, 3]);
-          ctx.strokeRect(px, py, pw, ph);
+          ctx.strokeRect(Math.round(px) + 0.5, Math.round(py) + 0.5, Math.round(pw), Math.round(ph));
         }
         ctx.restore();
       });
 
+      // Guías magnéticas cian al arrastrar pegado a otro borde (0 mm)
+      if (STATE.snapGuides && STATE.snapGuides.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        STATE.snapGuides.forEach((g) => {
+          ctx.beginPath();
+          if (g.type === 'v') {
+            const gx = Math.round(x0 + g.val * scale) + 0.5;
+            ctx.moveTo(gx, y0);
+            ctx.lineTo(gx, y0 + viewH);
+          } else {
+            const gy = Math.round(y0 + g.val * scale) + 0.5;
+            ctx.moveTo(x0, gy);
+            ctx.lineTo(x0 + viewW, gy);
+          }
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
       drawWasatchRulers(ctx, x0, y0, viewW, viewH, rollW_mm, visibleRollLenMm);
 
       const eff = STATE.layoutItems.length > 0
-        ? Math.min(99.2, (usedArea / Math.max(1, rollW_mm * maxItemY)) * 100).toFixed(2)
+        ? Math.min(99.9, (usedArea / Math.max(1, rollW_mm * maxItemY)) * 100).toFixed(2)
         : '0.00';
       document.getElementById('status-nesting-eff').textContent = `Nesting Efficiency: ${eff}%`;
       document.getElementById('layout-count-badge').textContent = `Piezas: ${STATE.layoutItems.length}`;
     }
 
     // ============================================================================
-    // INTERACCIÓN CON EL RATÓN Y TECLADO (SUPRIMIR / DELETE + FLECHAS) EN LAYOUT
+    // INTERACCIÓN CON RATÓN, CLIC DERECHO (MENÚ CONTEXTUAL), SNAP 0mm Y RECORTE EN JOB
     // ============================================================================
+    function hideContextMenu() {
+      const menu = document.getElementById('layout-context-menu');
+      if (menu) menu.classList.remove('open');
+    }
+
+    function showContextMenuAt(clientX, clientY, targetItem) {
+      const menu = document.getElementById('layout-context-menu');
+      if (!menu) return;
+
+      STATE.ctxTargetItemId = targetItem ? targetItem.id : null;
+      const titleEl = document.getElementById('ctx-menu-title');
+      if (targetItem) {
+        titleEl.textContent = `${targetItem.name} (${Math.round(targetItem.w)}×${Math.round(targetItem.h)} mm)`;
+        document.getElementById('ctx-mirror-state').textContent = targetItem.mirror ? 'ACTIVO' : 'OFF';
+      } else {
+        const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 500);
+        const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 500);
+        titleEl.textContent = `${STATE.activeFileName || 'Trabajo activo'} (${w}×${h} mm)`;
+        document.getElementById('ctx-mirror-state').textContent = STATE.activeMirror ? 'ACTIVO' : 'OFF';
+      }
+
+      menu.classList.add('open');
+      const mw = menu.offsetWidth || 240;
+      const mh = menu.offsetHeight || 340;
+      const clampedX = Math.max(8, Math.min(window.innerWidth - mw - 10, clientX));
+      const clampedY = Math.max(8, Math.min(window.innerHeight - mh - 10, clientY));
+      menu.style.left = `${clampedX}px`;
+      menu.style.top = `${clampedY}px`;
+    }
+
+    function getActiveContextTargetItem() {
+      if (STATE.ctxTargetItemId) {
+        const found = STATE.layoutItems.find((it) => it.id === STATE.ctxTargetItemId);
+        if (found) return found;
+      }
+      return STATE.layoutItems.find((it) => it.selected) || STATE.layoutItems[STATE.layoutItems.length - 1] || null;
+    }
+
     function bindLayoutMouseAndKeyboardEvents() {
       const canvas = document.getElementById('layout-canvas');
+      const jobCanvas = document.getElementById('job-canvas');
 
       function getMouseMm(ev) {
         const rect = canvas.getBoundingClientRect();
-        const scaleCanvasX = canvas.width / rect.width;
-        const scaleCanvasY = canvas.height / rect.height;
-        const cx = (ev.clientX - rect.left) * scaleCanvasX;
-        const cy = (ev.clientY - rect.top) * scaleCanvasY;
-        const { scale, x0, y0 } = getLayoutGeometry();
+        const { scale, x0, y0, cssW, cssH } = getLayoutGeometry();
+        const cx = (ev.clientX - rect.left) * (cssW / rect.width);
+        const cy = (ev.clientY - rect.top) * (cssH / rect.height);
         return {
           mmX: (cx - x0) / scale,
           mmY: (cy - y0) / scale,
@@ -2905,13 +3563,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         };
       }
 
-      canvas.addEventListener('mousedown', (ev) => {
-        canvas.focus();
-        const { mmX, mmY, scale } = getMouseMm(ev);
+      function hitTestLayoutItem(mmX, mmY, scale) {
         const handleRadiusMm = 14 / scale;
-
-        let hitItem = null;
-        let hitMode = 'move';
         for (let i = STATE.layoutItems.length - 1; i >= 0; i--) {
           const it = STATE.layoutItems[i];
           if (
@@ -2920,20 +3573,80 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             mmY >= it.y + it.h - handleRadiusMm &&
             mmY <= it.y + it.h + handleRadiusMm
           ) {
-            hitItem = it;
-            hitMode = 'resize';
-            break;
+            return { hitItem: it, hitMode: 'resize' };
           }
           if (mmX >= it.x && mmX <= it.x + it.w && mmY >= it.y && mmY <= it.y + it.h) {
-            hitItem = it;
-            hitMode = 'move';
-            break;
+            return { hitItem: it, hitMode: 'move' };
           }
         }
+        return { hitItem: null, hitMode: 'move' };
+      }
+
+      // Cerrar menú contextual al hacer clic en cualquier otra parte
+      window.addEventListener('mousedown', (ev) => {
+        if (!ev.target.closest('#layout-context-menu')) {
+          hideContextMenu();
+        }
+      });
+
+      // Clic Derecho en Layout -> Selecciona pieza bajo el cursor y abre menú contextual
+      canvas.addEventListener('contextmenu', (ev) => {
+        ev.preventDefault();
+        const { mmX, mmY, scale } = getMouseMm(ev);
+        const { hitItem } = hitTestLayoutItem(mmX, mmY, scale);
+        if (hitItem) {
+          STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
+          STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
+          syncSelectedLayoutItemInputs(hitItem);
+          renderLayoutCanvas();
+          showContextMenuAt(ev.clientX, ev.clientY, hitItem);
+        } else {
+          const sel = STATE.layoutItems.find((x) => x.selected);
+          if (sel) {
+            showContextMenuAt(ev.clientX, ev.clientY, sel);
+          } else {
+            showToast('ℹ️ Haz clic derecho sobre una imagen en el Layout para ver sus opciones.');
+          }
+        }
+      });
+
+      // Clic Derecho también soportado en la vista Job
+      if (jobCanvas) {
+        jobCanvas.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          const sel = STATE.layoutItems.find((x) => x.selected) || null;
+          showContextMenuAt(ev.clientX, ev.clientY, sel);
+        });
+
+        // Interacción de Recorte con Ratón en la pestaña Job (Dimensionar / Cortar)
+        jobCanvas.addEventListener('mousedown', (ev) => {
+          if (ev.button !== 0 || !STATE.jobCropMode) return;
+          const rect = jobCanvas.getBoundingClientRect();
+          const { padLeft, padTop, viewW, viewH, cssW, cssH } = getJobCanvasGeometry();
+          const cx = (ev.clientX - rect.left) * (cssW / rect.width);
+          const cy = (ev.clientY - rect.top) * (cssH / rect.height);
+          const nx = Math.max(0, Math.min(1, (cx - padLeft) / viewW));
+          const ny = Math.max(0, Math.min(1, (cy - padTop) / viewH));
+          STATE.jobCropDrag = { x0: nx, y0: ny };
+          STATE.jobCropRect = { x0: nx, y0: ny, x1: nx, y1: ny };
+          renderJobCanvas();
+        });
+      }
+
+      canvas.addEventListener('mousedown', (ev) => {
+        if (ev.button !== 0) return; // Solo botón izquierdo arrastra/selecciona
+        canvas.focus();
+        const { mmX, mmY, scale } = getMouseMm(ev);
+        const { hitItem, hitMode } = hitTestLayoutItem(mmX, mmY, scale);
 
         if (hitItem) {
           STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
           STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
+          STATE.customImage = hitItem.img || STATE.customImage;
+          STATE.activeFileName = hitItem.name;
+          STATE.activeRotation = hitItem.rotation || 0;
+          STATE.activeMirror = !!hitItem.mirror;
+          STATE.activeCrop = hitItem.crop ? { ...hitItem.crop } : null;
           STATE.dragState = {
             mode: hitMode,
             item: hitItem,
@@ -2947,29 +3660,103 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           syncSelectedLayoutItemInputs(hitItem);
           renderLayoutCanvas();
         } else {
-          // Clic en zona blanca vacía del rollo: deseleccionar
           STATE.layoutItems.forEach((x) => (x.selected = false));
           renderLayoutCanvas();
         }
       });
 
       window.addEventListener('mousemove', (ev) => {
+        // Arrastre de recorte en Job
+        if (STATE.jobCropDrag && jobCanvas) {
+          const rect = jobCanvas.getBoundingClientRect();
+          const { padLeft, padTop, viewW, viewH, cssW, cssH, jobWMm, jobHMm } = getJobCanvasGeometry();
+          const cx = (ev.clientX - rect.left) * (cssW / rect.width);
+          const cy = (ev.clientY - rect.top) * (cssH / rect.height);
+          const nx = Math.max(0, Math.min(1, (cx - padLeft) / viewW));
+          const ny = Math.max(0, Math.min(1, (cy - padTop) / viewH));
+          STATE.jobCropRect = { x0: STATE.jobCropDrag.x0, y0: STATE.jobCropDrag.y0, x1: nx, y1: ny };
+          const cwMm = Math.round(Math.abs(nx - STATE.jobCropDrag.x0) * jobWMm);
+          const chMm = Math.round(Math.abs(ny - STATE.jobCropDrag.y0) * jobHMm);
+          const lbl = document.getElementById('job-crop-dims-lbl');
+          if (lbl) lbl.textContent = `Corte seleccionado: ${cwMm} × ${chMm} mm`;
+          const applyBtn = document.getElementById('btn-apply-crop');
+          if (applyBtn && cwMm >= 10 && chMm >= 10) applyBtn.classList.remove('hidden');
+          renderJobCanvas();
+          return;
+        }
+
         if (!STATE.dragState) return;
         const { mmX, mmY } = getMouseMm(ev);
         const ds = STATE.dragState;
         const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+        const snapEnabled = document.getElementById('chk-layout-snap')?.checked !== false;
+        const snapDist = 12; // mm de atracción magnética para pegar bordes a 0 mm
+        STATE.snapGuides = [];
 
         if (ds.mode === 'move') {
           const dx = mmX - ds.startMmX;
           const dy = mmY - ds.startMmY;
-          ds.item.x = Math.max(0, Math.min(rollW_mm - ds.item.w, Math.round(ds.origX + dx)));
-          ds.item.y = Math.max(0, Math.min(MAX_COIL_MM - ds.item.h, Math.round(ds.origY + dy)));
+          let targetX = Math.max(0, Math.min(Math.max(0, rollW_mm - ds.item.w), Math.round(ds.origX + dx)));
+          let targetY = Math.max(0, Math.min(MAX_COIL_MM - ds.item.h, Math.round(ds.origY + dy)));
+
+          // Imán magnético para pegar una imagen justo al lado de la otra (0 mm) o a los bordes del rollo
+          if (snapEnabled) {
+            if (Math.abs(targetX) <= snapDist) {
+              targetX = 0;
+              STATE.snapGuides.push({ type: 'v', val: 0 });
+            } else if (Math.abs(targetX + ds.item.w - rollW_mm) <= snapDist) {
+              targetX = Math.max(0, rollW_mm - ds.item.w);
+              STATE.snapGuides.push({ type: 'v', val: rollW_mm });
+            }
+            if (Math.abs(targetY) <= snapDist) {
+              targetY = 0;
+              STATE.snapGuides.push({ type: 'h', val: 0 });
+            }
+
+            STATE.layoutItems.forEach((other) => {
+              if (other === ds.item) return;
+              // Pegar borde izquierdo al borde derecho de otra imagen (0 mm)
+              if (Math.abs(targetX - (other.x + other.w)) <= snapDist) {
+                targetX = other.x + other.w;
+                STATE.snapGuides.push({ type: 'v', val: targetX });
+              }
+              // Pegar borde derecho al borde izquierdo de otra imagen (0 mm)
+              else if (Math.abs(targetX + ds.item.w - other.x) <= snapDist) {
+                targetX = other.x - ds.item.w;
+                STATE.snapGuides.push({ type: 'v', val: other.x });
+              }
+              // Alinear bordes izquierdos
+              else if (Math.abs(targetX - other.x) <= snapDist) {
+                targetX = other.x;
+                STATE.snapGuides.push({ type: 'v', val: other.x });
+              }
+
+              // Pegar borde superior al borde inferior de otra imagen (0 mm)
+              if (Math.abs(targetY - (other.y + other.h)) <= snapDist) {
+                targetY = other.y + other.h;
+                STATE.snapGuides.push({ type: 'h', val: targetY });
+              }
+              // Pegar borde inferior al borde superior de otra imagen (0 mm)
+              else if (Math.abs(targetY + ds.item.h - other.y) <= snapDist) {
+                targetY = other.y - ds.item.h;
+                STATE.snapGuides.push({ type: 'h', val: other.y });
+              }
+              // Alinear parte superior de la fila
+              else if (Math.abs(targetY - other.y) <= snapDist) {
+                targetY = other.y;
+                STATE.snapGuides.push({ type: 'h', val: other.y });
+              }
+            });
+          }
+
+          ds.item.x = Math.max(0, targetX);
+          ds.item.y = Math.max(0, targetY);
           if (ds.item.y + ds.item.h + 250 > STATE.extraRollViewMm) {
             STATE.extraRollViewMm = Math.min(MAX_COIL_MM, ds.item.y + ds.item.h + 500);
           }
         } else if (ds.mode === 'resize') {
           const dw = mmX - ds.startMmX;
-          let newW = Math.max(20, Math.min(rollW_mm - ds.item.x, Math.round(ds.origW + dw)));
+          let newW = Math.max(20, Math.round(ds.origW + dw));
           const ratio = ds.item.aspectRatio || (ds.origW / ds.origH);
           let newH = STATE.lockAspectRatio ? Math.round(newW / ratio) : Math.max(20, Math.round(ds.origH + (mmY - ds.startMmY)));
           ds.item.w = newW;
@@ -2980,29 +3767,36 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       });
 
       window.addEventListener('mouseup', () => {
+        if (STATE.jobCropDrag) {
+          STATE.jobCropDrag = null;
+          renderJobCanvas();
+        }
         if (STATE.dragState) {
           STATE.dragState = null;
+          STATE.snapGuides = [];
           syncPaperAndRender();
         }
       });
 
-      // Teclas Globales: Suprimir / Delete / Backspace para borrar del Layout + Escape para cerrar modales + Flechas para mover pieza
+      // Teclas Globales: Suprimir / Delete / Backspace + Escape + Flechas
       window.addEventListener('keydown', (ev) => {
-        // Cerrar cualquier modal abierto con Escape
         if (ev.key === 'Escape') {
+          hideContextMenu();
           closeSetupModal();
           closeImagingConfigModal();
           closeAnnotationModal();
+          closeQuickSizeModal();
+          closePositionModal();
+          closeTilingModal();
+          closeAddCopiesModal();
           return;
         }
 
-        // No interceptar teclas si el usuario está escribiendo dentro de un input o textarea
         const activeTag = document.activeElement ? document.activeElement.tagName : '';
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') {
           return;
         }
 
-        // Borrar pieza seleccionada en Layout con Suprimir / Delete / Backspace
         if (ev.key === 'Delete' || ev.key === 'Backspace' || ev.key === 'Del') {
           const hasSelectedInLayout = STATE.layoutItems.some((it) => it.selected);
           if (hasSelectedInLayout) {
@@ -3012,7 +3806,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           return;
         }
 
-        // Mover pieza seleccionada en Layout con las flechas del teclado (1 mm o 10 mm con Shift)
         const sel = STATE.layoutItems.find((it) => it.selected);
         const isLayoutVisible = !document.getElementById('tab-layout').classList.contains('hidden');
         if (sel && isLayoutVisible && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) {
@@ -3020,13 +3813,675 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           const step = ev.shiftKey ? 10 : 1;
           const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
           if (ev.key === 'ArrowLeft') sel.x = Math.max(0, sel.x - step);
-          if (ev.key === 'ArrowRight') sel.x = Math.min(rollW_mm - sel.w, sel.x + step);
+          if (ev.key === 'ArrowRight') sel.x = Math.min(Math.max(0, rollW_mm - sel.w), sel.x + step);
           if (ev.key === 'ArrowUp') sel.y = Math.max(0, sel.y - step);
           if (ev.key === 'ArrowDown') sel.y = Math.min(MAX_COIL_MM - sel.h, sel.y + step);
           syncSelectedLayoutItemInputs(sel);
           syncPaperAndRender();
         }
       });
+    }
+
+    // ============================================================================
+    // ACCIONES DEL MENÚ CONTEXTUAL (CLIC DERECHO) Y SUS MODALES
+    // ============================================================================
+
+    // 1. Dimensionar / Cortar (Lleva a la pestaña Job y permite cortar o escalar en %)
+    function ctxActionResizeCrop() {
+      hideContextMenu();
+      const it = getActiveContextTargetItem();
+      if (it) {
+        STATE.layoutItems.forEach((x) => (x.selected = x === it));
+        STATE.customImage = it.img || STATE.customImage;
+        STATE.activeFileName = it.name;
+        STATE.baseJobWidthMm = it.origW || it.w;
+        STATE.baseJobHeightMm = it.origH || it.h;
+        STATE.currentAspectRatio = it.aspectRatio || (it.w / it.h);
+        STATE.activeRotation = it.rotation || 0;
+        STATE.activeMirror = !!it.mirror;
+        STATE.activeCrop = it.crop ? { ...it.crop } : null;
+        syncSelectedLayoutItemInputs(it);
+        const pct = Math.round((it.w / (STATE.baseJobWidthMm || it.w)) * 100);
+        document.getElementById('job-scale-pct').value = pct;
+        document.getElementById('job-bar-scale-pct').value = pct;
+      }
+
+      // Activar pestaña Job + pestaña vertical Size + modo recorte interactivo listo
+      switchCenterTab('tab-job');
+      document.querySelectorAll('.v-tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-vtab') === 'vpane-size');
+      });
+      document.querySelectorAll('.v-pane').forEach((p) => {
+        p.classList.toggle('hidden', p.id !== 'vpane-size');
+      });
+      if (!STATE.jobCropMode) toggleJobInteractiveCropMode();
+      showToast('✂️ Modo Dimensionar / Cortar activo en Job: ajusta Escala % o arrastra sobre la imagen para recortar.');
+    }
+
+    function applyJobBarScalePercent() {
+      const pct = Math.max(5, Math.min(1000, parseFloat(document.getElementById('job-bar-scale-pct').value) || 100));
+      document.getElementById('job-scale-pct').value = pct;
+      const newW = Math.max(10, Math.round((STATE.baseJobWidthMm || 500) * (pct / 100)));
+      const newH = Math.max(10, Math.round((STATE.baseJobHeightMm || 500) * (pct / 100)));
+      applyNewJobAndSelectedDimensions(newW, newH);
+      showToast(`📐 Escala aplicada al ${pct}% (${newW} × ${newH} mm)`);
+    }
+
+    function toggleJobInteractiveCropMode() {
+      STATE.jobCropMode = !STATE.jobCropMode;
+      STATE.jobCropRect = null;
+      const btn = document.getElementById('btn-toggle-crop-mode');
+      const hint = document.getElementById('job-crop-hint');
+      const applyBtn = document.getElementById('btn-apply-crop');
+      const jobCanvas = document.getElementById('job-canvas');
+      if (STATE.jobCropMode) {
+        btn.classList.add('primary-rip');
+        btn.textContent = '✂️ Recortando (Arrastra en imagen)';
+        hint.classList.remove('hidden');
+        if (jobCanvas) jobCanvas.style.cursor = 'crosshair';
+      } else {
+        btn.classList.remove('primary-rip');
+        btn.textContent = '✂️ Recortar con Ratón';
+        hint.classList.add('hidden');
+        applyBtn.classList.add('hidden');
+        if (jobCanvas) jobCanvas.style.cursor = 'default';
+      }
+      renderJobCanvas();
+    }
+
+    function applyJobCropSelection() {
+      if (!STATE.jobCropRect) return;
+      const cr = STATE.jobCropRect;
+      const rx0 = Math.max(0, Math.min(cr.x0, cr.x1));
+      const ry0 = Math.max(0, Math.min(cr.y0, cr.y1));
+      const rw = Math.abs(cr.x1 - cr.x0);
+      const rh = Math.abs(cr.y1 - cr.y0);
+      if (rw < 0.03 || rh < 0.03) {
+        showToast('⚠️ Arrastra un área más grande sobre la imagen para recortar.');
+        return;
+      }
+
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      const baseCrop = (selItem && selItem.crop) || STATE.activeCrop || { sx: 0, sy: 0, sw: 1, sh: 1 };
+      const newCrop = {
+        sx: baseCrop.sx + rx0 * baseCrop.sw,
+        sy: baseCrop.sy + ry0 * baseCrop.sh,
+        sw: rw * baseCrop.sw,
+        sh: rh * baseCrop.sh
+      };
+
+      const curW = parseFloat(document.getElementById('job-w-mm').value) || 500;
+      const curH = parseFloat(document.getElementById('job-h-mm').value) || 500;
+      const newW = Math.max(10, Math.round(curW * rw));
+      const newH = Math.max(10, Math.round(curH * rh));
+
+      STATE.activeCrop = newCrop;
+      STATE.currentAspectRatio = newW / newH;
+      if (selItem) {
+        selItem.crop = { ...newCrop };
+        selItem.aspectRatio = newW / newH;
+      }
+
+      STATE.jobCropRect = null;
+      if (STATE.jobCropMode) toggleJobInteractiveCropMode();
+      applyNewJobAndSelectedDimensions(newW, newH);
+      showToast(`✂️ Recorte aplicado: nueva medida ${newW} × ${newH} mm`);
+    }
+
+    function resetJobCropSelection() {
+      STATE.activeCrop = null;
+      STATE.jobCropRect = null;
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      if (selItem) {
+        selItem.crop = null;
+        if (selItem.origW && selItem.origH) {
+          selItem.aspectRatio = selItem.origW / selItem.origH;
+          STATE.currentAspectRatio = selItem.aspectRatio;
+          applyNewJobAndSelectedDimensions(selItem.origW, selItem.origH);
+        }
+      } else {
+        renderJobCanvas();
+      }
+      document.getElementById('btn-apply-crop')?.classList.add('hidden');
+      showToast('🔄 Recorte restablecido a imagen completa');
+    }
+
+    // 2. Girar hacia la derecha (+90°)
+    function ctxActionRotateRight() {
+      hideContextMenu();
+      const it = getActiveContextTargetItem();
+      if (it) {
+        it.rotation = ((it.rotation || 0) + 90) % 360;
+        const oldW = it.w;
+        it.w = it.h;
+        it.h = oldW;
+        it.aspectRatio = it.w / it.h;
+        STATE.currentAspectRatio = it.aspectRatio;
+        STATE.activeRotation = it.rotation;
+        syncSelectedLayoutItemInputs(it);
+        syncPaperAndRender();
+        showToast(`↻ "${it.name}" girado +90° a la derecha (${it.w}×${it.h} mm)`);
+      } else {
+        actionRotate90();
+      }
+    }
+
+    // 3. Girar hacia la izquierda (-90°)
+    function ctxActionRotateLeft() {
+      hideContextMenu();
+      const it = getActiveContextTargetItem();
+      if (it) {
+        it.rotation = ((it.rotation || 0) + 270) % 360;
+        const oldW = it.w;
+        it.w = it.h;
+        it.h = oldW;
+        it.aspectRatio = it.w / it.h;
+        STATE.currentAspectRatio = it.aspectRatio;
+        STATE.activeRotation = it.rotation;
+        syncSelectedLayoutItemInputs(it);
+        syncPaperAndRender();
+        showToast(`↺ "${it.name}" girado -90° a la izquierda (${it.w}×${it.h} mm)`);
+      } else {
+        actionRotate90(-90);
+      }
+    }
+
+    // 4. Espejo Horizontal
+    function ctxActionMirror() {
+      hideContextMenu();
+      const it = getActiveContextTargetItem();
+      if (it) {
+        it.mirror = !it.mirror;
+        STATE.activeMirror = it.mirror;
+        syncPaperAndRender();
+        showToast(`⇄ Espejo ${it.mirror ? 'ACTIVADO' : 'DESACTIVADO'} en "${it.name}"`);
+      } else {
+        STATE.activeMirror = !STATE.activeMirror;
+        document.getElementById('setup-mirror').checked = STATE.activeMirror;
+        renderJobCanvas();
+        showToast(`⇄ Espejo ${STATE.activeMirror ? 'ACTIVADO' : 'DESACTIVADO'}`);
+      }
+    }
+
+    // 5. Modal Tamaño Rápido (Escala Porcentual, Ancho, Alto + Aceptar / Cancelar)
+    let QUICK_SIZE_CTX = { origW: 500, origH: 500, ratio: 1 };
+
+    function ctxActionQuickSize() {
+      hideContextMenu();
+      openQuickSizeModal();
+    }
+
+    function openQuickSizeModal() {
+      const it = getActiveContextTargetItem();
+      const curW = Math.round(it ? it.w : (parseFloat(document.getElementById('job-w-mm').value) || 500));
+      const curH = Math.round(it ? it.h : (parseFloat(document.getElementById('job-h-mm').value) || 500));
+      const baseW = Math.round((it && it.origW) || STATE.baseJobWidthMm || curW);
+      const baseH = Math.round((it && it.origH) || STATE.baseJobHeightMm || curH);
+
+      QUICK_SIZE_CTX = {
+        origW: baseW,
+        origH: baseH,
+        ratio: (it && it.aspectRatio) || (curW / Math.max(1, curH))
+      };
+
+      const pct = Math.max(1, Math.round((curW / Math.max(1, baseW)) * 100));
+      document.getElementById('qs-file-info').textContent =
+        `${it ? it.name : STATE.activeFileName} • Actual: ${curW} × ${curH} mm (${(curW / 10).toFixed(1)} × ${(curH / 10).toFixed(1)} cm)`;
+      document.getElementById('qs-scale-pct').value = pct;
+      document.getElementById('qs-w-mm').value = curW;
+      document.getElementById('qs-h-mm').value = curH;
+      document.getElementById('qs-lock-ratio').checked = STATE.lockAspectRatio;
+      document.getElementById('modal-quick-size').classList.add('open');
+    }
+
+    function closeQuickSizeModal() {
+      document.getElementById('modal-quick-size').classList.remove('open');
+    }
+
+    function setQuickSizePercentPreset(pct) {
+      document.getElementById('qs-scale-pct').value = pct;
+      onQuickSizeScaleInput();
+    }
+
+    function onQuickSizeScaleInput() {
+      const pct = Math.max(1, parseFloat(document.getElementById('qs-scale-pct').value) || 100);
+      const newW = Math.max(10, Math.round(QUICK_SIZE_CTX.origW * (pct / 100)));
+      const newH = Math.max(10, Math.round(newW / QUICK_SIZE_CTX.ratio));
+      document.getElementById('qs-w-mm').value = newW;
+      document.getElementById('qs-h-mm').value = newH;
+    }
+
+    function onQuickSizeWidthInput() {
+      const w = Math.max(10, parseFloat(document.getElementById('qs-w-mm').value) || 10);
+      if (document.getElementById('qs-lock-ratio').checked) {
+        document.getElementById('qs-h-mm').value = Math.max(10, Math.round(w / QUICK_SIZE_CTX.ratio));
+      }
+      document.getElementById('qs-scale-pct').value = Math.max(1, Math.round((w / Math.max(1, QUICK_SIZE_CTX.origW)) * 100));
+    }
+
+    function onQuickSizeHeightInput() {
+      const h = Math.max(10, parseFloat(document.getElementById('qs-h-mm').value) || 10);
+      let w = parseFloat(document.getElementById('qs-w-mm').value) || 10;
+      if (document.getElementById('qs-lock-ratio').checked) {
+        w = Math.max(10, Math.round(h * QUICK_SIZE_CTX.ratio));
+        document.getElementById('qs-w-mm').value = w;
+      }
+      document.getElementById('qs-scale-pct').value = Math.max(1, Math.round((w / Math.max(1, QUICK_SIZE_CTX.origW)) * 100));
+    }
+
+    function applyQuickSizeModal() {
+      const w = Math.max(10, Math.round(parseFloat(document.getElementById('qs-w-mm').value) || 500));
+      const h = Math.max(10, Math.round(parseFloat(document.getElementById('qs-h-mm').value) || 500));
+      const it = getActiveContextTargetItem();
+      if (it) {
+        STATE.layoutItems.forEach((x) => (x.selected = x === it));
+        it.w = w;
+        it.h = h;
+        it.aspectRatio = w / h;
+        STATE.currentAspectRatio = it.aspectRatio;
+      }
+      applyNewJobAndSelectedDimensions(w, h);
+      const pct = Math.max(1, Math.round(parseFloat(document.getElementById('qs-scale-pct').value) || 100));
+      document.getElementById('job-scale-pct').value = pct;
+      document.getElementById('job-bar-scale-pct').value = pct;
+      closeQuickSizeModal();
+      showToast(`📐 Tamaño aplicado: ${w} × ${h} mm (${pct}%)`);
+    }
+
+    // 6. Modal Posición
+    function ctxActionPosition() {
+      hideContextMenu();
+      openPositionModal();
+    }
+
+    function openPositionModal() {
+      const it = getActiveContextTargetItem();
+      if (!it) {
+        showToast('ℹ️ Añade una imagen al Layout primero para ajustar su posición.');
+        return;
+      }
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      document.getElementById('pos-material-info').textContent =
+        `Material: ${rollW} mm de ancho • Pieza: ${Math.round(it.w)} × ${Math.round(it.h)} mm`;
+      document.getElementById('pos-x-mm').value = Math.round(it.x);
+      document.getElementById('pos-y-mm').value = Math.round(it.y);
+      document.getElementById('modal-position').classList.add('open');
+    }
+
+    function closePositionModal() {
+      document.getElementById('modal-position').classList.remove('open');
+    }
+
+    function quickAlignPosition(mode) {
+      const it = getActiveContextTargetItem();
+      if (!it) return;
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      if (mode === 'left') document.getElementById('pos-x-mm').value = 0;
+      else if (mode === 'center') document.getElementById('pos-x-mm').value = Math.max(0, Math.round((rollW - it.w) / 2));
+      else if (mode === 'right') document.getElementById('pos-x-mm').value = Math.max(0, Math.round(rollW - it.w));
+      else if (mode === 'top') document.getElementById('pos-y-mm').value = 0;
+      else if (mode === 'flush_prev') {
+        const idx = STATE.layoutItems.indexOf(it);
+        const prev = idx > 0 ? STATE.layoutItems[idx - 1] : STATE.layoutItems.find((o) => o !== it);
+        if (prev) {
+          if (prev.x + prev.w + it.w <= rollW) {
+            document.getElementById('pos-x-mm').value = Math.round(prev.x + prev.w);
+            document.getElementById('pos-y-mm').value = Math.round(prev.y);
+          } else {
+            document.getElementById('pos-x-mm').value = 0;
+            document.getElementById('pos-y-mm').value = Math.round(prev.y + prev.h);
+          }
+        }
+      }
+    }
+
+    function applyPositionModal() {
+      const it = getActiveContextTargetItem();
+      if (!it) return;
+      it.x = Math.max(0, Math.round(parseFloat(document.getElementById('pos-x-mm').value) || 0));
+      it.y = Math.max(0, Math.round(parseFloat(document.getElementById('pos-y-mm').value) || 0));
+      syncSelectedLayoutItemInputs(it);
+      syncPaperAndRender();
+      closePositionModal();
+      showToast(`📍 Posición actualizada: X=${it.x} mm, Y=${it.y} mm`);
+    }
+
+    // 7. Modal Panelación (Cortar imágenes mayores al ancho del material + Superposición en mm)
+    function ctxActionTiling() {
+      hideContextMenu();
+      openTilingModal();
+    }
+
+    function openTilingModal() {
+      const it = getActiveContextTargetItem();
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const imgW = Math.round(it ? it.w : (parseFloat(document.getElementById('job-w-mm').value) || 500));
+      const imgH = Math.round(it ? it.h : (parseFloat(document.getElementById('job-h-mm').value) || 500));
+
+      document.getElementById('tm-material-width-lbl').textContent = `${rollW} mm (${(rollW / 10).toFixed(1)} cm)`;
+      const exceedsTxt = imgW > rollW ? ' ⚠️ EXCEDE MATERIAL' : ' ✓ Cabe en material';
+      document.getElementById('tm-image-size-lbl').textContent =
+        `${imgW} × ${imgH} mm (${(imgW / 10).toFixed(1)}×${(imgH / 10).toFixed(1)} cm)${exceedsTxt}`;
+
+      // Auto-calcular columnas mínimas necesarias si supera el ancho del material
+      const overlap = Math.max(0, parseFloat(document.getElementById('tm-overlap').value) || 15);
+      const effRollW = Math.max(50, rollW - overlap);
+      const autoCols = Math.max(1, Math.ceil(imgW / effRollW));
+      document.getElementById('tm-cols').value = autoCols;
+      document.getElementById('tm-rows').value = 1;
+
+      document.getElementById('modal-tiling').classList.add('open');
+      updateTilingModalPreview();
+    }
+
+    function closeTilingModal() {
+      document.getElementById('modal-tiling').classList.remove('open');
+    }
+
+    function autoCalcTilingColsByMaterial() {
+      const it = getActiveContextTargetItem();
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const imgW = Math.round(it ? it.w : (parseFloat(document.getElementById('job-w-mm').value) || 500));
+      const overlap = Math.max(0, parseFloat(document.getElementById('tm-overlap').value) || 15);
+      const effRollW = Math.max(50, rollW - overlap);
+      document.getElementById('tm-cols').value = Math.max(1, Math.ceil(imgW / effRollW));
+      updateTilingModalPreview();
+    }
+
+    function updateTilingModalPreview() {
+      const it = getActiveContextTargetItem();
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const imgW = Math.round(it ? it.w : (parseFloat(document.getElementById('job-w-mm').value) || 500));
+      const imgH = Math.round(it ? it.h : (parseFloat(document.getElementById('job-h-mm').value) || 500));
+      const cols = Math.max(1, Math.min(30, parseInt(document.getElementById('tm-cols').value, 10) || 1));
+      const rows = Math.max(1, Math.min(30, parseInt(document.getElementById('tm-rows').value, 10) || 1));
+      const ov = Math.max(0, parseFloat(document.getElementById('tm-overlap').value) || 0);
+
+      const baseColW = imgW / cols;
+      const baseRowH = imgH / rows;
+      // Paneles interiores llevan superposición en ambos lados o en el borde derecho/inferior
+      const maxPanelW = Math.round(baseColW + (cols > 1 ? ov : 0));
+      const maxPanelH = Math.round(baseRowH + (rows > 1 ? ov : 0));
+      const fitsMaterial = maxPanelW <= rollW;
+
+      document.getElementById('tm-summary-box').innerHTML = `
+        <div><strong>Total de paneles:</strong> ${cols} col × ${rows} fil = <span class="text-sky-400 font-bold">${cols * rows} paños</span></div>
+        <div><strong>Medida máx. por panel (con ${ov} mm superp.):</strong> <span class="${fitsMaterial ? 'text-emerald-400' : 'text-red-400'} font-bold">${maxPanelW} × ${maxPanelH} mm</span></div>
+        <div><strong>Estado vs Material (${rollW} mm):</strong> ${fitsMaterial ? '<span class="text-emerald-400 font-bold">✅ CADA PANEL CABE EN EL MATERIAL</span>' : '<span class="text-red-400 font-bold">⚠️ AUMENTA LAS COLUMNAS (Excede ' + rollW + ' mm)</span>'}</div>
+      `;
+
+      // Sincronizar también controles del panel lateral Tile
+      const sideCols = document.getElementById('tile-cols');
+      const sideRows = document.getElementById('tile-rows');
+      const sideOv = document.getElementById('tile-overlap-mm');
+      if (sideCols) sideCols.value = cols;
+      if (sideRows) sideRows.value = rows;
+      if (sideOv) sideOv.value = ov;
+
+      // Dibujar vista previa en #tm-preview-canvas
+      const canvas = document.getElementById('tm-preview-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const pad = 16;
+      const availW = canvas.width - pad * 2;
+      const availH = canvas.height - pad * 2;
+      const sc = Math.min(availW / Math.max(1, imgW), availH / Math.max(1, imgH));
+      const dw = imgW * sc;
+      const dh = imgH * sc;
+      const dx = (canvas.width - dw) / 2;
+      const dy = (canvas.height - dh) / 2;
+
+      drawArtworkIntoRect(ctx, 'custom', it ? it.img : STATE.customImage, dx, dy, dw, dh, false, {
+        rotation: it ? (it.rotation || 0) : STATE.activeRotation,
+        mirror: it ? !!it.mirror : STATE.activeMirror,
+        crop: it ? it.crop : STATE.activeCrop
+      });
+
+      // Dibujar zonas de superposición (naranja) y líneas de corte (cian)
+      const ovPx = ov * sc;
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.45)';
+      for (let c = 1; c < cols; c++) {
+        const cx = dx + (c / cols) * dw;
+        if (ovPx > 0) ctx.fillRect(cx - ovPx / 2, dy, ovPx, dh);
+      }
+      for (let r = 1; r < rows; r++) {
+        const cy = dy + (r / rows) * dh;
+        if (ovPx > 0) ctx.fillRect(dx, cy - ovPx / 2, dw, ovPx);
+      }
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.6;
+      for (let c = 1; c < cols; c++) {
+        const cx = dx + (c / cols) * dw;
+        ctx.beginPath(); ctx.moveTo(cx, dy); ctx.lineTo(cx, dy + dh); ctx.stroke();
+      }
+      for (let r = 1; r < rows; r++) {
+        const cy = dy + (r / rows) * dh;
+        ctx.beginPath(); ctx.moveTo(dx, cy); ctx.lineTo(dx + dw, cy); ctx.stroke();
+      }
+
+      // Numeración de paneles P1, P2...
+      ctx.font = '700 10px "Segoe UI", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let pNum = 1;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const px = dx + ((c + 0.5) / cols) * dw;
+          const py = dy + ((r + 0.5) / rows) * dh;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+          ctx.fillRect(px - 14, py - 9, 28, 18);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`P${pNum++}`, px, py);
+        }
+      }
+    }
+
+    function applyTilingModal() {
+      const it = getActiveContextTargetItem();
+      const cols = Math.max(1, Math.min(30, parseInt(document.getElementById('tm-cols').value, 10) || 1));
+      const rows = Math.max(1, Math.min(30, parseInt(document.getElementById('tm-rows').value, 10) || 1));
+      const ov = Math.max(0, parseFloat(document.getElementById('tm-overlap').value) || 0);
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const gap = getLayoutGapMm();
+
+      if (cols === 1 && rows === 1) {
+        closeTilingModal();
+        showToast('ℹ️ Selecciona al menos 2 columnas o 2 filas para panelar la imagen.');
+        return;
+      }
+
+      const srcW = it ? it.w : (parseFloat(document.getElementById('job-w-mm').value) || 500);
+      const srcH = it ? it.h : (parseFloat(document.getElementById('job-h-mm').value) || 500);
+      const srcImg = it ? it.img : STATE.customImage;
+      const srcName = it ? it.name : (STATE.activeFileName || 'Panel');
+      const baseCrop = (it && it.crop) || { sx: 0, sy: 0, sw: 1, sh: 1 };
+      const srcRot = it ? (it.rotation || 0) : (STATE.activeRotation || 0);
+      const srcMir = it ? !!it.mirror : !!STATE.activeMirror;
+
+      // Eliminar la pieza original sin dividir del Layout y sustituirla por sus paneles reales con superposición
+      if (it) {
+        const idx = STATE.layoutItems.indexOf(it);
+        if (idx !== -1) STATE.layoutItems.splice(idx, 1);
+      }
+
+      const baseColW = srcW / cols;
+      const baseRowH = srcH / rows;
+      const startY = STATE.layoutItems.reduce((m, x) => Math.max(m, x.y + x.h), 0) + (STATE.layoutItems.length ? gap : 0);
+      let curX = 0;
+      let curY = startY;
+      let rowMaxH = 0;
+
+      STATE.layoutItems.forEach((x) => (x.selected = false));
+      let pNum = 1;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const mmX0 = Math.max(0, c * baseColW - (c > 0 ? ov / 2 : 0));
+          const mmX1 = Math.min(srcW, (c + 1) * baseColW + (c < cols - 1 ? ov / 2 : 0));
+          const mmY0 = Math.max(0, r * baseRowH - (r > 0 ? ov / 2 : 0));
+          const mmY1 = Math.min(srcH, (r + 1) * baseRowH + (r < rows - 1 ? ov / 2 : 0));
+
+          const pW = Math.max(10, Math.round(mmX1 - mmX0));
+          const pH = Math.max(10, Math.round(mmY1 - mmY0));
+
+          const panelCrop = {
+            sx: baseCrop.sx + (mmX0 / srcW) * baseCrop.sw,
+            sy: baseCrop.sy + (mmY0 / srcH) * baseCrop.sh,
+            sw: ((mmX1 - mmX0) / srcW) * baseCrop.sw,
+            sh: ((mmY1 - mmY0) / srcH) * baseCrop.sh
+          };
+
+          if (curX > 0 && curX + pW > rollW) {
+            curX = 0;
+            curY += rowMaxH + gap;
+            rowMaxH = 0;
+          }
+
+          STATE.layoutItems.push({
+            id: `TILE_${Date.now()}_${pNum}`,
+            name: `${srcName.replace(/\.[^.]+$/, '')}_P${pNum}`,
+            x: curX,
+            y: curY,
+            w: pW,
+            h: pH,
+            origW: pW,
+            origH: pH,
+            aspectRatio: pW / pH,
+            rotation: srcRot,
+            mirror: srcMir,
+            crop: panelCrop,
+            art: 'custom',
+            img: srcImg,
+            selected: pNum === 1
+          });
+
+          curX += pW + gap;
+          if (pH > rowMaxH) rowMaxH = pH;
+          pNum++;
+        }
+      }
+
+      closeTilingModal();
+      switchCenterTab('tab-layout');
+      syncPaperAndRender();
+      showToast(`🧱 Panelación aplicada: ${cols * rows} paneles generados (superposición ${ov} mm)`);
+    }
+
+    // 8. Duplicar (+1)
+    function ctxActionDuplicate() {
+      hideContextMenu();
+      duplicateSelectedLayoutItem();
+    }
+
+    // 9. Modal Añadir Copias (N repeticiones)
+    function ctxActionAddCopies() {
+      hideContextMenu();
+      openAddCopiesModal();
+    }
+
+    function openAddCopiesModal() {
+      const it = getActiveContextTargetItem();
+      if (!it) {
+        showToast('ℹ️ Primero añade una imagen al Layout para crear copias.');
+        return;
+      }
+      const gap = getLayoutGapMm();
+      document.getElementById('ac-item-info').textContent =
+        `Pieza: ${it.name} (${Math.round(it.w)} × ${Math.round(it.h)} mm)`;
+      document.getElementById('ac-count').value = 1;
+      document.getElementById('ac-gap-x').value = gap;
+      document.getElementById('ac-gap-y').value = gap;
+      document.getElementById('modal-add-copies').classList.add('open');
+      updateAddCopiesSummary();
+    }
+
+    function closeAddCopiesModal() {
+      document.getElementById('modal-add-copies').classList.remove('open');
+    }
+
+    function setAddCopiesPreset(n) {
+      document.getElementById('ac-count').value = n;
+      updateAddCopiesSummary();
+    }
+
+    function updateAddCopiesSummary() {
+      const it = getActiveContextTargetItem();
+      if (!it) return;
+      const count = Math.max(1, Math.min(500, parseInt(document.getElementById('ac-count').value, 10) || 1));
+      const gx = Math.max(0, parseFloat(document.getElementById('ac-gap-x').value) || 0);
+      const gy = Math.max(0, parseFloat(document.getElementById('ac-gap-y').value) || 0);
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+
+      const perRow = Math.max(1, Math.floor((rollW + gx) / Math.max(1, it.w + gx)));
+      const totalItems = count + 1;
+      const totalRows = Math.ceil(totalItems / perRow);
+      const totalLenMm = totalRows * it.h + Math.max(0, totalRows - 1) * gy;
+
+      document.getElementById('ac-summary-box').innerHTML = `
+        <div>Se añadirán <strong class="text-emerald-400">${count} copia(s)</strong> (${gx === 0 && gy === 0 ? 'pegadas a 0 mm' : `separación ${gx}×${gy} mm`}).</div>
+        <div>Caben <strong class="text-sky-400">${perRow} pieza(s) por fila</strong> en material de ${rollW} mm.</div>
+        <div>Largo estimado del grupo: <strong>${totalLenMm} mm (${(totalLenMm / 1000).toFixed(2)} m)</strong>.</div>
+      `;
+    }
+
+    function applyAddCopiesModal() {
+      const it = getActiveContextTargetItem();
+      if (!it) return;
+      const count = Math.max(1, Math.min(500, parseInt(document.getElementById('ac-count').value, 10) || 1));
+      const gx = Math.max(0, parseFloat(document.getElementById('ac-gap-x').value) || 0);
+      const gy = Math.max(0, parseFloat(document.getElementById('ac-gap-y').value) || 0);
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+
+      // Sincronizar también la separación de la barra Layout
+      const gapInput = document.getElementById('layout-gap-mm');
+      if (gapInput) gapInput.value = gx;
+
+      let curX = it.x + it.w + gx;
+      let curY = it.y;
+
+      STATE.layoutItems.forEach((x) => (x.selected = false));
+      let lastAdded = it;
+      for (let i = 0; i < count; i++) {
+        if (curX + it.w > rollW) {
+          curX = 0;
+          curY += it.h + gy;
+        }
+        const copy = {
+          ...it,
+          crop: it.crop ? { ...it.crop } : null,
+          id: `L_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 5)}`,
+          x: Math.round(curX),
+          y: Math.round(curY),
+          selected: i === count - 1
+        };
+        STATE.layoutItems.push(copy);
+        lastAdded = copy;
+        curX += it.w + gx;
+      }
+
+      if (lastAdded.y + lastAdded.h + 250 > STATE.extraRollViewMm) {
+        STATE.extraRollViewMm = Math.min(MAX_COIL_MM, lastAdded.y + lastAdded.h + 450);
+      }
+
+      syncSelectedLayoutItemInputs(lastAdded);
+      closeAddCopiesModal();
+      switchCenterTab('tab-layout');
+      syncPaperAndRender();
+      showToast(`➕ Se añadieron ${count} copia(s) de "${it.name}" (${gx === 0 ? 'pegadas a 0 mm' : 'gap ' + gx + ' mm'})`);
+    }
+
+    // 10. Suprimir / Borrar
+    function ctxActionDelete() {
+      hideContextMenu();
+      const it = getActiveContextTargetItem();
+      if (it) {
+        STATE.layoutItems.forEach((x) => (x.selected = x === it));
+      }
+      deleteSelectedLayoutItem();
     }
 
     function syncSelectedLayoutItemInputs(item) {
@@ -3039,6 +4494,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('top-h-mm').value = Math.round(item.h);
       document.getElementById('job-w-mm').value = Math.round(item.w);
       document.getElementById('job-h-mm').value = Math.round(item.h);
+      const pct = Math.max(1, Math.round((item.w / Math.max(1, item.origW || item.w)) * 100));
+      document.getElementById('job-scale-pct').value = pct;
+      const jb = document.getElementById('job-bar-scale-pct');
+      if (jb) jb.value = pct;
       document.getElementById('status-xy-coords').textContent =
         `X,Y: ${Math.round(item.x)}, ${Math.round(item.y)} mm | Pieza: ${Math.round(item.w)} x ${Math.round(item.h)} mm`;
     }
@@ -3047,24 +4506,26 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const sel = STATE.layoutItems.find((it) => it.selected) || STATE.layoutItems[STATE.layoutItems.length - 1];
       if (!sel) return;
       const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
-      let nextX = sel.x + sel.w + 15;
+      const gap = getLayoutGapMm();
+      let nextX = sel.x + sel.w + gap;
       let nextY = sel.y;
-      if (nextX + sel.w > rollW - 10) {
-        nextX = 15;
-        nextY = sel.y + sel.h + 15;
+      if (nextX + sel.w > rollW) {
+        nextX = 0;
+        nextY = sel.y + sel.h + gap;
       }
       STATE.layoutItems.forEach((x) => (x.selected = false));
       const copy = {
         ...sel,
-        id: 'L_' + Date.now().toString().slice(-4),
-        x: nextX,
-        y: nextY,
+        crop: sel.crop ? { ...sel.crop } : null,
+        id: 'L_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        x: Math.round(nextX),
+        y: Math.round(nextY),
         selected: true
       };
       STATE.layoutItems.push(copy);
       syncSelectedLayoutItemInputs(copy);
       syncPaperAndRender();
-      showToast(`📋 Pieza "${sel.name}" duplicada en el Layout`);
+      showToast(`📋 Pieza "${sel.name}" duplicada (${gap === 0 ? 'pegada a 0 mm' : 'separación ' + gap + ' mm'})`);
     }
 
     function deleteSelectedLayoutItem() {
@@ -3091,25 +4552,20 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       showToast('🧹 Se vaciaron todas las piezas del Layout');
     }
 
-    // Smart Nest: Acomoda automáticamente en filas aprovechando todo el ancho del material sin deformar ninguna pieza
+    // Smart Nest: Acomoda imágenes en filas pegadas una al lado de la otra (0 mm por defecto) o con la separación configurada
     function actionSmartNest() {
       const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
-      const margin = 15, gap = 15;
-      let curX = margin, curY = margin, rowH = 0;
+      const gap = getLayoutGapMm();
+      let curX = 0, curY = 0, rowH = 0;
 
       STATE.layoutItems.forEach((it) => {
-        if (it.w > rollW - margin * 2) {
-          const ratio = it.aspectRatio || (it.w / it.h);
-          it.w = rollW - margin * 2;
-          it.h = Math.round(it.w / ratio);
-        }
-        if (curX + it.w > rollW - margin) {
-          curX = margin;
+        if (curX > 0 && curX + it.w > rollW) {
+          curX = 0;
           curY += rowH + gap;
           rowH = 0;
         }
-        it.x = curX;
-        it.y = curY;
+        it.x = Math.round(curX);
+        it.y = Math.round(curY);
         curX += it.w + gap;
         if (it.h > rowH) rowH = it.h;
       });
@@ -3118,35 +4574,41 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       syncPaperAndRender();
     }
 
-    // Añadir trabajo actual al Layout conservando su ancho, alto y proporción exactos
+    // Añadir trabajo actual al Layout conservando su ancho, alto, proporción, rotación, espejo y recorte
     function actionAddToLayout() {
-      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 297);
-      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 420);
+      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 500);
+      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 500);
       const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const gap = getLayoutGapMm();
 
-      let nextX = 15, nextY = 15;
+      let nextX = 0, nextY = 0;
       if (STATE.layoutItems.length > 0) {
         const last = STATE.layoutItems[STATE.layoutItems.length - 1];
-        if (last.x + last.w + 15 + w <= rollW - 15) {
-          nextX = last.x + last.w + 15;
+        if (last.x + last.w + gap + w <= rollW) {
+          nextX = last.x + last.w + gap;
           nextY = last.y;
         } else {
-          const maxBottom = STATE.layoutItems.reduce((m, it) => Math.max(m, it.y + it.h), 15);
-          nextX = 15;
-          nextY = maxBottom + 15;
+          const maxBottom = STATE.layoutItems.reduce((m, it) => Math.max(m, it.y + it.h), 0);
+          nextX = 0;
+          nextY = maxBottom + gap;
         }
       }
 
       STATE.layoutItems.forEach((x) => (x.selected = false));
-      const itemName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName || 'Imagen.jpg') : 'Pieza_A3.jpg';
+      const itemName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName || 'Imagen.jpg') : 'Pieza.jpg';
       const newItem = {
-        id: 'L_' + Date.now(),
+        id: 'L_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
         name: itemName,
-        x: nextX,
-        y: nextY,
+        x: Math.round(nextX),
+        y: Math.round(nextY),
         w,
         h,
+        origW: STATE.baseJobWidthMm || w,
+        origH: STATE.baseJobHeightMm || h,
         aspectRatio: w / h,
+        rotation: STATE.activeRotation || 0,
+        mirror: !!STATE.activeMirror,
+        crop: STATE.activeCrop ? { ...STATE.activeCrop } : null,
         art: 'custom',
         img: STATE.customImage,
         selected: true
@@ -3161,10 +4623,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     function applyRepeatsToLayout() {
       const rx = Math.max(1, parseInt(document.getElementById('rep-x').value, 10) || 3);
       const ry = Math.max(1, parseInt(document.getElementById('rep-y').value, 10) || 2);
-      const gx = parseFloat(document.getElementById('rep-gap-x').value) || 10;
-      const gy = parseFloat(document.getElementById('rep-gap-y').value) || 10;
-      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 297);
-      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 420);
+      const gx = Math.max(0, parseFloat(document.getElementById('rep-gap-x').value) || 0);
+      const gy = Math.max(0, parseFloat(document.getElementById('rep-gap-y').value) || 0);
+      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 500);
+      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 500);
       const baseName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Pieza';
 
       STATE.layoutItems = [];
@@ -3173,11 +4635,16 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           STATE.layoutItems.push({
             id: `REP_${r}_${c}_${Date.now()}`,
             name: `${baseName}_${r + 1}x${c + 1}`,
-            x: 15 + c * (w + gx),
-            y: 15 + r * (h + gy),
+            x: c * (w + gx),
+            y: r * (h + gy),
             w,
             h,
+            origW: w,
+            origH: h,
             aspectRatio: w / h,
+            rotation: STATE.activeRotation || 0,
+            mirror: !!STATE.activeMirror,
+            crop: STATE.activeCrop ? { ...STATE.activeCrop } : null,
             art: 'custom',
             img: STATE.customImage,
             selected: r === 0 && c === 0
@@ -3652,19 +5119,44 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       }
     }
 
-    function actionRotate90() {
-      const w = parseFloat(document.getElementById('job-w-mm').value) || 297;
-      const h = parseFloat(document.getElementById('job-h-mm').value) || 420;
-      STATE.currentAspectRatio = 1 / STATE.currentAspectRatio;
+    function actionRotate90(deltaDeg = 90) {
       const selItem = STATE.layoutItems.find((it) => it.selected);
-      if (selItem) selItem.aspectRatio = 1 / (selItem.aspectRatio || (w / h));
+      if (selItem) {
+        selItem.rotation = (((selItem.rotation || 0) + deltaDeg) % 360 + 360) % 360;
+        const oldW = selItem.w;
+        selItem.w = selItem.h;
+        selItem.h = oldW;
+        selItem.aspectRatio = selItem.w / selItem.h;
+        STATE.currentAspectRatio = selItem.aspectRatio;
+        STATE.activeRotation = selItem.rotation;
+        syncSelectedLayoutItemInputs(selItem);
+        syncPaperAndRender();
+        showToast(`${deltaDeg >= 0 ? '↻' : '↺'} "${selItem.name}" girado ${deltaDeg >= 0 ? '+90°' : '-90°'} (${selItem.w}×${selItem.h} mm)`);
+        return;
+      }
+      const w = parseFloat(document.getElementById('job-w-mm').value) || 500;
+      const h = parseFloat(document.getElementById('job-h-mm').value) || 500;
+      STATE.activeRotation = (((STATE.activeRotation || 0) + deltaDeg) % 360 + 360) % 360;
+      STATE.currentAspectRatio = 1 / (STATE.currentAspectRatio || (w / h));
       applyNewJobAndSelectedDimensions(h, w);
+      showToast(`${deltaDeg >= 0 ? '↻' : '↺'} Imagen girada ${deltaDeg >= 0 ? '+90°' : '-90°'} (${h}×${w} mm)`);
     }
 
     function actionToggleMirror() {
+      const selItem = STATE.layoutItems.find((it) => it.selected);
       const m = document.getElementById('setup-mirror');
-      m.checked = !m.checked;
-      renderJobCanvas();
+      if (selItem) {
+        selItem.mirror = !selItem.mirror;
+        STATE.activeMirror = selItem.mirror;
+        if (m) m.checked = selItem.mirror;
+        syncPaperAndRender();
+        showToast(`⇄ Espejo ${selItem.mirror ? 'ACTIVADO' : 'DESACTIVADO'} en "${selItem.name}"`);
+      } else {
+        STATE.activeMirror = !STATE.activeMirror;
+        if (m) m.checked = STATE.activeMirror;
+        renderJobCanvas();
+        showToast(`⇄ Espejo ${STATE.activeMirror ? 'ACTIVADO' : 'DESACTIVADO'}`);
+      }
     }
 
     function deleteSelectedRipQueue() {
