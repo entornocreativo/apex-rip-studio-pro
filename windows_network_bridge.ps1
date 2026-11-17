@@ -114,39 +114,46 @@ while ($Listener.IsListening) {
                     }
                 } else {
                     $Tcp.Close()
-                    # Si fallo puerto 9100, probar puerto 11110 (Mimaki Ethernet UJV100/JV100)
-                    $AltPort = if ($TargetPort -eq 9100) { 11110 } else { 9100 }
+                    # Probar puertos alternos (Mimaki UJV100 usa 11111 / 11110, Mutoh usa 9100)
+                    $AltPorts = @(11111, 11110, 9100) | Where-Object { $_ -ne $TargetPort }
                     $AltConnected = $false
-                    $SwAlt = [System.Diagnostics.Stopwatch]::StartNew()
-                    $TcpAlt = New-Object System.Net.Sockets.TcpClient
-                    try {
-                        $AsyncAlt = $TcpAlt.BeginConnect($TargetHost, $AltPort, $null, $null)
-                        $WaitAlt = $AsyncAlt.AsyncWaitHandle.WaitOne(1500, $false)
-                        $SwAlt.Stop()
-                        if ($WaitAlt -and $TcpAlt.Connected) {
-                            $TcpAlt.EndConnect($AsyncAlt)
-                            $AltConnected = $true
-                        }
-                    } catch {}
-                    try { $TcpAlt.Close() } catch {}
+                    $MatchedPort = 0
+                    $AltMs = 0
+                    foreach ($TryPort in $AltPorts) {
+                        $SwAlt = [System.Diagnostics.Stopwatch]::StartNew()
+                        $TcpAlt = New-Object System.Net.Sockets.TcpClient
+                        try {
+                            $AsyncAlt = $TcpAlt.BeginConnect($TargetHost, $TryPort, $null, $null)
+                            $WaitAlt = $AsyncAlt.AsyncWaitHandle.WaitOne(1200, $false)
+                            $SwAlt.Stop()
+                            if ($WaitAlt -and $TcpAlt.Connected) {
+                                $TcpAlt.EndConnect($AsyncAlt)
+                                $AltConnected = $true
+                                $MatchedPort = $TryPort
+                                $AltMs = $SwAlt.ElapsedMilliseconds
+                            }
+                        } catch {}
+                        try { $TcpAlt.Close() } catch {}
+                        if ($AltConnected) { break }
+                    }
 
                     if ($AltConnected) {
-                        Write-Host "  -> CONECTADO EN PUERTO ALTERNO $TargetHost`:$AltPort ($($SwAlt.ElapsedMilliseconds) ms)" -ForegroundColor Green
+                        Write-Host "  -> CONECTADO EN PUERTO $TargetHost`:$MatchedPort ($AltMs ms)" -ForegroundColor Green
                         Send-JsonResponse $Res @{
                             reachable = $true
                             host = $TargetHost
-                            port = $AltPort
-                            latency_ms = $SwAlt.ElapsedMilliseconds
-                            message = "CONECTADO (Mimaki/Alterno): La impresora en $TargetHost respondio en el puerto TCP $AltPort ($($SwAlt.ElapsedMilliseconds) ms)."
+                            port = $MatchedPort
+                            latency_ms = $AltMs
+                            message = "CONECTADO: La impresora en $TargetHost respondio en el puerto TCP $MatchedPort ($AltMs ms)."
                         }
                     } else {
-                        Write-Host "  -> SIN RESPUESTA en $TargetHost`:$TargetPort ni :$AltPort" -ForegroundColor Red
+                        Write-Host "  -> SIN RESPUESTA en $TargetHost (puertos 11111, 11110 y 9100)" -ForegroundColor Red
                         Send-JsonResponse $Res @{
                             reachable = $false
                             host = $TargetHost
                             port = $TargetPort
                             latency_ms = $Sw.ElapsedMilliseconds
-                            message = "SIN RESPUESTA en $TargetHost (puertos $TargetPort y $AltPort). Pulsa 'Buscar Red' o ejecuta BUSCAR_IMPRESORAS_RED.bat para localizar su IP actual en el switch."
+                            message = "SIN RESPUESTA en $TargetHost (puertos 11111, 11110 y 9100). Pulsa 'Buscar Red' o ejecuta BUSCAR_IMPRESORAS_RED.bat para localizar su IP actual en el switch."
                         }
                     }
                 }
@@ -181,11 +188,12 @@ while ($Listener.IsListening) {
                 }
             }
 
-            Write-Host "[SCAN] Buscando impresoras en subredes ($($Subnets -join ', ')) puertos 9100 (Mutoh/RAW) y 11110 (Mimaki)..." -ForegroundColor Cyan
+            Write-Host "[SCAN] Buscando impresoras en subredes ($($Subnets -join ', ')) puertos 11111 (Mimaki UJV100), 9100 (Mutoh) y 11110..." -ForegroundColor Cyan
 
             $Found = @()
             $ScanSpecs = @(
-                @{ Port = 9100;  Label = "Mutoh / Impresora RAW (Puerto 9100)" },
+                @{ Port = 11111; Label = "Mimaki UJV100-160 (Puerto 11111)" },
+                @{ Port = 9100;  Label = "Mutoh VJ-1624 / RAW (Puerto 9100)" },
                 @{ Port = 11110; Label = "Mimaki Ethernet (Puerto 11110)" }
             )
 
@@ -238,7 +246,7 @@ while ($Listener.IsListening) {
             Send-JsonResponse $Res @{
                 local_ip = ($AllIps -join ", ")
                 subnet = (($Subnets | ForEach-Object { "$_.0/24" }) -join ", ")
-                port_scanned = "9100, 11110"
+                port_scanned = "11111, 9100, 11110"
                 found = $Found
                 arp_devices = $ArpDevices
             }

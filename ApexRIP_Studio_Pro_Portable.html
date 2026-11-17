@@ -1048,8 +1048,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               </div>
               <div class="flex flex-wrap items-center gap-1.5 pl-1 text-[11px]">
                 <span class="text-slate-400">Impresoras confirmadas:</span>
-                <button type="button" onclick="selectFoundPrinterIp('192.168.1.240', 9100)" class="px-2 py-0.5 rounded bg-sky-950 hover:bg-sky-800 border border-sky-500 font-mono text-sky-300 font-bold cursor-pointer">Mutoh VJ-1624: 192.168.1.240</button>
-                <button type="button" onclick="selectFoundPrinterIp('192.168.1.73', 9100)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-800 border border-emerald-600 font-mono text-emerald-300 font-bold cursor-pointer">Mimaki UJV100: 192.168.1.73</button>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.240', 9100)" class="px-2 py-0.5 rounded bg-sky-950 hover:bg-sky-800 border border-sky-500 font-mono text-sky-300 font-bold cursor-pointer">Mutoh VJ-1624: 192.168.1.240:9100</button>
+                <button type="button" onclick="selectFoundPrinterIp('192.168.1.73', 11111)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-800 border border-emerald-600 font-mono text-emerald-300 font-bold cursor-pointer">Mimaki UJV100: 192.168.1.73:11111</button>
               </div>
             </div>
 
@@ -4884,7 +4884,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       unit2: {
         connMode: 'hot_folder',
         ip: '192.168.1.73',
-        port: 9100,
+        port: 11111,
         hotFolder: 'C:\\ApexRIP_HotFolder_Mimaki',
         exportDpi: 150,
         winQueue: 'Mimaki_UJV100'
@@ -4898,11 +4898,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         const parsedNet = JSON.parse(savedNet);
         if (parsedNet.unit1) NET_CONFIG.unit1 = { ...DEFAULT_NET_CONFIG.unit1, ...parsedNet.unit1 };
         if (parsedNet.unit2) NET_CONFIG.unit2 = { ...DEFAULT_NET_CONFIG.unit2, ...parsedNet.unit2 };
+        if (Number(NET_CONFIG.unit2.port) === 9100) NET_CONFIG.unit2.port = 11111;
         // Si venia de v3.3 con tcp_raw por defecto y nunca configuro hotFolder, migrar a hot_folder 1:1 seguro
         if (!localStorage.getItem('wasatch_softrip_net_v36')) {
           NET_CONFIG.unit1.connMode = 'hot_folder';
           NET_CONFIG.unit2.connMode = 'hot_folder';
           NET_CONFIG.unit2.ip = '192.168.1.73';
+          NET_CONFIG.unit2.port = 11111;
         }
       }
     } catch (e) {}
@@ -5024,7 +5026,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     async function testPrinterNetworkPing() {
       const ip = (document.getElementById('setup-printer-ip').value || '').trim();
-      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      const defaultPort = STATE.activeUnit === 'unit2' ? 11111 : 9100;
+      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || defaultPort;
       const box = document.getElementById('network-test-result-box');
 
       if (!ip) {
@@ -5043,8 +5046,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         BRIDGE_ONLINE = true;
         updateBridgeToolbarBadge();
         if (data.reachable) {
+          const okPort = data.port || port;
+          document.getElementById('setup-printer-port').value = okPort;
+          const cfg = getActiveUnitNetConfig();
+          cfg.ip = ip;
+          cfg.port = okPort;
+          saveNetConfigToStorage();
           box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.message}</span>`;
-          showToast(`✅ Impresora en línea (${ip}:${port})`);
+          showToast(`✅ Impresora en línea (${ip}:${okPort})`);
         } else {
           box.innerHTML = `<span class="text-amber-300 font-bold">⚠️ ${data.message}</span>`;
         }
@@ -5054,7 +5063,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         box.innerHTML = `
           <div class="space-y-1 text-amber-200">
             <div class="font-bold text-amber-400">⚠️ Puente de Red Local no iniciado todavía en tu PC</div>
-            <div>Un navegador web por sí solo no puede abrir puertos TCP 9100 directos sin el puente local.</div>
+            <div>Un navegador web por sí solo no puede abrir puertos TCP directos sin el puente local.</div>
             <div>👉 En la carpeta descomprimida de tu PC, haz <b>doble clic en <code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> (o <code class="text-white bg-slate-800 px-1 rounded">INICIAR_APEX_RIP_PYTHON.bat</code>) y vuelve a pulsar <b>"📡 Ping IP"</b>.</div>
           </div>
         `;
@@ -5062,9 +5071,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     async function scanLocalNetworkPrinters() {
-      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      const defaultPort = STATE.activeUnit === 'unit2' ? 11111 : 9100;
+      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || defaultPort;
       const box = document.getElementById('network-test-result-box');
-      box.innerHTML = `<span class="text-sky-300">🔍 Escaneando todas tus subredes locales en puertos 9100 (Mutoh/RAW) y 11110 (Mimaki Ethernet) + tabla del switch... (tarda ~2 segundos)</span>`;
+      box.innerHTML = `<span class="text-sky-300">🔍 Escaneando todas tus subredes locales en puertos 11111 (Mimaki UJV100), 9100 (Mutoh/RAW) y 11110 + tabla del switch... (tarda ~2 segundos)</span>`;
 
       try {
         const res = await fetch(`${BRIDGE_BASE_URL}/api/network/scan?port=${port}`);
@@ -5075,11 +5085,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         let htmlOut = '';
         if (data.found && data.found.length > 0) {
           const btns = data.found.map((p) => {
-            const isMimakiPort = Number(p.port) === 11110;
+            const isMimakiPort = Number(p.port) === 11111 || Number(p.port) === 11110;
             const cls = isMimakiPort
               ? 'bg-emerald-800 hover:bg-emerald-700 border-emerald-400'
               : 'bg-sky-800 hover:bg-sky-700 border-sky-400';
-            const tag = p.hostname || (isMimakiPort ? 'Mimaki (11110)' : 'Mutoh/RAW (9100)');
+            const tag = p.hostname || (isMimakiPort ? `Mimaki (${p.port})` : 'Mutoh/RAW (9100)');
             return `
               <button onclick="selectDiscoveredPrinterIp('${p.ip}', ${p.port})" class="px-2.5 py-1 rounded ${cls} border text-white font-bold text-xs cursor-pointer mr-2 mt-1">
                 🖨️ ${p.ip}:${p.port} — ${tag}
@@ -5093,14 +5103,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         } else {
           htmlOut += `
             <div class="text-amber-300">
-              ℹ️ Escaneo completado en <b>${data.subnet}</b> (PC: <b>${data.local_ip}</b>): No respondieron puertos 9100 ni 11110.
+              ℹ️ Escaneo completado en <b>${data.subnet}</b> (PC: <b>${data.local_ip}</b>): No respondieron puertos 11111, 9100 ni 11110.
             </div>
           `;
         }
 
         if (data.arp_devices && data.arp_devices.length > 0) {
           const arpBtns = data.arp_devices.slice(0, 14).map((d) => `
-            <button onclick="selectDiscoveredPrinterIp('${d.ip}', ${STATE.activeUnit === 'unit2' ? 11110 : 9100})" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-mono text-[11px] cursor-pointer mr-1.5 mt-1" title="MAC ${d.mac}">
+            <button onclick="selectDiscoveredPrinterIp('${d.ip}', ${STATE.activeUnit === 'unit2' ? 11111 : 9100})" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-mono text-[11px] cursor-pointer mr-1.5 mt-1" title="MAC ${d.mac}">
               ${d.ip} <span class="text-slate-400">(${d.mac.slice(0, 8)})</span>
             </button>
           `).join('');
@@ -5578,13 +5588,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
       document.getElementById('setup-modal-title').textContent = isMimaki
-        ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73)'
-        : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240)';
+        ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73:11111)'
+        : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240:9100)';
       document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
       document.getElementById('setup-hot-folder').value = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
       document.getElementById('setup-export-dpi').value = String(cfg.exportDpi || 150);
       document.getElementById('setup-printer-ip').value = cfg.ip || (isMimaki ? '192.168.1.73' : '192.168.1.240');
-      document.getElementById('setup-printer-port').value = cfg.port || 9100;
+      document.getElementById('setup-printer-port').value = cfg.port || (isMimaki ? 11111 : 9100);
       document.getElementById('setup-win-queue').value = cfg.winQueue || (isMimaki ? 'Mimaki_UJV100' : 'Mutoh_VJ1624');
       onConnModeChange();
       document.getElementById('modal-setup-unit').classList.add('open');
@@ -5599,7 +5609,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       cfg.hotFolder = (document.getElementById('setup-hot-folder').value || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh')).trim();
       cfg.exportDpi = parseInt(document.getElementById('setup-export-dpi').value, 10) || 150;
       cfg.ip = (document.getElementById('setup-printer-ip').value || (isMimaki ? '192.168.1.73' : '192.168.1.240')).trim();
-      cfg.port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      cfg.port = parseInt(document.getElementById('setup-printer-port').value, 10) || (isMimaki ? 11111 : 9100);
       cfg.winQueue = (document.getElementById('setup-win-queue').value || '').trim();
       saveNetConfigToStorage();
 
@@ -5621,15 +5631,15 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
       document.getElementById('setup-modal-title').textContent =
         STATE.activeUnit === 'unit2'
-          ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73)'
-          : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240)';
+          ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160 • 192.168.1.73:11111)'
+          : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624 • 192.168.1.240:9100)';
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
       document.getElementById('setup-conn-mode').value = cfg.connMode || 'hot_folder';
       document.getElementById('setup-hot-folder').value = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
       document.getElementById('setup-export-dpi').value = String(cfg.exportDpi || 150);
       document.getElementById('setup-printer-ip').value = cfg.ip || (isMimaki ? '192.168.1.73' : '192.168.1.240');
-      document.getElementById('setup-printer-port').value = cfg.port || 9100;
+      document.getElementById('setup-printer-port').value = cfg.port || (isMimaki ? 11111 : 9100);
       document.getElementById('setup-win-queue').value = cfg.winQueue || (isMimaki ? 'Mimaki_UJV100' : 'Mutoh_VJ1624');
       onConnModeChange();
       updateBridgeToolbarBadge();

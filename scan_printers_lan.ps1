@@ -118,11 +118,11 @@ foreach ($ip in $LocalIps) {
     }
 }
 
-Log-Line "[3/4] Escaneando subredes ($($Subnets -join ', ')) en puertos 9100 (Mutoh/RAW) y 11110 (Mimaki)..." "Cyan"
+Log-Line "[3/4] Escaneando subredes ($($Subnets -join ', ')) en puertos 11111 (Mimaki UJV100), 9100 (Mutoh/RAW) y 11110..." "Cyan"
 $ScanPorts = @(
-    @{ Port = 11110; Tag = "MIMAKI Ethernet (11110)" },
+    @{ Port = 11111; Tag = "MIMAKI UJV100-160 (11111)" },
     @{ Port = 9100;  Tag = "MUTOH / Impresora RAW (9100)" },
-    @{ Port = 11111; Tag = "MIMAKI Estado (11111)" }
+    @{ Port = 11110; Tag = "MIMAKI Ethernet Alt (11110)" }
 )
 
 $FoundPrinters = @()
