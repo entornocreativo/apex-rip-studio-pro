@@ -33,6 +33,8 @@ from hardware_spooler import (
     MAX_COIL_LENGTH_MM,
     detect_local_usb_and_cups_devices,
     send_prn_to_printer,
+    test_printer_tcp_connection,
+    scan_local_network_for_printers,
 )
 from sample_artwork import create_sample_wide_format_artwork
 
@@ -235,19 +237,28 @@ class VdpRequest(BaseModel):
     queue_id: str = "queue_mutoh"
 
 
+class NetworkPingRequest(BaseModel):
+    host: str = "192.168.1.201"
+    port: int = 9100
+
+
 class SpoolSendRequest(BaseModel):
     job_title: str = "Trabajo_RIP_GranFormato"
+    image_data_url: Optional[str] = None
+    width_mm: float = 297.0
+    height_mm: float = 420.0
     printer_id: str = "mutoh_vj_1624"
     profile_id: str = "mutoh_vinyl_gloss_1370"
-    connection_mode: str = "spool_file"
+    connection_mode: str = "tcp_raw"
     host: str = "192.168.1.201"
     port: int = 9100
     usb_device: str = "/dev/usb/lp0"
+    windows_printer_name: str = ""
     resolution_dpi: int = 720
     passes: int = 8
     head_direction: str = "bidirectional"
     auto_cut: bool = True
-    roll_width_mm: float = 1370.0
+    roll_width_mm: float = 1050.0
 
 
 @app.get("/api/config")
@@ -446,9 +457,67 @@ def api_generate_vdp(req: VdpRequest) -> Dict[str, Any]:
     }
 
 
+from hardware_spooler import get_local_lan_ip
+
+
+class RawPrnSendRequest(BaseModel):
+    job_title: str = "Trabajo_RIP"
+    host: str = "192.168.1.201"
+    port: int = 9100
+    connection_mode: str = "tcp_raw"
+    windows_printer_name: str = ""
+    prn_base64: str
+
+
+@app.get("/api/network/status")
+def api_network_status() -> Dict[str, Any]:
+    return {
+        "online": True,
+        "bridge": "Python FastAPI TCP/IP 9100 Print Server",
+        "local_ip": get_local_lan_ip(),
+    }
+
+
+@app.post("/api/network/ping")
+def api_network_ping(req: NetworkPingRequest) -> Dict[str, Any]:
+    return test_printer_tcp_connection(host=req.host, port=req.port)
+
+
+@app.get("/api/network/scan")
+def api_network_scan(port: int = 9100) -> Dict[str, Any]:
+    return scan_local_network_for_printers(port=port)
+
+
+@app.post("/api/spool/send-raw")
+def api_spool_send_raw(req: RawPrnSendRequest) -> Dict[str, Any]:
+    raw_bytes = base64.b64decode(req.prn_base64)
+    spool_result = send_prn_to_printer(
+        prn_bytes=raw_bytes,
+        connection_mode=req.connection_mode,
+        host=req.host,
+        port=req.port,
+        windows_printer_name=req.windows_printer_name,
+        output_dir=SPOOL_DIR,
+        job_name=req.job_title,
+    )
+    return {"spool": spool_result}
+
+
+
 @app.post("/api/spool/send")
 def api_spool_send(req: SpoolSendRequest) -> Dict[str, Any]:
-    if STATE["last_halftones"] is None:
+    if req.image_data_url:
+        img = data_url_to_pil(req.image_data_url)
+        res = rip_image_pipeline(
+            img=img,
+            profile_id=req.profile_id,
+            width_mm=req.width_mm,
+            height_mm=req.height_mm,
+            resolution_dpi=req.resolution_dpi,
+            passes=req.passes,
+        )
+        STATE["last_halftones"] = res["raw_halftones"]
+    elif STATE["last_halftones"] is None:
         img = create_sample_wide_format_artwork("motorsport_wrap")
         res = rip_image_pipeline(img=img, profile_id=req.profile_id)
         STATE["last_halftones"] = res["raw_halftones"]
@@ -476,6 +545,7 @@ def api_spool_send(req: SpoolSendRequest) -> Dict[str, Any]:
         host=req.host,
         port=req.port,
         usb_device=req.usb_device,
+        windows_printer_name=req.windows_printer_name,
         output_dir=SPOOL_DIR,
         job_name=req.job_title,
     )
@@ -512,3 +582,4 @@ def api_download_prn(filename: str):
 
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+

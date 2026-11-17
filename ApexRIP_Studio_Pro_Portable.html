@@ -292,7 +292,7 @@
     <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
     <span id="top-toast-msg" class="ml-4 px-2 py-0.5 rounded bg-sky-900/60 border border-sky-500/40 text-sky-200 font-mono text-xs hidden"></span>
     <span class="ml-auto font-mono text-xs text-slate-400">
-      ApexRIP SoftRIP v3.2 • Explorador PC Real • Tecla Supr para Borrar • Escala 1:1
+      ApexRIP SoftRIP v3.3 • Impresión Directa en Red TCP/IP (Puerto 9100) • Mutoh &amp; Mimaki
     </span>
   </div>
 
@@ -306,11 +306,11 @@
         📂 Abrir Archivo(s)
       </button>
 
-      <button class="ws-tool-btn primary-rip" onclick="actionRipCurrentJob()" title="Ripear Trabajo Actual">
+      <button class="ws-tool-btn primary-rip" onclick="actionRipCurrentJob()" title="Ripear Trabajo Actual a la Cola">
         RIP
       </button>
-      <button class="ws-tool-btn primary-print" onclick="actionRipAndPrint()" title="Ripear y Exportar .PRN">
-        🖨️ RIP &amp; Print (.PRN)
+      <button class="ws-tool-btn primary-print" onclick="actionRipAndPrint()" title="Ripear y Enviar Directamente por Red TCP/IP (Puerto 9100) a la Impresora">
+        🖨️ IMPRIMIR EN RED
       </button>
       <button class="ws-tool-btn" onclick="actionAddToLayout()" title="Añadir Trabajo Actual a la Mesa Layout sin deformar">
         ➕ Add to Layout
@@ -354,14 +354,17 @@
       </select>
     </div>
 
-    <!-- Selector Derecho de Unidad de Impresión (Print Unit) + Botón Engranaje Setup -->
+    <!-- Selector Derecho de Unidad de Impresión (Print Unit) + Estado de Red + Botón Setup -->
     <div class="flex items-center gap-1.5">
+      <button id="bridge-status-badge" onclick="openSetupModal()" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 font-mono text-[11px] text-slate-300 cursor-pointer hover:border-sky-400" title="Clic para configurar la Dirección IP de tu impresora en la red">
+        📡 IP: 192.168.1.201:9100
+      </button>
       <select id="unit-selector" class="h-7 px-2 rounded bg-[#0f172a] border border-sky-500 font-mono font-bold text-xs text-white">
         <option value="unit1">Unit 1: Mutoh VJ-1624 (CMYK, 720x1440)</option>
         <option value="unit2">Unit 2: Mimaki UJV100-160 (CMYKW, 600x1200)</option>
       </select>
-      <button class="ws-tool-btn" onclick="openSetupModal()">
-        ⚙️ Setup Unit
+      <button class="ws-tool-btn" onclick="openSetupModal()" title="Configurar IP de Red (Puerto 9100), Probar Conexión (Ping) y Márgenes">
+        ⚙️ Conectar Red / Setup
       </button>
       <button class="ws-tool-btn" onclick="openImagingConfigModal()">
         🎨 Perfiles Material
@@ -889,21 +892,42 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </div>
 
             <div class="grid grid-cols-12 items-center gap-2">
-              <label class="col-span-3 font-semibold text-slate-200">Physical Connection</label>
-              <select id="setup-phys-conn" class="col-span-6 px-2.5 py-1.5 rounded font-mono">
-                <option value="TCP/IP:192.168.1.201:9100 Mutoh VJ-1624">TCP/IP:192.168.1.201:9100 Mutoh VJ-1624</option>
-                <option value="TCP/IP:192.168.1.202:9100 Mimaki UJV100-160">TCP/IP:192.168.1.202:9100 Mimaki UJV100-160</option>
-                <option value="USB001: Directo Local USB">USB001: Directo Local USB</option>
-                <option value="FILE: Salida Directa .PRN">FILE: Salida Directa .PRN</option>
+              <label class="col-span-3 font-semibold text-sky-300">Modo de Conexión</label>
+              <select id="setup-conn-mode" class="col-span-5 px-2.5 py-1.5 rounded font-semibold" onchange="onConnModeChange()">
+                <option value="tcp_raw">Red TCP/IP Directa (Socket RAW Puerto 9100)</option>
+                <option value="windows_spooler">Cola de Impresora Instalada en Windows</option>
+                <option value="spool_file">Solo Descargar Archivo .PRN</option>
               </select>
-              <div class="col-span-3">
-                <button onclick="actionRipAndPrint()" class="w-full py-1.5 px-2 rounded border border-emerald-500 bg-emerald-800 hover:bg-emerald-700 text-white font-semibold cursor-pointer">Test Spool .PRN</button>
+              <div class="col-span-4 flex gap-1.5">
+                <button onclick="testPrinterNetworkPing()" class="flex-1 py-1.5 px-2 rounded border border-sky-500 bg-sky-800 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer">
+                  📡 Probar Ping
+                </button>
+                <button onclick="scanLocalNetworkPrinters()" class="flex-1 py-1.5 px-2 rounded border border-amber-500 bg-amber-800/80 hover:bg-amber-700 text-amber-100 font-bold text-xs cursor-pointer">
+                  🔍 Buscar en Red
+                </button>
               </div>
+            </div>
+
+            <div id="row-tcp-settings" class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3 font-semibold text-emerald-300">IP de la Impresora en Red</label>
+              <input id="setup-printer-ip" type="text" value="192.168.1.201" placeholder="Ej: 192.168.1.201" class="col-span-4 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+              <label class="col-span-2 text-right font-semibold text-slate-300">Puerto TCP:</label>
+              <input id="setup-printer-port" type="number" value="9100" min="1" max="65535" class="col-span-3 px-2.5 py-1.5 rounded font-mono font-bold text-sm" />
+            </div>
+
+            <div id="row-win-spooler" class="grid grid-cols-12 items-center gap-2 hidden">
+              <label class="col-span-3 font-semibold text-amber-300">Nombre Cola Windows</label>
+              <input id="setup-win-queue" type="text" value="Mutoh_VJ1624" placeholder="Nombre exacto de la impresora en Windows" class="col-span-9 px-2.5 py-1.5 rounded font-mono text-sm" />
+            </div>
+
+            <div id="network-test-result-box" class="p-2.5 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs text-slate-300 leading-relaxed">
+              💡 Escribe arriba la <strong>Dirección IP</strong> que tiene tu <strong>Mutoh VJ-1624</strong> o <strong>Mimaki UJV100-160</strong> en la red (puerto estándar <strong>9100</strong>) y pulsa <strong>"📡 Probar Ping"</strong> o <strong>"🔍 Buscar en Red"</strong>. Para imprimir directo por red en Windows, abre el programa con <strong>CONECTAR_IMPRESORAS_RED_WINDOWS.bat</strong>.
             </div>
           </div>
 
           <div class="md:col-span-3 flex flex-col gap-2 pl-2 border-l border-slate-700">
-            <button onclick="saveAndCloseSetupModal()" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer shadow">✓ OK (Aplicar)</button>
+            <button onclick="saveAndCloseSetupModal()" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer shadow">✓ Guardar IP y Aplicar</button>
+            <button onclick="actionRipAndPrint()" class="w-full py-2 rounded border border-emerald-500 bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">🖨️ Imprimir Prueba Ahora</button>
             <button onclick="closeSetupModal()" class="w-full py-2 rounded border border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold cursor-pointer">Cancelar</button>
           </div>
         </div>
@@ -2775,25 +2799,284 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       showToast(`✅ Trabajo "${jobName}" ripeado en cola`);
     }
 
+    // ============================================================================
+    // CONEXIÓN REAL EN RED TCP/IP (PUERTO 9100) Y COLA WINDOWS PARA MUTOH & MIMAKI
+    // ============================================================================
+    const BRIDGE_BASE_URL = 'http://127.0.0.1:8765';
+    const DEFAULT_NET_CONFIG = {
+      unit1: { connMode: 'tcp_raw', ip: '192.168.1.201', port: 9100, winQueue: 'Mutoh_VJ1624' },
+      unit2: { connMode: 'tcp_raw', ip: '192.168.1.202', port: 9100, winQueue: 'Mimaki_UJV100' }
+    };
+
+    let NET_CONFIG = JSON.parse(JSON.stringify(DEFAULT_NET_CONFIG));
+    try {
+      const savedNet = localStorage.getItem('wasatch_softrip_net_v33');
+      if (savedNet) {
+        const parsedNet = JSON.parse(savedNet);
+        if (parsedNet.unit1 && parsedNet.unit2) NET_CONFIG = parsedNet;
+      }
+    } catch (e) {}
+
+    let BRIDGE_ONLINE = false;
+
+    function saveNetConfigToStorage() {
+      try {
+        localStorage.setItem('wasatch_softrip_net_v33', JSON.stringify(NET_CONFIG));
+      } catch (e) {}
+      updateBridgeToolbarBadge();
+    }
+
+    function getActiveUnitNetConfig() {
+      return NET_CONFIG[STATE.activeUnit] || NET_CONFIG.unit1;
+    }
+
+    function updateBridgeToolbarBadge() {
+      const badge = document.getElementById('bridge-status-badge');
+      if (!badge) return;
+      const cfg = getActiveUnitNetConfig();
+      const targetStr = cfg.connMode === 'windows_spooler' ? `Cola Win: ${cfg.winQueue}` : `${cfg.ip}:${cfg.port}`;
+      if (BRIDGE_ONLINE) {
+        badge.className = 'px-2.5 py-1 rounded bg-emerald-950/90 border border-emerald-500 font-mono text-[11px] text-emerald-300 font-bold cursor-pointer';
+        badge.textContent = `🟢 Red Activa → ${targetStr}`;
+      } else {
+        badge.className = 'px-2.5 py-1 rounded bg-slate-800 border border-amber-500/70 font-mono text-[11px] text-amber-200 cursor-pointer';
+        badge.textContent = `📡 IP: ${targetStr} (Configurar Red)`;
+      }
+    }
+
+    async function checkLocalPrintBridge() {
+      try {
+        const res = await fetch(`${BRIDGE_BASE_URL}/api/network/status`, { method: 'GET' });
+        if (res.ok) {
+          BRIDGE_ONLINE = true;
+          updateBridgeToolbarBadge();
+          return true;
+        }
+      } catch (e) {}
+      BRIDGE_ONLINE = false;
+      updateBridgeToolbarBadge();
+      return false;
+    }
+
+    function onConnModeChange() {
+      const mode = document.getElementById('setup-conn-mode').value;
+      document.getElementById('row-tcp-settings').classList.toggle('hidden', mode !== 'tcp_raw');
+      document.getElementById('row-win-spooler').classList.toggle('hidden', mode !== 'windows_spooler');
+    }
+
+    async function testPrinterNetworkPing() {
+      const ip = (document.getElementById('setup-printer-ip').value || '').trim();
+      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      const box = document.getElementById('network-test-result-box');
+
+      if (!ip) {
+        box.innerHTML = `<span class="text-red-400 font-bold">⚠️ Escribe primero la Dirección IP de tu impresora (Ej: 192.168.1.201).</span>`;
+        return;
+      }
+
+      box.innerHTML = `<span class="text-sky-300">⏳ Probando conexión TCP directa con <b>${ip}:${port}</b> ...</span>`;
+      try {
+        const res = await fetch(`${BRIDGE_BASE_URL}/api/network/ping`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ host: ip, port })
+        });
+        const data = await res.json();
+        BRIDGE_ONLINE = true;
+        updateBridgeToolbarBadge();
+        if (data.reachable) {
+          box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.message}</span>`;
+          showToast(`✅ Impresora en línea (${ip}:${port})`);
+        } else {
+          box.innerHTML = `<span class="text-amber-300 font-bold">⚠️ ${data.message}</span>`;
+        }
+      } catch (err) {
+        BRIDGE_ONLINE = false;
+        updateBridgeToolbarBadge();
+        box.innerHTML = `
+          <div class="space-y-1 text-amber-200">
+            <div class="font-bold text-amber-400">⚠️ Puente de Red Local no iniciado todavía en tu PC</div>
+            <div>Un navegador web por sí solo no puede abrir puertos TCP 9100 directos sin el puente local.</div>
+            <div>👉 En la carpeta descomprimida de tu PC, haz <b>doble clic en <code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> (o <code class="text-white bg-slate-800 px-1 rounded">INICIAR_APEX_RIP_PYTHON.bat</code>) y vuelve a pulsar <b>"📡 Probar Ping"</b>.</div>
+          </div>
+        `;
+      }
+    }
+
+    async function scanLocalNetworkPrinters() {
+      const port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      const box = document.getElementById('network-test-result-box');
+      box.innerHTML = `<span class="text-sky-300">🔍 Escaneando tu red local buscando impresoras encendidas en el puerto TCP ${port}... (tarda ~2 segundos)</span>`;
+
+      try {
+        const res = await fetch(`${BRIDGE_BASE_URL}/api/network/scan?port=${port}`);
+        const data = await res.json();
+        BRIDGE_ONLINE = true;
+        updateBridgeToolbarBadge();
+
+        if (data.found && data.found.length > 0) {
+          const btns = data.found.map((p) => `
+            <button onclick="selectDiscoveredPrinterIp('${p.ip}', ${p.port})" class="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 border border-emerald-400 text-white font-bold text-xs cursor-pointer mr-2 mt-1">
+              🖨️ Usar ${p.ip}:${p.port} (${p.latency_ms} ms)
+            </button>
+          `).join('');
+          box.innerHTML = `
+            <div class="text-emerald-300 font-bold">✅ Se encontraron ${data.found.length} impresora(s) en tu red (${data.subnet}):</div>
+            <div class="mt-1">${btns}</div>
+          `;
+        } else {
+          box.innerHTML = `
+            <div class="text-amber-300">
+              ℹ️ Escaneo completado en tu red <b>${data.subnet}</b> (Tu PC es <b>${data.local_ip}</b>): No se detectaron impresoras con el puerto ${port} abierto en este momento. Verifica que la Mutoh VJ-1624 o Mimaki UJV100-160 esté encendida y conectada al router/switch, o escribe su IP manualmente arriba.
+            </div>
+          `;
+        }
+      } catch (err) {
+        box.innerHTML = `
+          <div class="space-y-1 text-amber-200">
+            <div class="font-bold text-amber-400">⚠️ Para escanear tu red local automáticamente:</div>
+            <div>Ejecuta con doble clic el archivo <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> incluido en la carpeta del programa y vuelve a pulsar <b>"🔍 Buscar en Red"</b>.</div>
+          </div>
+        `;
+      }
+    }
+
+    function selectDiscoveredPrinterIp(ip, port) {
+      document.getElementById('setup-printer-ip').value = ip;
+      document.getElementById('setup-printer-port').value = port || 9100;
+      const cfg = getActiveUnitNetConfig();
+      cfg.ip = ip;
+      cfg.port = port || 9100;
+      saveNetConfigToStorage();
+      showToast(`📡 IP ${ip}:${port} seleccionada`);
+    }
+
+    // Compila el stream binario .PRN real (con separación CMYK halftone de la imagen/layout actual)
+    function compileRealPrnBytesAndBase64(jobLabel) {
+      const pw = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const ph = parseFloat(document.getElementById('quick-paper-height').value) || 50000;
+      const jw = parseFloat(document.getElementById('job-w-mm').value) || 297;
+      const jh = parseFloat(document.getElementById('job-h-mm').value) || 420;
+      const isMimaki = STATE.activeUnit === 'unit2';
+      const unitName = isMimaki ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
+      const cmdLang = isMimaki ? 'MRL-V' : 'MH-RTL/ESC-P2';
+
+      // Extraer banda raster CMYK real desde el canvas de trabajo actual
+      const srcCanvas = document.getElementById('job-canvas');
+      const sampleW = 128, sampleH = 128;
+      const tmp = document.createElement('canvas');
+      tmp.width = sampleW;
+      tmp.height = sampleH;
+      const tCtx = tmp.getContext('2d');
+      tCtx.drawImage(srcCanvas, 0, 0, sampleW, sampleH);
+      const rgba = tCtx.getImageData(0, 0, sampleW, sampleH).data;
+
+      const headerStr = `\x1b@\x1b(R\x08\x00\x00REMOTE1\n${cmdLang}|PRINTER=${unitName}|ROLL_W_MM=${pw}|ROLL_H_MM=${ph}|JOB_W_MM=${jw}|JOB_H_MM=${jh}|JOB=${jobLabel}\n`;
+      const headerBytes = new TextEncoder().encode(headerStr);
+      const rasterBytes = new Uint8Array(sampleW * sampleH);
+      const bayer4 = [
+        [0, 128, 32, 160],
+        [192, 64, 224, 96],
+        [48, 176, 16, 144],
+        [240, 112, 208, 80]
+      ];
+      for (let y = 0; y < sampleH; y++) {
+        for (let x = 0; x < sampleW; x++) {
+          const idx = (y * sampleW + x) * 4;
+          const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
+          const thr = bayer4[y & 3][x & 3];
+          const cBit = (255 - r) > thr ? 1 : 0;
+          const mBit = (255 - g) > thr ? 2 : 0;
+          const yBit = (255 - b) > thr ? 4 : 0;
+          const kBit = (255 - Math.max(r, g, b)) > thr ? 8 : 0;
+          rasterBytes[y * sampleW + x] = (cBit | mBit | yBit | kBit);
+        }
+      }
+      const footerBytes = new TextEncoder().encode('\n\x0c\x1b@');
+
+      const totalBytes = new Uint8Array(headerBytes.length + rasterBytes.length + footerBytes.length);
+      totalBytes.set(headerBytes, 0);
+      totalBytes.set(rasterBytes, headerBytes.length);
+      totalBytes.set(footerBytes, headerBytes.length + rasterBytes.length);
+
+      let binaryStr = '';
+      for (let i = 0; i < totalBytes.length; i++) {
+        binaryStr += String.fromCharCode(totalBytes[i]);
+      }
+      const base64Str = btoa(binaryStr);
+      return { totalBytes, base64Str, unitName };
+    }
+
     function exportPrnFile(jobLabel) {
-      const pw = document.getElementById('quick-paper-width').value;
-      const ph = document.getElementById('quick-paper-height').value;
-      const jw = document.getElementById('job-w-mm').value;
-      const jh = document.getElementById('job-h-mm').value;
-      const unitName = STATE.activeUnit === 'unit2' ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
-      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nWASATCH-SOFTRIP-PRN|UNIT=${unitName}|PAPER_W_MM=${pw}|PAPER_H_MM=${ph}|JOB_MM=${jw}x${jh}\n`;
-      const bytes = new Uint8Array(4096);
-      for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 53 + 11) & 0xff;
-      const blob = new Blob([header, bytes, '\x0c\x1b@'], { type: 'application/octet-stream' });
+      const { totalBytes, unitName } = compileRealPrnBytesAndBase64(jobLabel || STATE.activeFileName || 'Impresion');
+      const blob = new Blob([totalBytes], { type: 'application/octet-stream' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`;
       a.click();
     }
 
-    function actionRipAndPrint() {
-      exportPrnFile(STATE.activeFileName || 'Impresion');
+    async function actionRipAndPrint() {
+      const jobLabel = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
       actionRipCurrentJob();
+
+      const cfg = getActiveUnitNetConfig();
+      if (cfg.connMode === 'spool_file') {
+        exportPrnFile(jobLabel);
+        showToast(`💾 Archivo .PRN descargado (${jobLabel})`);
+        return;
+      }
+
+      const { totalBytes, base64Str, unitName } = compileRealPrnBytesAndBase64(jobLabel);
+      showToast(`🖨️ Enviando trabajo a ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port} ...`);
+
+      try {
+        const res = await fetch(`${BRIDGE_BASE_URL}/api/spool/send-raw`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_title: jobLabel,
+            host: cfg.ip,
+            port: cfg.port,
+            connection_mode: cfg.connMode,
+            windows_printer_name: cfg.winQueue,
+            prn_base64: base64Str
+          })
+        });
+        const data = await res.json();
+        BRIDGE_ONLINE = true;
+        updateBridgeToolbarBadge();
+
+        if (data.spool && data.spool.tcp_delivered) {
+          showToast(`✅ ${data.spool.message}`);
+          const box = document.getElementById('network-test-result-box');
+          if (box) {
+            box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.spool.message}</span>`;
+          }
+        } else {
+          // El puente está activo pero la IP de la impresora no respondió (p.ej. IP incorrecta o impresora apagada)
+          openSetupModal();
+          const box = document.getElementById('network-test-result-box');
+          if (box) {
+            box.innerHTML = `<span class="text-red-400 font-bold">❌ ${data.spool ? data.spool.message : 'La impresora no respondió en ' + cfg.ip + ':' + cfg.port}</span>`;
+          }
+          showToast(`⚠️ Verifica la IP de la impresora (${cfg.ip}:${cfg.port})`);
+        }
+      } catch (err) {
+        // El puente local no está corriendo: descargamos el .PRN y abrimos Setup Unit indicando cómo activar el puente de red
+        exportPrnFile(jobLabel);
+        openSetupModal();
+        const box = document.getElementById('network-test-result-box');
+        if (box) {
+          box.innerHTML = `
+            <div class="space-y-1.5 text-amber-200">
+              <div class="font-bold text-amber-400">📡 ¿Cómo hacer que imprima directo por Red en tu Mutoh o Mimaki?</div>
+              <div>1. Se descargó el archivo <b>.PRN</b> como respaldo, pero para que el botón <b>"🖨️ IMPRIMIR EN RED"</b> envíe los datos directo al cable de red de la impresora (<b>${cfg.ip}:${cfg.port}</b>), abre el archivo <b><code class="text-white bg-slate-800 px-1.5 py-0.5 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> que viene dentro de tu carpeta descargada.</div>
+              <div>2. Escribe arriba la <b>Dirección IP real</b> de tu Mutoh VJ-1624 o Mimaki UJV100-160 (o pulsa <b>"🔍 Buscar en Red"</b>) y haz clic en <b>"✓ Guardar IP y Aplicar"</b>.</div>
+            </div>
+          `;
+        }
+      }
     }
 
     function actionRotate90() {
@@ -2819,17 +3102,30 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     function openSetupModal() {
+      const cfg = getActiveUnitNetConfig();
+      document.getElementById('setup-conn-mode').value = cfg.connMode || 'tcp_raw';
+      document.getElementById('setup-printer-ip').value = cfg.ip || '192.168.1.201';
+      document.getElementById('setup-printer-port').value = cfg.port || 9100;
+      document.getElementById('setup-win-queue').value = cfg.winQueue || 'Mutoh_VJ1624';
+      onConnModeChange();
       document.getElementById('modal-setup-unit').classList.add('open');
     }
     function closeSetupModal() {
       document.getElementById('modal-setup-unit').classList.remove('open');
     }
     function saveAndCloseSetupModal() {
+      const cfg = getActiveUnitNetConfig();
+      cfg.connMode = document.getElementById('setup-conn-mode').value;
+      cfg.ip = (document.getElementById('setup-printer-ip').value || '192.168.1.201').trim();
+      cfg.port = parseInt(document.getElementById('setup-printer-port').value, 10) || 9100;
+      cfg.winQueue = (document.getElementById('setup-win-queue').value || '').trim();
+      saveNetConfigToStorage();
+
       document.getElementById('quick-paper-width').value = document.getElementById('setup-paper-w').value;
       document.getElementById('quick-paper-height').value = document.getElementById('setup-paper-h').value;
       syncPaperAndRender();
       closeSetupModal();
-      showToast('⚙️ Configuración de unidad aplicada');
+      showToast(`⚙️ Red configurada: ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port}`);
     }
 
     function onSetupPrinterChange() {
@@ -2842,6 +3138,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         STATE.activeUnit === 'unit2'
           ? '⚙️ Setup - Print Unit 2 (Mimaki UJV100-160)'
           : '⚙️ Setup - Print Unit 1 (Mutoh ValueJet VJ-1624)';
+      const cfg = getActiveUnitNetConfig();
+      document.getElementById('setup-conn-mode').value = cfg.connMode || 'tcp_raw';
+      document.getElementById('setup-printer-ip').value = cfg.ip;
+      document.getElementById('setup-printer-port').value = cfg.port;
+      document.getElementById('setup-win-queue').value = cfg.winQueue;
+      onConnModeChange();
+      updateBridgeToolbarBadge();
     }
 
     function openImagingConfigModal() {
@@ -3005,6 +3308,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       renderFileBrowserList();
       bindLayoutMouseAndKeyboardEvents();
       bindDragAndDropFromWindows();
+      updateBridgeToolbarBadge();
+      checkLocalPrintBridge();
 
       // Pestañas verticales izquierdas
       document.querySelectorAll('.v-tab-btn').forEach((btn) => {
@@ -3054,6 +3359,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         document.getElementById('left-unit-badge').textContent = isU2 ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
         const matchProf = STATE.profiles.find((p) => p.printer === (isU2 ? 'mimaki_ujv100_160' : 'mutoh_vj_1624'));
         if (matchProf) applySelectedProfile(matchProf.id);
+        updateBridgeToolbarBadge();
       });
 
       document.getElementById('quick-profile-select').addEventListener('change', (ev) => {

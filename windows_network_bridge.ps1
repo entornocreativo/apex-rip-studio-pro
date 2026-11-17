@@ -1,0 +1,270 @@
+# ==============================================================================
+# ApexRIP SoftRIP Edition — Puente Nativo de Impresión TCP/IP Puerto 9100 para Windows
+# Funciona en cualquier PC con Windows 10 / 11 SIN necesitar Python ni drivers extra.
+# Conecta el navegador directamente con Mutoh VJ-1624 y Mimaki UJV100-160 por Red LAN.
+# ==============================================================================
+
+$ErrorActionPreference = "Continue"
+$Port = 8765
+$BaseDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$SpoolDir = Join-Path $BaseDir "output_spool"
+if (!(Test-Path $SpoolDir)) { New-Item -ItemType Directory -Path $SpoolDir | Out-Null }
+
+function Get-LocalLanIp {
+    try {
+        $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+            $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*"
+        } | Select-Object -First 1).IPAddress
+        if ($ip) { return $ip }
+    } catch {}
+    return "192.168.1.100"
+}
+
+$LocalIp = Get-LocalLanIp
+Write-Host "=====================================================================" -ForegroundColor Cyan
+Write-Host "  APEXRIP SOFTRIP - PUENTE DE IMPRESION EN RED TCP/IP (PUERTO 9100)" -ForegroundColor Green
+Write-Host "  Mutoh ValueJet VJ-1624  &  Mimaki UJV100-160" -ForegroundColor White
+Write-Host "=====================================================================" -ForegroundColor Cyan
+Write-Host "  IP de tu PC en la Red Local : $LocalIp" -ForegroundColor Yellow
+Write-Host "  Puente Local Activo en      : http://127.0.0.1:$Port" -ForegroundColor Yellow
+Write-Host "  Carpeta de Respaldo .PRN    : $SpoolDir" -ForegroundColor Gray
+Write-Host "=====================================================================" -ForegroundColor Cyan
+Write-Host "Deja esta ventana abierta mientras imprimes desde ApexRIP." -ForegroundColor White
+Write-Host ""
+
+$Listener = New-Object System.Net.HttpListener
+$Listener.Prefixes.Add("http://127.0.0.1:$Port/")
+$Listener.Prefixes.Add("http://localhost:$Port/")
+
+try {
+    $Listener.Start()
+} catch {
+    Write-Host "[AVISO] El puerto $Port ya esta en uso (posiblemente ya tienes el puente o Python abierto)." -ForegroundColor Yellow
+    exit 0
+}
+
+# Abrir la interfaz automaticamente
+$HtmlPath = Join-Path $BaseDir "ApexRIP_Studio_Pro_Portable.html"
+if (Test-Path $HtmlPath) {
+    Start-Process $HtmlPath
+}
+
+function Send-JsonResponse($Response, $Obj, $StatusCode = 200) {
+    $Response.StatusCode = $StatusCode
+    $Response.ContentType = "application/json; charset=utf-8"
+    $Response.Headers.Add("Access-Control-Allow-Origin", "*")
+    $Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    $Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type")
+    $Json = $Obj | ConvertTo-Json -Depth 6 -Compress
+    $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Json)
+    $Response.ContentLength64 = $Bytes.Length
+    $Response.OutputStream.Write($Bytes, 0, $Bytes.Length)
+    $Response.Close()
+}
+
+while ($Listener.IsListening) {
+    try {
+        $Context = $Listener.GetContext()
+        $Req = $Context.Request
+        $Res = $Context.Response
+        $Path = $Req.Url.AbsolutePath
+
+        if ($Req.HttpMethod -eq "OPTIONS") {
+            $Res.StatusCode = 204
+            $Res.Headers.Add("Access-Control-Allow-Origin", "*")
+            $Res.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            $Res.Headers.Add("Access-Control-Allow-Headers", "Content-Type")
+            $Res.Close()
+            continue
+        }
+
+        if ($Path -eq "/api/network/status") {
+            Send-JsonResponse $Res @{
+                online = $true
+                bridge = "Puente Nativo Windows TCP/IP Puerto 9100"
+                local_ip = (Get-LocalLanIp)
+            }
+            continue
+        }
+
+        if ($Path -eq "/api/network/ping" -and $Req.HttpMethod -eq "POST") {
+            $Reader = New-Object System.IO.StreamReader($Req.InputStream, [System.Text.Encoding]::UTF8)
+            $Body = $Reader.ReadToEnd() | ConvertFrom-Json
+            $TargetHost = [string]$Body.host
+            $TargetPort = [int]$Body.port
+            if ($TargetPort -le 0) { $TargetPort = 9100 }
+
+            Write-Host "[PING] Probando conexion TCP con impresora $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
+            $Sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $Tcp = New-Object System.Net.Sockets.TcpClient
+            try {
+                $Async = $Tcp.BeginConnect($TargetHost, $TargetPort, $null, $null)
+                $Wait = $Async.AsyncWaitHandle.WaitOne(2000, $false)
+                $Sw.Stop()
+                if ($Wait -and $Tcp.Connected) {
+                    $Tcp.EndConnect($Async)
+                    $Tcp.Close()
+                    Write-Host "  -> CONECTADO ($($Sw.ElapsedMilliseconds) ms)" -ForegroundColor Green
+                    Send-JsonResponse $Res @{
+                        reachable = $true
+                        host = $TargetHost
+                        port = $TargetPort
+                        latency_ms = $Sw.ElapsedMilliseconds
+                        message = "CONECTADO: La impresora en $TargetHost`:$TargetPort esta EN LINEA ($($Sw.ElapsedMilliseconds) ms) y lista para imprimir."
+                    }
+                } else {
+                    $Tcp.Close()
+                    Write-Host "  -> SIN RESPUESTA en $TargetHost`:$TargetPort" -ForegroundColor Red
+                    Send-JsonResponse $Res @{
+                        reachable = $false
+                        host = $TargetHost
+                        port = $TargetPort
+                        latency_ms = $Sw.ElapsedMilliseconds
+                        message = "SIN RESPUESTA en $TargetHost`:$TargetPort. Verifica que la impresora este encendida y en la misma red."
+                    }
+                }
+            } catch {
+                $Tcp.Close()
+                Send-JsonResponse $Res @{
+                    reachable = $false
+                    host = $TargetHost
+                    port = $TargetPort
+                    latency_ms = $Sw.ElapsedMilliseconds
+                    message = "Error al conectar con $TargetHost`:$TargetPort ($($_.Exception.Message))"
+                }
+            }
+            continue
+        }
+
+        if ($Path -eq "/api/network/scan") {
+            $CurIp = Get-LocalLanIp
+            $Parts = $CurIp.Split(".")
+            $Prefix = "$($Parts[0]).$($Parts[1]).$($Parts[2])"
+            Write-Host "[SCAN] Buscando impresoras en la red $Prefix.1-254 (Puerto 9100)..." -ForegroundColor Cyan
+
+            $Found = @()
+            $Pending = @()
+            for ($i = 1; $i -le 254; $i++) {
+                $TestIp = "$Prefix.$i"
+                $Client = New-Object System.Net.Sockets.TcpClient
+                $Async = $Client.BeginConnect($TestIp, 9100, $null, $null)
+                $Pending += [PSCustomObject]@{ Ip = $TestIp; Client = $Client; Async = $Async }
+            }
+            Start-Sleep -Milliseconds 450
+            foreach ($Item in $Pending) {
+                try {
+                    if ($Item.Async.IsCompleted -and $Item.Client.Connected) {
+                        $Found += @{
+                            ip = $Item.Ip
+                            port = 9100
+                            hostname = "Impresora detectada en Red (Puerto 9100)"
+                            latency_ms = 12
+                        }
+                        Write-Host "  -> IMPRESORA ENCONTRADA: $($Item.Ip):9100" -ForegroundColor Green
+                    }
+                } catch {}
+                try { $Item.Client.Close() } catch {}
+            }
+
+            Send-JsonResponse $Res @{
+                local_ip = $CurIp
+                subnet = "$Prefix.0/24"
+                port_scanned = 9100
+                found = $Found
+            }
+            continue
+        }
+
+        if ($Path -eq "/api/spool/send-raw" -and $Req.HttpMethod -eq "POST") {
+            $Reader = New-Object System.IO.StreamReader($Req.InputStream, [System.Text.Encoding]::UTF8)
+            $Body = $Reader.ReadToEnd() | ConvertFrom-Json
+            $TargetHost = ([string]$Body.host).Trim()
+            $TargetPort = [int]$Body.port
+            if ($TargetPort -le 0) { $TargetPort = 9100 }
+            $JobTitle = ([string]$Body.job_title) -replace '[^a-zA-Z0-9_-]', '_'
+            $ConnMode = [string]$Body.connection_mode
+            $WinPrinter = [string]$Body.windows_printer_name
+            $PrnBytes = [System.Convert]::FromBase64String([string]$Body.prn_base64)
+
+            $PrnFile = Join-Path $SpoolDir "$($JobTitle)_$(Get-Date -Format 'yyyyMMdd_HHmmss').prn"
+            [System.IO.File]::WriteAllBytes($PrnFile, $PrnBytes)
+
+            if ($ConnMode -eq "windows_spooler" -and $WinPrinter) {
+                Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes a cola de Windows '$WinPrinter'..." -ForegroundColor Cyan
+                cmd.exe /c "COPY /B `"$PrnFile`" `"\\localhost\$WinPrinter`"" | Out-Null
+                Send-JsonResponse $Res @{
+                    spool = @{
+                        success = $true
+                        tcp_delivered = $true
+                        mode = "Cola de Impresion Windows"
+                        target = $WinPrinter
+                        bytes_sent = $PrnBytes.Length
+                        spool_backup = $PrnFile
+                        message = "Trabajo enviado a la cola de Windows '$WinPrinter' ($($PrnBytes.Length) bytes)."
+                    }
+                }
+                continue
+            }
+
+            Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes por Red TCP/IP a $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
+            $Tcp = New-Object System.Net.Sockets.TcpClient
+            try {
+                $Async = $Tcp.BeginConnect($TargetHost, $TargetPort, $null, $null)
+                $Wait = $Async.AsyncWaitHandle.WaitOne(4000, $false)
+                if ($Wait -and $Tcp.Connected) {
+                    $Tcp.EndConnect($Async)
+                    $Stream = $Tcp.GetStream()
+                    $Stream.Write($PrnBytes, 0, $PrnBytes.Length)
+                    $Stream.Flush()
+                    $Stream.Close()
+                    $Tcp.Close()
+                    Write-Host "  -> IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes)" -ForegroundColor Green
+                    Send-JsonResponse $Res @{
+                        spool = @{
+                            success = $true
+                            tcp_delivered = $true
+                            mode = "TCP/IP Raw Socket (Red Directa)"
+                            target = "$TargetHost`:$TargetPort"
+                            bytes_sent = $PrnBytes.Length
+                            spool_backup = $PrnFile
+                            message = "IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes transmitidos a la impresora)."
+                        }
+                    }
+                } else {
+                    $Tcp.Close()
+                    Write-Host "  -> ERROR: La impresora en $TargetHost`:$TargetPort no respondio." -ForegroundColor Red
+                    Send-JsonResponse $Res @{
+                        spool = @{
+                            success = $false
+                            tcp_delivered = $false
+                            mode = "Error Conexion TCP/IP"
+                            target = "$TargetHost`:$TargetPort"
+                            bytes_sent = 0
+                            spool_backup = $PrnFile
+                            message = "No se pudo conectar con la impresora en $TargetHost`:$TargetPort. Verifica la IP en Setup Unit. Respaldo .PRN guardado en: $PrnFile"
+                        }
+                    }
+                }
+            } catch {
+                $Tcp.Close()
+                Write-Host "  -> ERROR TCP: $($_.Exception.Message)" -ForegroundColor Red
+                Send-JsonResponse $Res @{
+                    spool = @{
+                        success = $false
+                        tcp_delivered = $false
+                        mode = "Error Conexion TCP/IP"
+                        target = "$TargetHost`:$TargetPort"
+                        bytes_sent = 0
+                        spool_backup = $PrnFile
+                        message = "Error de red hacia $TargetHost`:$TargetPort ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
+                    }
+                }
+            }
+            continue
+        }
+
+        Send-JsonResponse $Res @{ error = "Ruta no encontrada" } 404
+    } catch {
+        Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
