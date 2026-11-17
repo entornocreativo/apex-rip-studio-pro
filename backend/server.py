@@ -1,19 +1,21 @@
 """
 Servidor Backend FastAPI del Software RIP de Escritorio (ApexRIP Studio Pro):
-Conecta la interfaz de escritorio (Electron / Web UI) con el motor Python de Ripeo,
-Gestión de Color ICC/Lab/PANTONE, Atlas de Color, Colas Múltiples, Panelación, VDP y Spooler TCP/USB.
+Específicamente configurado para:
+1. Mutoh ValueJet VJ-1624 (Ecosolvente, hasta 1625mm de ancho, bobina máxima 50 metros)
+2. Mimaki UJV100-160 (UV LED Curable CMYK + Blanco/Barniz, hasta 1620mm de ancho, bobina máxima 50 metros)
+Permite escribir libremente el ancho de cada material, controlar el largo de bobina de hasta 50 metros (50,000 mm)
+y crear/guardar perfiles personalizados para cada tipo de material.
 """
 
 import base64
 import io
 import os
 import time
-import uuid
 from typing import Dict, List, Any, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image
@@ -23,19 +25,18 @@ from color_engine import (
     ICC_MEDIA_PROFILES,
     enrich_spot_color,
     generate_color_atlas,
-    srgb_to_lab,
-    rgb_to_device_cmyk,
 )
 from rip_engine import rip_image_pipeline, build_prn_binary_stream
 from workflow_engine import compute_tiling_plan, compute_nesting_layout, render_vdp_batch_preview
 from hardware_spooler import (
     PLOTTER_HARDWARE_MODELS,
+    MAX_COIL_LENGTH_MM,
     detect_local_usb_and_cups_devices,
     send_prn_to_printer,
 )
 from sample_artwork import create_sample_wide_format_artwork
 
-app = FastAPI(title="ApexRIP Studio Pro — Wide Format RIP Engine", version="2.4.0")
+app = FastAPI(title="ApexRIP Studio Pro — Mutoh VJ-1624 & Mimaki UJV100-160", version="2.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,83 +69,62 @@ def data_url_to_pil(data_url: str) -> Image.Image:
     return Image.open(io.BytesIO(raw))
 
 
-# Estado en memoria de Colas de Impresión Múltiples, Cola Maestra y Biblioteca PANTONE/Lab
 STATE: Dict[str, Any] = {
     "spot_colors": [enrich_spot_color(item) for item in BUILTIN_SPOT_LIBRARY],
     "queues": [
         {
-            "id": "queue_a",
-            "code": "COLA A",
-            "name": "Ecosolvente — Vinilo & Lona 160cm",
-            "printer_id": "epson_s80600",
-            "profile_id": "ecosol_vinyl_gloss",
-            "roll_width_mm": 1600.0,
-            "status": "Lista / En línea",
+            "id": "queue_mutoh",
+            "code": "COLA MUTOH",
+            "name": "Mutoh ValueJet VJ-1624 (Ecosolvente)",
+            "printer_id": "mutoh_vj_1624",
+            "profile_id": "mutoh_vinyl_gloss_1370",
+            "roll_width_mm": 1370.0,
+            "coil_length_m": 50.0,
+            "status": "En línea (i² Wave Activo)",
             "jobs": [
                 {
                     "id": "JOB-101",
-                    "title": "Gráfica Vehicular Racing Team.tif",
-                    "width_mm": 1450.0,
-                    "height_mm": 950.0,
+                    "title": "Grafica_Vehicular_Vinilo_137cm.tif",
+                    "width_mm": 1320.0,
+                    "height_mm": 2400.0,
                     "copies": 1,
                     "status": "Listo para Ripear",
-                    "queue_id": "queue_a",
-                    "ink_ml": 5.84,
+                    "queue_id": "queue_mutoh",
+                    "ink_ml": 14.20,
                     "color": "#0ea5e9",
                 },
                 {
                     "id": "JOB-102",
-                    "title": "Stickers Corporativos Troquelados.pdf",
-                    "width_mm": 480.0,
-                    "height_mm": 350.0,
-                    "copies": 3,
+                    "title": "Stickers_Corporativos_Lote.pdf",
+                    "width_mm": 620.0,
+                    "height_mm": 900.0,
+                    "copies": 2,
                     "status": "En Espera",
-                    "queue_id": "queue_a",
-                    "ink_ml": 2.15,
+                    "queue_id": "queue_mutoh",
+                    "ink_ml": 5.40,
                     "color": "#ec4899",
                 },
             ],
         },
         {
-            "id": "queue_b",
-            "code": "COLA B",
-            "name": "Sublimación Textil — Transfer 110cm",
-            "printer_id": "epson_f9470h",
-            "profile_id": "sublimation_transfer_paper",
-            "roll_width_mm": 1118.0,
-            "status": "Activa (Espejado Auto)",
+            "id": "queue_mimaki",
+            "code": "COLA MIMAKI",
+            "name": "Mimaki UJV100-160 (UV LED + Blanco/Barniz)",
+            "printer_id": "mimaki_ujv100_160",
+            "profile_id": "mimaki_uv_vinyl_1520",
+            "roll_width_mm": 1520.0,
+            "coil_length_m": 50.0,
+            "status": "En línea (MAPS4 / UV LED)",
             "jobs": [
                 {
                     "id": "JOB-201",
-                    "title": "Camisetas Deportivas Full Print.eps",
-                    "width_mm": 980.0,
-                    "height_mm": 1200.0,
-                    "copies": 2,
+                    "title": "Backlit_Film_UV_Blanco_150cm.tif",
+                    "width_mm": 1480.0,
+                    "height_mm": 1800.0,
+                    "copies": 1,
                     "status": "Listo para Ripear",
-                    "queue_id": "queue_b",
-                    "ink_ml": 7.10,
-                    "color": "#eab308",
-                }
-            ],
-        },
-        {
-            "id": "queue_c",
-            "code": "COLA C",
-            "name": "UV LED Print & Cut — Blanco + Barniz",
-            "printer_id": "mimaki_ucjv300_160",
-            "profile_id": "uv_rigid_acrylic",
-            "roll_width_mm": 1600.0,
-            "status": "En espera de lote",
-            "jobs": [
-                {
-                    "id": "JOB-301",
-                    "title": "Etiquetas Domo Relieve UV + Blanco.pdf",
-                    "width_mm": 600.0,
-                    "height_mm": 400.0,
-                    "copies": 2,
-                    "status": "Listo para Ripear",
-                    "queue_id": "queue_c",
-                    "ink_ml": 4.30,
+                    "queue_id": "queue_mimaki",
+                    "ink_ml": 12.80,
                     "color": "#10b981",
                 }
             ],
@@ -153,12 +133,12 @@ STATE: Dict[str, Any] = {
     "master_queue": [
         {
             "id": "MST-8801",
-            "title": "Campaña Vial Exterior 150x100cm [RIPEADO]",
-            "printer_model": "Epson SureColor SC-S80600",
-            "profile_name": "Vinilo Adhesivo Brillante (Ecosolvente)",
-            "resolution": "720x1440 DPI (8 Pasadas Bidir)",
-            "ink_ml": 6.42,
-            "ripped_at": "Hoy, 05:50",
+            "title": "Tirada_Lona_Frontlit_12m [RIPEADO]",
+            "printer_model": "Mutoh ValueJet VJ-1624",
+            "profile_name": "Mutoh VJ-1624 — Lona Frontlit 13oz (1600mm)",
+            "resolution": "720x720 DPI (6 Pasadas Bidir)",
+            "ink_ml": 68.40,
+            "ripped_at": "Hoy",
             "prn_file": None,
         }
     ],
@@ -166,17 +146,39 @@ STATE: Dict[str, Any] = {
 }
 
 
+class CreateMaterialProfileRequest(BaseModel):
+    name: str
+    printer_id: str = "mutoh_vj_1624"
+    default_width_mm: float = 1370.0
+    coil_length_m: float = 50.0
+    total_ink_limit: int = 270
+    black_generation: str = "GCR Medio"
+    resolution: str = "720x1440"
+    passes: int = 8
+    gain_c: float = 1.0
+    gain_m: float = 1.0
+    gain_y: float = 1.0
+    gain_k: float = 1.0
+    gain_w: float = 0.0
+    heater_pre_c: int = 40
+    heater_platen_c: int = 42
+    heater_dryer_c: int = 48
+    uv_lamp_pct: int = 85
+
+
 class RipRequest(BaseModel):
     preset_artwork: str = "motorsport_wrap"
     image_data_url: Optional[str] = None
-    job_title: str = "Gráfica Gran Formato.tif"
-    queue_id: str = "queue_a"
-    printer_id: str = "epson_s80600"
-    profile_id: str = "ecosol_vinyl_gloss"
+    job_title: str = "Grafica_Gran_Formato.tif"
+    queue_id: str = "queue_mutoh"
+    printer_id: str = "mutoh_vj_1624"
+    profile_id: str = "mutoh_vinyl_gloss_1370"
     halftone_mode: str = "bayer_fm"
     channel_gains: Dict[str, float] = {"C": 1.0, "M": 1.0, "Y": 1.0, "K": 1.0}
-    total_ink_limit: float = 280.0
+    total_ink_limit: float = 270.0
     mirror_horizontal: bool = False
+    material_width_mm: float = 1370.0
+    coil_length_m: float = 50.0
     width_mm: float = 1200.0
     height_mm: float = 840.0
     resolution_dpi: int = 720
@@ -195,7 +197,7 @@ class AtlasRequest(BaseModel):
     cols: int = 5
     step_pct: float = 4.0
     variation_mode: str = "C_vs_M"
-    profile_id: str = "ecosol_vinyl_gloss"
+    profile_id: str = "mutoh_vinyl_gloss_1370"
     include_crop_marks: bool = True
 
 
@@ -206,22 +208,22 @@ class SpotColorImportRequest(BaseModel):
     a: float
     b: float
     category: str = "Custom CIE Lab / PANTONE"
-    profile_id: str = "ecosol_vinyl_gloss"
+    profile_id: str = "mutoh_vinyl_gloss_1370"
 
 
 class TilingRequest(BaseModel):
-    job_width_mm: float = 3800.0
-    job_height_mm: float = 2200.0
-    roll_width_mm: float = 1600.0
-    margin_mm: float = 20.0
-    overlap_mm: float = 15.0
-    max_tile_height_mm: float = 3000.0
+    job_width_mm: float = 4200.0
+    job_height_mm: float = 2400.0
+    roll_width_mm: float = 1370.0
+    margin_mm: float = 15.0
+    overlap_mm: float = 18.0
+    max_tile_height_mm: float = MAX_COIL_LENGTH_MM
     alternate_flip: bool = True
 
 
 class NestingRequest(BaseModel):
-    queue_id: str = "queue_a"
-    roll_width_mm: float = 1600.0
+    queue_id: str = "queue_mutoh"
+    roll_width_mm: float = 1370.0
     margin_mm: float = 15.0
     gap_mm: float = 12.0
     allow_rotation: bool = True
@@ -230,33 +232,73 @@ class NestingRequest(BaseModel):
 
 class VdpRequest(BaseModel):
     records: List[Dict[str, str]]
-    queue_id: str = "queue_a"
+    queue_id: str = "queue_mutoh"
 
 
 class SpoolSendRequest(BaseModel):
     job_title: str = "Trabajo_RIP_GranFormato"
-    printer_id: str = "epson_s80600"
-    profile_id: str = "ecosol_vinyl_gloss"
+    printer_id: str = "mutoh_vj_1624"
+    profile_id: str = "mutoh_vinyl_gloss_1370"
     connection_mode: str = "spool_file"
-    host: str = "192.168.1.200"
+    host: str = "192.168.1.201"
     port: int = 9100
     usb_device: str = "/dev/usb/lp0"
     resolution_dpi: int = 720
     passes: int = 8
     head_direction: str = "bidirectional"
     auto_cut: bool = True
-    roll_width_mm: float = 1600.0
+    roll_width_mm: float = 1370.0
 
 
 @app.get("/api/config")
 def get_initial_config() -> Dict[str, Any]:
     return {
+        "max_coil_length_m": 50.0,
+        "max_coil_length_mm": MAX_COIL_LENGTH_MM,
         "printers": list(PLOTTER_HARDWARE_MODELS.values()),
         "profiles": list(ICC_MEDIA_PROFILES.values()),
         "spot_colors": STATE["spot_colors"],
         "queues": STATE["queues"],
         "master_queue": STATE["master_queue"],
         "devices": detect_local_usb_and_cups_devices(),
+    }
+
+
+@app.post("/api/profiles/create")
+def api_create_material_profile(req: CreateMaterialProfileRequest) -> Dict[str, Any]:
+    prof_id = f"custom_{int(time.time())}"
+    is_uv = req.printer_id == "mimaki_ujv100_160"
+    new_prof = {
+        "id": prof_id,
+        "name": req.name.strip(),
+        "printer_id": req.printer_id,
+        "ink_type": "UV LED CMYK + Blanco" if is_uv else "Ecosolvente CMYK (Mutoh i²)",
+        "default_width_mm": max(210.0, min(1625.0, req.default_width_mm)),
+        "coil_length_m": max(1.0, min(50.0, req.coil_length_m)),
+        "rendering_intent": "Perceptual",
+        "total_ink_limit": req.total_ink_limit,
+        "black_generation": req.black_generation,
+        "channel_gains": {
+            "C": req.gain_c,
+            "M": req.gain_m,
+            "Y": req.gain_y,
+            "K": req.gain_k,
+            "W": req.gain_w,
+        },
+        "heaters_c": {
+            "pre": 0 if is_uv else req.heater_pre_c,
+            "platen": 0 if is_uv else req.heater_platen_c,
+            "dryer": 0 if is_uv else req.heater_dryer_c,
+        },
+        "uv_lamp_pct": req.uv_lamp_pct if is_uv else 0,
+        "resolution": req.resolution,
+        "passes": req.passes,
+        "gamma": 1.0,
+    }
+    ICC_MEDIA_PROFILES[prof_id] = new_prof
+    return {
+        "created": new_prof,
+        "profiles": list(ICC_MEDIA_PROFILES.values()),
     }
 
 
@@ -267,6 +309,7 @@ def api_rip_process(req: RipRequest) -> Dict[str, Any]:
     else:
         img = create_sample_wide_format_artwork(preset=req.preset_artwork)
 
+    clamped_h_mm = min(MAX_COIL_LENGTH_MM, max(10.0, req.height_mm))
     result = rip_image_pipeline(
         img=img,
         profile_id=req.profile_id,
@@ -275,7 +318,7 @@ def api_rip_process(req: RipRequest) -> Dict[str, Any]:
         total_ink_limit=req.total_ink_limit,
         mirror_horizontal=req.mirror_horizontal,
         width_mm=req.width_mm,
-        height_mm=req.height_mm,
+        height_mm=clamped_h_mm,
         resolution_dpi=req.resolution_dpi,
         passes=req.passes,
         head_direction=req.head_direction,
@@ -297,7 +340,12 @@ def api_rip_process(req: RipRequest) -> Dict[str, Any]:
             "Y": pil_to_data_url(result["channels"]["Y"]),
             "K": pil_to_data_url(result["channels"]["K"]),
         },
-        "metrics": result["metrics"],
+        "metrics": {
+            **result["metrics"],
+            "material_width_mm": req.material_width_mm,
+            "coil_length_m": min(50.0, req.coil_length_m),
+            "remaining_coil_m": round(max(0.0, min(50.0, req.coil_length_m) - (clamped_h_mm / 1000.0)), 2),
+        },
     }
 
 
@@ -349,11 +397,11 @@ def api_import_spot_color(req: SpotColorImportRequest) -> Dict[str, Any]:
 def api_compute_tiling(req: TilingRequest) -> Dict[str, Any]:
     return compute_tiling_plan(
         job_width_mm=req.job_width_mm,
-        job_height_mm=req.job_height_mm,
+        job_height_mm=min(MAX_COIL_LENGTH_MM, req.job_height_mm),
         roll_width_mm=req.roll_width_mm,
         margin_mm=req.margin_mm,
         overlap_mm=req.overlap_mm,
-        max_tile_height_mm=req.max_tile_height_mm,
+        max_tile_height_mm=min(MAX_COIL_LENGTH_MM, req.max_tile_height_mm),
         alternate_flip=req.alternate_flip,
     )
 
@@ -377,7 +425,6 @@ def api_compute_nesting(req: NestingRequest) -> Dict[str, Any]:
 def api_generate_vdp(req: VdpRequest) -> Dict[str, Any]:
     base_img = create_sample_wide_format_artwork("motorsport_wrap", width=240, height=240)
     vdp_res = render_vdp_batch_preview(base_img=base_img, records=req.records)
-    # Añadir también como trabajo en la cola seleccionada
     q = next((q for q in STATE["queues"] if q["id"] == req.queue_id), STATE["queues"][0])
     new_job = {
         "id": f"VDP-{int(time.time()) % 10000}",
@@ -407,8 +454,8 @@ def api_spool_send(req: SpoolSendRequest) -> Dict[str, Any]:
         STATE["last_halftones"] = res["raw_halftones"]
 
     c_ht, m_ht, y_ht, k_ht = STATE["last_halftones"]
-    printer_obj = PLOTTER_HARDWARE_MODELS.get(req.printer_id, PLOTTER_HARDWARE_MODELS["epson_s80600"])
-    prof_obj = ICC_MEDIA_PROFILES.get(req.profile_id, ICC_MEDIA_PROFILES["ecosol_vinyl_gloss"])
+    printer_obj = PLOTTER_HARDWARE_MODELS.get(req.printer_id, PLOTTER_HARDWARE_MODELS["mutoh_vj_1624"])
+    prof_obj = ICC_MEDIA_PROFILES.get(req.profile_id, ICC_MEDIA_PROFILES["mutoh_vinyl_gloss_1370"])
 
     prn_bytes = build_prn_binary_stream(
         c_ht=c_ht,

@@ -1,89 +1,59 @@
 """
 Control de Hardware, Perfiles de Plotter y Spooler Directo (USB / Red TCP-IP Port 9100):
-- Catálogo de plotters de gran formato (Epson, Roland, Mimaki, Mutoh, HP Latex)
-- Control de cabezal (Unidireccional / Bidireccional), pasadas, entrelazado, calentadores/lámparas UV y autocorte
-- Envío directo por socket TCP/IP Raw (Puerto 9100), cola local CUPS/USB o guardado en disco (.PRN)
+Optimizado específicamente para las dos impresoras de producción:
+1. Mutoh ValueJet VJ-1624 (Ecosolvente / Sublimación, hasta 1625 mm de ancho y bobina de 50 metros)
+2. Mimaki UJV100-160 (UV LED Curable con Blanco/Barniz, hasta 1620 mm de ancho y bobina de 50 metros)
 """
 
 import os
 import socket
 import subprocess
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
+
+MAX_COIL_LENGTH_MM = 50000.0  # 50 metros (longitud máxima de bobina)
 
 PLOTTER_HARDWARE_MODELS: Dict[str, Dict[str, Any]] = {
-    "epson_s80600": {
-        "id": "epson_s80600",
-        "brand": "Epson",
-        "model": "SureColor SC-S80600 (PrecisionCore Dual)",
-        "technology": "Ecosolvente",
-        "max_width_mm": 1626,
-        "resolutions": ["720x720", "720x1440", "1440x1440"],
-        "passes_supported": [4, 6, 8, 12, 16],
-        "channels": ["C", "M", "Y", "K", "Lc", "Lm", "Lk", "Or", "Re", "Wh/Sl"],
-        "command_lang": "ESC/P2-Raster",
-        "default_port": 9100,
-        "heaters_c": {"pre": 40, "platen": 42, "after": 50},
-    },
-    "roland_vg3_640": {
-        "id": "roland_vg3_640",
-        "brand": "Roland DG",
-        "model": "TrueVIS VG3-640 (Print & Cut)",
-        "technology": "Ecosolvente + Corte Contorno",
-        "max_width_mm": 1625,
-        "resolutions": ["600x600", "900x900", "1200x1200"],
-        "passes_supported": [6, 8, 10, 12, 16],
-        "channels": ["C", "M", "Y", "K", "Lc", "Lm", "Or", "Gr"],
-        "command_lang": "RP-GL/RTL + CAMM-GL1",
-        "default_port": 9100,
-        "heaters_c": {"pre": 38, "platen": 40, "after": 48},
-    },
-    "epson_f9470h": {
-        "id": "epson_f9470h",
-        "brand": "Epson",
-        "model": "SureColor SC-F9470H (Sublimación Alta Producción)",
-        "technology": "Sublimación Textil + Fluorescente",
-        "max_width_mm": 1625,
-        "resolutions": ["360x720", "720x720", "720x1440"],
-        "passes_supported": [2, 4, 6, 8],
-        "channels": ["C", "M", "Y", "HDK", "FY", "FP"],
-        "command_lang": "ESC/P2-Sub",
-        "default_port": 9100,
-        "heaters_c": {"pre": 0, "platen": 35, "after": 55},
-    },
-    "mimaki_ucjv300_160": {
-        "id": "mimaki_ucjv300_160",
-        "brand": "Mimaki",
-        "model": "UCJV300-160 (UV LED Print & Cut)",
-        "technology": "UV LED Curable (Blanco + Barniz)",
-        "max_width_mm": 1610,
-        "resolutions": ["600x600", "600x1200", "1200x1200"],
-        "passes_supported": [6, 8, 12, 16, 24],
-        "channels": ["C", "M", "Y", "K", "Lc", "Lm", "W", "V"],
-        "command_lang": "MRL-IV / HP-GL",
-        "default_port": 9100,
-        "heaters_c": {"uv_lamp_left_pct": 85, "uv_lamp_right_pct": 85},
-    },
-    "mutoh_xpj_1682sr": {
-        "id": "mutoh_xpj_1682sr",
+    "mutoh_vj_1624": {
+        "id": "mutoh_vj_1624",
         "brand": "Mutoh",
-        "model": "XpertJet 1682SR Pro (Dual Head AccuFine)",
-        "technology": "Ecosolvente",
+        "model": "ValueJet VJ-1624 (1625mm • i² Intelligent Interweaving)",
+        "technology": "Ecosolvente (CMYK)",
         "max_width_mm": 1625,
-        "resolutions": ["600x600", "600x900", "1200x1200"],
-        "passes_supported": [4, 6, 8, 12],
-        "channels": ["C", "M", "Y", "K", "Lc", "Lm", "Lk", "Or"],
-        "command_lang": "MH-RTL",
+        "max_printable_width_mm": 1615,
+        "max_length_mm": MAX_COIL_LENGTH_MM,
+        "resolutions": ["360x720", "720x720", "720x1440", "1440x1440"],
+        "passes_supported": [2, 4, 6, 8, 12, 16],
+        "channels": ["C", "M", "Y", "K"],
+        "weave_modes": ["i² Wave (Ondulado Sin Banding)", "i² Fog (Difuminado Suave)", "Recto Convencional"],
+        "command_lang": "MH-RTL / ESC/P2-Mutoh",
         "default_port": 9100,
-        "heaters_c": {"pre": 42, "platen": 40, "after": 50},
+        "heaters_c": {"pre": 40, "platen": 42, "dryer": 48},
+        "uv_lamp_pct": 0,
+    },
+    "mimaki_ujv100_160": {
+        "id": "mimaki_ujv100_160",
+        "brand": "Mimaki",
+        "model": "UJV100-160 (1620mm • Dual Head UV LED + Blanco/Barniz)",
+        "technology": "UV LED Curable (CMYK + W / V)",
+        "max_width_mm": 1620,
+        "max_printable_width_mm": 1610,
+        "max_length_mm": MAX_COIL_LENGTH_MM,
+        "resolutions": ["360x600", "600x600", "600x1200", "1200x1200"],
+        "passes_supported": [4, 6, 8, 12, 16, 24],
+        "channels": ["C", "M", "Y", "K", "W", "V"],
+        "weave_modes": ["MAPS4 (Mimaki Advanced Pass System 4)", "DAS Auto-Registro", "Alta Densidad Backlit"],
+        "command_lang": "MRL-V / Mimaki Raster",
+        "default_port": 9100,
+        "heaters_c": {"pre": 0, "platen": 0, "dryer": 0},
+        "uv_lamp_pct": 85,
     },
 }
 
 
 def detect_local_usb_and_cups_devices() -> List[Dict[str, str]]:
-    """Detecta dispositivos USB de impresión (/dev/usb/lp*) y colas CUPS disponibles en el sistema."""
+    """Detecta dispositivos USB de impresión (/dev/usb/lp*) y colas de red para Mutoh VJ-1624 y Mimaki UJV100-160."""
     devices: List[Dict[str, str]] = []
-    # 1. Revisar dispositivos de caracteres USB directos en Linux
     for dev_idx in range(4):
         dev_path = f"/dev/usb/lp{dev_idx}"
         if os.path.exists(dev_path):
@@ -93,30 +63,33 @@ def detect_local_usb_and_cups_devices() -> List[Dict[str, str]]:
                 "status": "Conectado",
             })
 
-    # 2. Consultar lpstat si está disponible
     try:
         res = subprocess.run(["lpstat", "-v"], capture_output=True, text=True, timeout=2.0)
         if res.returncode == 0 and res.stdout.strip():
             for line in res.stdout.strip().splitlines():
                 devices.append({
-                    "type": "Cola CUPS",
+                    "type": "Cola del Sistema",
                     "uri": line.strip(),
                     "status": "Disponible",
                 })
     except Exception:
         pass
 
-    # Puertos virtuales / simulador de desarrollo siempre disponibles
     devices.extend([
         {
-            "type": "Red TCP/IP (JetDirect Raw)",
-            "uri": "tcp://192.168.1.200:9100",
-            "status": "Listo para transmisión Raw",
+            "type": "Mutoh VJ-1624 (Red TCP/IP Raw)",
+            "uri": "tcp://192.168.1.201:9100",
+            "status": "Puerto JetDirect 9100 Listo",
+        },
+        {
+            "type": "Mimaki UJV100-160 (Red TCP/IP / USB)",
+            "uri": "tcp://192.168.1.202:9100",
+            "status": "Puerto MRL-V 9100 Listo",
         },
         {
             "type": "Spooler Archivo Local (.PRN)",
-            "uri": "file:///home/antigravity/plotter-rip-pro/output_spool/",
-            "status": "Activo (Carpeta Caliente)",
+            "uri": "file:///output_spool/",
+            "status": "Activo (Descarga Directa)",
         },
     ])
     return devices
@@ -131,18 +104,12 @@ def send_prn_to_printer(
     output_dir: str = "/home/antigravity/plotter-rip-pro/output_spool",
     job_name: str = "rip_job",
 ) -> Dict[str, Any]:
-    """
-    Envía el stream binario .PRN directamente al plotter:
-    - 'tcp_raw': Conecta por socket TCP al puerto 9100 (con fallback automático a archivo local si el plotter físico no está en red)
-    - 'usb_direct': Escribe directamente al nodo USB `/dev/usb/lp0`
-    - 'spool_file': Guarda el archivo `.PRN` listo para producción en la carpeta de salida
-    """
+    """Envía el stream binario .PRN a la Mutoh VJ-1624 o Mimaki UJV100-160."""
     os.makedirs(output_dir, exist_ok=True)
     safe_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in job_name)
     ts = int(time.time())
     prn_path = os.path.join(output_dir, f"{safe_name}_{ts}.prn")
 
-    # Siempre guardamos copia de respaldo en el Spooler Maestro
     with open(prn_path, "wb") as f:
         f.write(prn_bytes)
 
@@ -165,7 +132,7 @@ def send_prn_to_printer(
                 "target": prn_path,
                 "bytes_sent": len(prn_bytes),
                 "spool_backup": prn_path,
-                "message": f"El plotter {host}:{port} no respondió al socket directo ({exc}); trabajo almacenado en Cola Maestra lista para envío: {prn_path}",
+                "message": f"La impresora en {host}:{port} no respondió al socket directo ({exc}); archivo .PRN guardado en Cola Maestra: {prn_path}",
             }
 
     if connection_mode == "usb_direct":
@@ -186,7 +153,7 @@ def send_prn_to_printer(
             "target": prn_path,
             "bytes_sent": len(prn_bytes),
             "spool_backup": prn_path,
-            "message": f"Puerto {usb_device} no detectado físicamente; archivo .PRN generado en Cola Maestra: {prn_path}",
+            "message": f"Puerto {usb_device} en espera; archivo .PRN listo en Cola Maestra: {prn_path}",
         }
 
     return {

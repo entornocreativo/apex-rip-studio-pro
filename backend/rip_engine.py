@@ -135,7 +135,7 @@ def add_plotter_marks_and_colorbar(
 
 def rip_image_pipeline(
     img: Image.Image,
-    profile_id: str = "ecosol_vinyl_gloss",
+    profile_id: str = "mutoh_vinyl_gloss_1370",
     halftone_mode: str = "bayer_fm",
     channel_gains: Optional[Dict[str, float]] = None,
     total_ink_limit: Optional[float] = None,
@@ -162,7 +162,7 @@ def rip_image_pipeline(
     6. Cálculo de cobertura (%) y mililitros de tinta por canal
     """
     t0 = time.time()
-    prof = ICC_MEDIA_PROFILES.get(profile_id, ICC_MEDIA_PROFILES["ecosol_vinyl_gloss"])
+    prof = ICC_MEDIA_PROFILES.get(profile_id, ICC_MEDIA_PROFILES["mutoh_vinyl_gloss_1370"])
 
     # Conservar alfa para máscara de tinta blanca (UV/DTF) si existe
     rgba = img.convert("RGBA")

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ApexRIP Studio Pro v2.4 — Estación RIP de Gran Formato</title>
+  <title>ApexRIP Studio Pro v2.5 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -46,11 +46,11 @@
       </div>
       <div>
         <div class="font-bold text-sm tracking-tight flex items-center gap-2">
-          ApexRIP Studio Pro v2.4
-          <span class="px-1.5 py-0.5 text-xs rounded bg-[var(--secondary)] text-[var(--secondary-foreground)] font-mono">GRAN FORMATO</span>
+          ApexRIP Studio Pro v2.5
+          <span class="px-1.5 py-0.5 text-xs rounded bg-[var(--secondary)] text-[var(--primary)] font-mono">MUTOH VJ-1624 &amp; MIMAKI UJV100-160</span>
         </div>
         <div class="text-xs text-[var(--muted-foreground)]">
-          Ecosolvente • Sublimación Textil • UV LED | ICC + Atlas + Colas + VDP + Panelación
+          Bobina Máxima 50 Metros (50,000 mm) • Ancho de Material Libre • Perfiles Personalizados por Sustrato
         </div>
       </div>
     </div>
@@ -58,28 +58,28 @@
     <!-- Pestañas de Navegación -->
     <nav class="flex flex-wrap items-center gap-1" id="main-tabs">
       <button data-target="pane-rip" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer">
-        1. Ripeo &amp; Canales CMYK
+        1. Ripeo &amp; Canales
+      </button>
+      <button data-target="pane-profiles" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+        2. Perfiles de Material &amp; Anchos
       </button>
       <button data-target="pane-atlas" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
-        2. Atlas de Color &amp; PANTONE
+        3. Atlas de Color &amp; PANTONE
       </button>
       <button data-target="pane-layout" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
-        3. Nesting &amp; Panelación
+        4. Nesting &amp; Panelación (50m)
       </button>
       <button data-target="pane-vdp" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
-        4. Datos Variables (VDP)
+        5. Datos Variables (VDP)
       </button>
       <button data-target="pane-queues" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
-        5. Cola Maestra &amp; Salida .PRN
+        6. Cola Maestra &amp; Salida .PRN
       </button>
     </nav>
 
     <div class="flex items-center gap-2">
-      <button id="btn-save-app-pc" class="px-3 py-1.5 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold cursor-pointer hover:opacity-90">
-        ⬇ Descargar Programa a mi PC
-      </button>
       <label for="upload-art-input" class="px-3 py-1.5 rounded border border-[var(--border)] bg-[var(--secondary)] text-[var(--secondary-foreground)] font-semibold cursor-pointer hover:opacity-90">
-        + Cargar Imagen Propia
+        + Cargar Arte Propio
       </label>
       <input id="upload-art-input" type="file" accept="image/*" class="hidden" />
       <button id="btn-export-prn-top" class="px-3 py-1.5 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer hover:opacity-90">
@@ -91,67 +91,109 @@
   <!-- Contenedor Principal de 3 Columnas -->
   <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3">
 
-    <!-- COLUMNA IZQUIERDA: Colas de Impresión Múltiples y Trabajos -->
+    <!-- COLUMNA IZQUIERDA: Colas Mutoh VJ-1624 / Mimaki UJV100-160 y Control de Bobina 50m -->
     <aside class="lg:col-span-3 space-y-3">
+      <!-- Estado de Bobina (Máx 50 Metros) y Ancho Editable Directo -->
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
         <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
-          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Colas de Impresión Activas</span>
-          <span class="font-mono text-xs text-[var(--primary)]">3 Colas</span>
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Material y Bobina (Máx. 50 m)</span>
+          <span id="badge-max-coil" class="font-mono text-xs text-[var(--primary)]">50.0 m máx</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Escribir Ancho Material (mm)</label>
+            <input id="mat-width-mm" type="number" min="200" max="1625" step="1" value="1370" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-sm" />
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Largo Bobina (Metros, máx 50)</label>
+            <input id="mat-coil-m" type="number" min="1" max="50" step="0.5" value="50" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono font-bold text-sm" />
+          </div>
+        </div>
+
+        <!-- Botones rápidos de anchos habituales o escribir libremente arriba -->
+        <div>
+          <span class="block text-[var(--muted-foreground)] mb-1">Anchos Rápidos (o escribe arriba cualquier medida):</span>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" data-w="610" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">610mm</button>
+            <button type="button" data-w="914" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">914mm</button>
+            <button type="button" data-w="1070" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">1070mm</button>
+            <button type="button" data-w="1270" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">1270mm</button>
+            <button type="button" data-w="1370" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-mono cursor-pointer">1370mm</button>
+            <button type="button" data-w="1520" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">1520mm</button>
+            <button type="button" data-w="1600" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">1600mm</button>
+            <button type="button" data-w="1620" class="quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80">1620mm</button>
+          </div>
+        </div>
+
+        <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)] space-y-1">
+          <div class="flex justify-between font-mono">
+            <span class="text-[var(--muted-foreground)]">Ancho Imprimible Útil:</span>
+            <span id="lbl-usable-width" class="font-bold text-[var(--primary)]">1350 mm (135.0 cm)</span>
+          </div>
+          <div class="flex justify-between font-mono">
+            <span class="text-[var(--muted-foreground)]">Remanente tras trabajo:</span>
+            <span id="lbl-coil-rem" class="font-bold">49.16 m de 50.00 m</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colas de Impresión Activas: Mutoh VJ-1624 y Mimaki UJV100-160 -->
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Tus 2 Impresoras / Colas</span>
+          <span class="font-mono text-xs text-[var(--primary)]">Activas</span>
         </div>
         <div id="queues-list" class="space-y-2"></div>
       </div>
 
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
         <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
-          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Trabajos en Cola Activa</span>
-          <button id="btn-add-job-queue" class="text-xs font-semibold text-[var(--primary)] cursor-pointer">+ Añadir Actual</button>
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Trabajos en Cola</span>
+          <button id="btn-add-job-queue" class="text-xs font-semibold text-[var(--primary)] cursor-pointer">+ Añadir Trabajo</button>
         </div>
-        <div id="active-queue-jobs" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
-      </div>
-
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
-        <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
-          Carta / Diseño Activo
-        </div>
-        <div class="space-y-1.5">
-          <label class="block text-[var(--muted-foreground)]">Gráfico de Prueba Integrado</label>
-          <select id="preset-select" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)]">
-            <option value="motorsport">Carta Gran Formato Ecosolvente &amp; Registro CMYK</option>
-            <option value="sublimation">Diseño Textil Sublimación Full Print (HDK)</option>
-            <option value="uv_signage">Cartelería Retroiluminada UV LED + Corte</option>
-          </select>
-        </div>
+        <div id="active-queue-jobs" class="space-y-1.5 max-h-44 overflow-y-auto"></div>
       </div>
     </aside>
 
     <!-- COLUMNA CENTRAL: Escenario Principal por Pestaña -->
     <main class="lg:col-span-6 space-y-3">
 
-      <!-- PESTAÑA 1: ESTACIÓN DE RIPEO Y SEPARACIÓN CMYK -->
+      <!-- PESTAÑA 1: ESTACIÓN DE RIPEO Y SEPARACIÓN CMYK (+ BLANCO UV) -->
       <section id="pane-rip" class="tab-pane active space-y-3">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-2">
-            <div class="flex flex-wrap items-center gap-1.5" id="channel-selector">
+            <div class="flex flex-wrap items-center gap-1" id="channel-selector">
               <span class="font-bold mr-1">Canal:</span>
-              <button data-ch="composite" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer">
+              <button data-ch="composite" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer">
                 Compuesto CMYK
               </button>
-              <button data-ch="C" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+              <button data-ch="C" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
                 Cian (C)
               </button>
-              <button data-ch="M" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+              <button data-ch="M" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
                 Magenta (M)
               </button>
-              <button data-ch="Y" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+              <button data-ch="Y" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
                 Amarillo (Y)
               </button>
-              <button data-ch="K" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+              <button data-ch="K" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
                 Negro (K)
               </button>
+              <button data-ch="W" class="ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+                Blanco UV (W)
+              </button>
             </div>
-            <button id="btn-download-tiff" class="px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">
-              Descargar Vista Ripeada (.PNG)
-            </button>
+            <div class="flex items-center gap-1.5">
+              <select id="preset-select" class="px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)]">
+                <option value="motorsport">Carta Control Mutoh / Mimaki</option>
+                <option value="uv_signage">Cartelería Backlit UV + Blanco</option>
+                <option value="sublimation">Gráfica Alta Saturación</option>
+              </select>
+              <button id="btn-download-tiff" class="px-2 py-1 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">
+                Guardar PNG
+              </button>
+            </div>
           </div>
 
           <div class="bg-[var(--background)] border border-[var(--border)] rounded p-2 flex items-center justify-center overflow-auto" style="min-height: 340px;">
@@ -161,36 +203,167 @@
           <!-- Métricas de Ripeo -->
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
             <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-              <div class="text-[var(--muted-foreground)]">Área Física</div>
+              <div class="text-[var(--muted-foreground)]">Área Impresión</div>
               <div id="stat-area" class="font-mono font-bold text-sm mt-0.5">1.01 m²</div>
             </div>
             <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-              <div class="text-[var(--muted-foreground)]">Tinta Estimada</div>
+              <div class="text-[var(--muted-foreground)]">Consumo Tinta</div>
               <div id="stat-ink" class="font-mono font-bold text-sm mt-0.5 text-[var(--primary)]">5.48 mL</div>
             </div>
             <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
               <div class="text-[var(--muted-foreground)]">Pico TIL Máx.</div>
-              <div id="stat-til" class="font-mono font-bold text-sm mt-0.5">260%</div>
+              <div id="stat-til" class="font-mono font-bold text-sm mt-0.5">270%</div>
             </div>
             <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-              <div class="text-[var(--muted-foreground)]">Cabezal / Pasadas</div>
-              <div id="stat-passes" class="font-mono font-bold text-xs mt-0.5">8 Pasadas Bidir</div>
+              <div class="text-[var(--muted-foreground)]">Ancho Material</div>
+              <div id="stat-mat-w" class="font-mono font-bold text-xs mt-0.5">1370 mm</div>
             </div>
             <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-              <div class="text-[var(--muted-foreground)]">Línea de Corte</div>
-              <div id="stat-cut" class="font-mono font-bold text-xs mt-0.5">OPOS + Printline</div>
+              <div class="text-[var(--muted-foreground)]">Tecnología Activa</div>
+              <div id="stat-tech" class="font-mono font-bold text-xs mt-0.5">Mutoh i² Wave</div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PESTAÑA 2: GENERADOR DE ATLAS DE COLORES E IMPORTADOR CIE LAB / PANTONE -->
+      <!-- PESTAÑA 2: CREADOR Y GESTOR DE PERFILES POR TIPO DE MATERIAL -->
+      <section id="pane-profiles" class="tab-pane space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="border-b border-[var(--card-border)] pb-2">
+            <div class="font-bold text-sm">Crear Nuevo Perfil de Material (Mutoh VJ-1624 / Mimaki UJV100-160)</div>
+            <div class="text-[var(--muted-foreground)]">
+              Guarda perfiles personalizados para cada vinilo, lona, papel, film backlit o rígido flexible con su ancho exacto, curvas CMYK(+W), límite de tinta y temperaturas/UV.
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div class="sm:col-span-2">
+              <label class="block text-[var(--muted-foreground)] mb-1">Nombre del Material / Perfil</label>
+              <input id="np-name" type="text" placeholder="Ej: Vinilo Arlon Brillante 137cm / Lona Frontlit 160cm" value="Vinilo Polimérico Mate 137cm" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Impresora Asignada</label>
+              <select id="np-printer" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="mutoh_vj_1624">Mutoh ValueJet VJ-1624</option>
+                <option value="mimaki_ujv100_160">Mimaki UJV100-160 (UV LED)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Ancho del Material (mm)</label>
+              <input id="np-width" type="number" min="200" max="1625" value="1370" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Largo Bobina (m, máx 50)</label>
+              <input id="np-coil" type="number" min="1" max="50" value="50" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Resolución DPI</label>
+              <select id="np-dpi" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="720x720">720 x 720 DPI (Mutoh)</option>
+                <option value="720x1440" selected>720 x 1440 DPI (Mutoh)</option>
+                <option value="600x600">600 x 600 DPI (Mimaki UV)</option>
+                <option value="600x1200">600 x 1200 DPI (Mimaki UV)</option>
+                <option value="1200x1200">1200 x 1200 DPI (Mimaki UV)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Pasadas (Passes)</label>
+              <select id="np-passes" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="4">4 Pasadas</option>
+                <option value="6">6 Pasadas</option>
+                <option value="8" selected>8 Pasadas</option>
+                <option value="12">12 Pasadas</option>
+                <option value="16">16 Pasadas</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Límite TIL (%)</label>
+              <input id="np-til" type="number" min="160" max="340" value="270" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Canal C (%)</label>
+              <input id="np-c" type="number" min="50" max="140" value="100" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Canal M (%)</label>
+              <input id="np-m" type="number" min="50" max="140" value="98" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Canal Y (%)</label>
+              <input id="np-y" type="number" min="50" max="140" value="100" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Canal K (%)</label>
+              <input id="np-k" type="number" min="50" max="140" value="102" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Blanco UV (%)</label>
+              <input id="np-w" type="number" min="0" max="150" value="0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Pre-Calentador Mutoh (°C)</label>
+              <input id="np-pre" type="number" min="0" max="60" value="40" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Platina Mutoh (°C)</label>
+              <input id="np-platen" type="number" min="0" max="60" value="42" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Secador Post Mutoh (°C)</label>
+              <input id="np-dryer" type="number" min="0" max="65" value="48" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Lámpara UV Mimaki (%)</label>
+              <input id="np-uv" type="number" min="10" max="100" value="85" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button id="btn-save-profile" class="px-4 py-1.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
+              + Guardar Perfil de Material y Activar Ahora
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de Perfiles de Material Guardados -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+          <div class="font-bold text-sm border-b border-[var(--card-border)] pb-1.5">
+            Biblioteca de Perfiles por Tipo de Material (Clic en "Cargar" para aplicar su ancho y calibración)
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-[var(--secondary)] text-[var(--muted-foreground)]">
+                <tr>
+                  <th class="p-2">Material / Sustrato</th>
+                  <th class="p-2">Impresora</th>
+                  <th class="p-2">Ancho / Bobina</th>
+                  <th class="p-2">TIL &amp; Curvas</th>
+                  <th class="p-2">Temp / UV</th>
+                  <th class="p-2">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="profiles-tbody" class="divide-y divide-[var(--border)]"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 3: GENERADOR DE ATLAS DE COLORES E IMPORTADOR CIE LAB / PANTONE -->
       <section id="pane-atlas" class="tab-pane space-y-3">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-2">
             <div>
-              <div class="font-bold text-sm">Generador de Atlas de Colores para Sustrato</div>
-              <div class="text-[var(--muted-foreground)]">Imprime muestras con variaciones exactas de canal para emparejar tonos corporativos o PANTONE®</div>
+              <div class="font-bold text-sm">Generador de Atlas de Colores para Mutoh VJ-1624 y Mimaki UJV100-160</div>
+              <div class="text-[var(--muted-foreground)]">Imprime muestras con variaciones exactas de canal directamente sobre el material seleccionado</div>
             </div>
             <button id="btn-download-atlas" class="px-2.5 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
               Descargar Plancha Atlas (.PNG)
@@ -228,10 +401,9 @@
           </div>
         </div>
 
-        <!-- Importador CIE Lab y PANTONE Color Manager -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
           <div class="font-bold border-b border-[var(--card-border)] pb-1.5">
-            Importación de Colores CIE L*a*b* y PANTONE® Color Manager (Clic en una fila para enviar al Atlas)
+            Importación CIE L*a*b* y PANTONE® Color Manager (Clic en una fila para enviar al Atlas)
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
             <div class="sm:col-span-2">
@@ -255,7 +427,7 @@
             </button>
           </div>
 
-          <div class="max-h-48 overflow-y-auto border border-[var(--border)] rounded">
+          <div class="max-h-44 overflow-y-auto border border-[var(--border)] rounded">
             <table class="w-full text-left border-collapse">
               <thead class="bg-[var(--secondary)] text-[var(--muted-foreground)]">
                 <tr>
@@ -271,17 +443,17 @@
         </div>
       </section>
 
-      <!-- PESTAÑA 3: COMPOSICIÓN (NESTING) Y PANELACIÓN (TILING) -->
+      <!-- PESTAÑA 4: COMPOSICIÓN (NESTING) Y PANELACIÓN HASTA 50 METROS (50,000 MM) -->
       <section id="pane-layout" class="tab-pane space-y-3">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
             <div>
-              <div class="font-bold text-sm">Composición Automática en Rollo (Auto-Nesting)</div>
-              <div id="nesting-readout" class="font-mono text-xs text-[var(--primary)]">Optimización de aprovechamiento de ancho de rollo</div>
+              <div class="font-bold text-sm">Composición Automática en Rollo (Hasta 50 Metros / 50,000 mm)</div>
+              <div id="nesting-readout" class="font-mono text-xs text-[var(--primary)]">Optimización de aprovechamiento del ancho del material</div>
             </div>
             <div class="flex items-center gap-2">
-              <label class="text-[var(--muted-foreground)]">Rollo (mm):</label>
-              <input id="nest-roll-mm" type="number" value="1600" class="w-20 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <label class="text-[var(--muted-foreground)]">Ancho Material (mm):</label>
+              <input id="nest-roll-mm" type="number" min="200" max="1625" value="1370" class="w-24 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               <button id="btn-recalc-nest" class="px-2.5 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
                 Auto-Acomodar
               </button>
@@ -293,33 +465,33 @@
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
             <div>
-              <div class="font-bold text-sm">Panelación de Gran Formato (Tiling con Solapamiento y Giro Alterno 180°)</div>
-              <div id="tiling-readout" class="font-mono text-xs text-[var(--primary)]">División automática de murales que superan el ancho del plotter</div>
+              <div class="font-bold text-sm">Panelación de Gran Formato (Tiling con Solapamiento y Bobina de hasta 50 m)</div>
+              <div id="tiling-readout" class="font-mono text-xs text-[var(--primary)]">División automática según el ancho escrito del material</div>
             </div>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Mural (mm)</label>
-              <input id="tile-w" type="number" value="4200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Total Mural (mm)</label>
+              <input id="tile-w" type="number" min="200" max="50000" value="4200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-1">Alto Mural (mm)</label>
-              <input id="tile-h" type="number" value="2300" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <label class="block text-[var(--muted-foreground)] mb-1">Largo Total (mm, máx 50000)</label>
+              <input id="tile-h" type="number" min="200" max="50000" value="2400" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Rollo (mm)</label>
-              <input id="tile-roll" type="number" value="1600" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Material (mm)</label>
+              <input id="tile-roll" type="number" min="200" max="1625" value="1370" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
             <div>
               <label class="block text-[var(--muted-foreground)] mb-1">Solapamiento (mm)</label>
-              <input id="tile-overlap" type="number" value="18" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <input id="tile-overlap" type="number" min="0" max="100" value="18" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
           </div>
           <canvas id="tile-canvas" width="620" height="230" class="w-full bg-[var(--background)] border border-[var(--border)] rounded"></canvas>
         </div>
       </section>
 
-      <!-- PESTAÑA 4: IMPRESIÓN DE DATOS VARIABLES (VDP) -->
+      <!-- PESTAÑA 5: IMPRESIÓN DE DATOS VARIABLES (VDP) -->
       <section id="pane-vdp" class="tab-pane space-y-3">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
@@ -343,24 +515,24 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         </div>
       </section>
 
-      <!-- PESTAÑA 5: COLA MAESTRA Y SPOOLER DE HARDWARE (.PRN) -->
+      <!-- PESTAÑA 6: COLA MAESTRA Y SPOOLER DE HARDWARE (.PRN) -->
       <section id="pane-queues" class="tab-pane space-y-3">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
           <div class="font-bold text-sm border-b border-[var(--card-border)] pb-1.5">
-            Spooler de Salida de Hardware (USB / Red TCP-IP Puerto 9100 / Archivo Binario .PRN)
+            Spooler de Salida Directa para Mutoh VJ-1624 y Mimaki UJV100-160 (TCP/IP :9100 • USB • Archivo .PRN)
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <label class="block text-[var(--muted-foreground)] mb-1">Interfaz de Destino</label>
               <select id="spool-interface" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
-                <option value="prn">Archivo Binario .PRN (ESC/P2 &amp; RTL Directo)</option>
-                <option value="tcp">Red TCP/IP Raw Socket (JetDirect :9100)</option>
-                <option value="usb">Puerto Impresora Local USB (/dev/usb/lp0)</option>
+                <option value="prn">Archivo Binario .PRN (MH-RTL / MRL-V)</option>
+                <option value="tcp">Red TCP/IP Raw Socket (Puerto 9100)</option>
+                <option value="usb">Puerto Impresora Local USB</option>
               </select>
             </div>
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-1">Dirección IP / Host del Plotter</label>
-              <input id="spool-ip" type="text" value="192.168.1.200:9100" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <label class="block text-[var(--muted-foreground)] mb-1">Dirección IP de la Impresora</label>
+              <input id="spool-ip" type="text" value="192.168.1.201:9100" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
             <div class="flex items-end">
               <button id="btn-generate-prn-main" class="w-full py-1.5 px-3 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
@@ -369,7 +541,7 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
             </div>
           </div>
           <div id="spool-log" class="p-2.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs text-[var(--primary)]">
-            Listo para generar secuencia binaria ESC/P2 / RTL con cabeceras de pasadas, dirección de cabezal y autocorte.
+            Listo para generar secuencia binaria MH-RTL (Mutoh VJ-1624) o MRL-V (Mimaki UJV100-160).
           </div>
         </div>
 
@@ -383,8 +555,8 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
                 <tr>
                   <th class="p-2">ID</th>
                   <th class="p-2">Trabajo</th>
-                  <th class="p-2">Plotter / Dispositivo</th>
-                  <th class="p-2">Perfil ICC</th>
+                  <th class="p-2">Impresora</th>
+                  <th class="p-2">Perfil de Material (Ancho)</th>
                   <th class="p-2">Modo Cabezal</th>
                   <th class="p-2">Acción</th>
                 </tr>
@@ -397,30 +569,29 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
 
     </main>
 
-    <!-- COLUMNA DERECHA: Control de Hardware, Perfiles ICC y Curvas por Canal -->
+    <!-- COLUMNA DERECHA: Control de Hardware (Mutoh VJ-1624 / Mimaki UJV100-160), Perfiles y Curvas -->
     <aside class="lg:col-span-3 space-y-3">
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
         <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
-          Control de Hardware y Plotter
+          Control de Impresora Activa
         </div>
         <div>
-          <label class="block text-[var(--muted-foreground)] mb-1">Marca y Modelo de Plotter</label>
-          <select id="hw-model" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
-            <option value="Epson SureColor SC-S80600">Epson SureColor SC-S80600 (Ecosolvente)</option>
-            <option value="Roland TrueVIS VG3-640">Roland TrueVIS VG3-640 (Print &amp; Cut)</option>
-            <option value="Epson SureColor SC-F9470H">Epson SureColor SC-F9470H (Sublimación)</option>
-            <option value="Mimaki UCJV300-160">Mimaki UCJV300-160 (UV LED Blanco+Barniz)</option>
-            <option value="Mutoh XpertJet 1682SR Pro">Mutoh XpertJet 1682SR Pro (Dual Head)</option>
+          <label class="block text-[var(--muted-foreground)] mb-1">Seleccionar Impresora de Prueba</label>
+          <select id="hw-model" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-semibold">
+            <option value="mutoh_vj_1624">Mutoh ValueJet VJ-1624 (Ecosolvente 1625mm)</option>
+            <option value="mimaki_ujv100_160">Mimaki UJV100-160 (UV LED 1620mm + Blanco)</option>
           </select>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[var(--muted-foreground)] mb-1">Resolución</label>
+            <label class="block text-[var(--muted-foreground)] mb-1">Resolución DPI</label>
             <select id="hw-dpi" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="360x720">360 x 720 DPI</option>
               <option value="720x720">720 x 720 DPI</option>
               <option value="720x1440" selected>720 x 1440 DPI</option>
-              <option value="1440x1440">1440 x 1440 DPI</option>
+              <option value="600x1200">600 x 1200 DPI (Mimaki)</option>
+              <option value="1200x1200">1200 x 1200 DPI (Mimaki)</option>
             </select>
           </div>
           <div>
@@ -444,11 +615,11 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
             </select>
           </div>
           <div>
-            <label class="block text-[var(--muted-foreground)] mb-1">Trama Semitono</label>
+            <label class="block text-[var(--muted-foreground)] mb-1">Entrelazado / Trama</label>
             <select id="hw-halftone" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
-              <option value="contone">Tono Continuo</option>
-              <option value="bayer" selected>Difusión FM Bayer</option>
+              <option value="bayer" selected>i² Wave / MAPS4 (FM)</option>
               <option value="rosette">Roseta AM (Ángulos)</option>
+              <option value="contone">Tono Continuo</option>
             </select>
           </div>
         </div>
@@ -456,12 +627,39 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-[var(--muted-foreground)] mb-1">Ancho Trabajo (mm)</label>
-            <input id="hw-width-mm" type="number" value="1200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            <input id="hw-width-mm" type="number" min="10" max="1625" value="1200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
           </div>
           <div>
-            <label class="block text-[var(--muted-foreground)] mb-1">Alto Trabajo (mm)</label>
-            <input id="hw-height-mm" type="number" value="840" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            <label class="block text-[var(--muted-foreground)] mb-1">Largo Trabajo (mm, máx 50000)</label>
+            <input id="hw-height-mm" type="number" min="10" max="50000" value="840" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
           </div>
+        </div>
+
+        <!-- Parámetros térmicos Mutoh VJ-1624 vs UV LED Mimaki UJV100-160 -->
+        <div id="box-mutoh-heaters" class="p-2 rounded bg-[var(--background)] border border-[var(--border)] space-y-1">
+          <div class="font-bold text-xs text-[var(--primary)]">Calentadores Mutoh VJ-1624 (°C)</div>
+          <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+            <div>
+              <span class="text-[var(--muted-foreground)] block">Pre</span>
+              <input id="hw-pre-c" type="number" value="40" class="w-full text-center bg-[var(--card)] border border-[var(--border)] rounded py-0.5" />
+            </div>
+            <div>
+              <span class="text-[var(--muted-foreground)] block">Platina</span>
+              <input id="hw-platen-c" type="number" value="42" class="w-full text-center bg-[var(--card)] border border-[var(--border)] rounded py-0.5" />
+            </div>
+            <div>
+              <span class="text-[var(--muted-foreground)] block">Secador</span>
+              <input id="hw-dryer-c" type="number" value="48" class="w-full text-center bg-[var(--card)] border border-[var(--border)] rounded py-0.5" />
+            </div>
+          </div>
+        </div>
+
+        <div id="box-mimaki-uv" class="hidden p-2 rounded bg-[var(--background)] border border-[var(--border)] space-y-1">
+          <div class="flex justify-between font-bold text-xs text-[var(--primary)]">
+            <span>Potencia Lámpara UV LED (Mimaki)</span>
+            <span id="lbl-uv-pct" class="font-mono">85%</span>
+          </div>
+          <input id="hw-uv-pct" type="range" min="20" max="100" value="85" class="w-full" />
         </div>
 
         <div class="space-y-1 pt-1">
@@ -475,7 +673,7 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input id="opt-cropmarks" type="checkbox" checked />
-            <span>Marcas Ópticas Registro (OPOS / ARMS)</span>
+            <span>Marcas Ópticas Registro (OPOS / DAS)</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input id="opt-colorbar" type="checkbox" checked />
@@ -483,32 +681,27 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input id="opt-mirror" type="checkbox" />
-            <span>Espejo Horizontal (Sublimación)</span>
+            <span>Espejo Horizontal (Backlit / Transfer)</span>
           </label>
         </div>
       </div>
 
-      <!-- Perfiles ICC y Calibración por Canal Individual -->
+      <!-- Selector Rápido de Perfil de Material y Curvas por Canal -->
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
-        <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
-          Perfil ICC &amp; Calibración por Canal
+        <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Perfil de Material Activo</span>
+          <button type="button" id="btn-goto-new-profile" class="text-xs font-bold text-[var(--primary)] cursor-pointer">+ Crear Perfil</button>
         </div>
         <div>
-          <label class="block text-[var(--muted-foreground)] mb-1">Perfil ICC de Material</label>
-          <select id="icc-profile" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
-            <option value="vinyl">Vinilo Adhesivo Brillante (Ecosolvente)</option>
-            <option value="banner">Lona Frontlit 13oz Mate (Ecosolvente)</option>
-            <option value="sublimation">Papel Transfer Sublimación (HDK)</option>
-            <option value="uv">Acrílico / Rígido UV LED (CMYK+W+V)</option>
-          </select>
+          <select id="icc-profile" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-semibold"></select>
         </div>
 
         <div>
           <div class="flex justify-between">
             <span class="text-[var(--muted-foreground)]">Límite Tinta Total (TIL)</span>
-            <span id="lbl-til" class="font-mono font-bold">260%</span>
+            <span id="lbl-til" class="font-mono font-bold">270%</span>
           </div>
-          <input id="slider-til" type="range" min="180" max="340" step="5" value="260" class="w-full" />
+          <input id="slider-til" type="range" min="160" max="340" step="5" value="270" class="w-full" />
         </div>
 
         <div class="space-y-1.5">
@@ -522,9 +715,9 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           <div>
             <div class="flex justify-between">
               <span style="color:#ec008c" class="font-semibold">Canal Magenta (M)</span>
-              <span id="lbl-m" class="font-mono">100%</span>
+              <span id="lbl-m" class="font-mono">98%</span>
             </div>
-            <input id="slider-m" type="range" min="50" max="140" value="100" class="w-full" />
+            <input id="slider-m" type="range" min="50" max="140" value="98" class="w-full" />
           </div>
           <div>
             <div class="flex justify-between">
@@ -536,31 +729,42 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           <div>
             <div class="flex justify-between">
               <span class="font-semibold">Canal Negro (K - GCR)</span>
-              <span id="lbl-k" class="font-mono">100%</span>
+              <span id="lbl-k" class="font-mono">102%</span>
             </div>
-            <input id="slider-k" type="range" min="50" max="140" value="100" class="w-full" />
+            <input id="slider-k" type="range" min="50" max="140" value="102" class="w-full" />
+          </div>
+          <div>
+            <div class="flex justify-between">
+              <span class="font-semibold text-[var(--primary)]">Canal Blanco UV (W - Mimaki)</span>
+              <span id="lbl-w" class="font-mono">0%</span>
+            </div>
+            <input id="slider-w" type="range" min="0" max="150" value="0" class="w-full" />
           </div>
         </div>
 
-        <!-- Barras de Consumo en mL por Canal -->
+        <!-- Consumo en mL por Canal -->
         <div class="pt-2 border-t border-[var(--card-border)] space-y-1.5">
-          <div class="text-[var(--muted-foreground)] font-semibold">Consumo por Canal (mL):</div>
-          <div class="grid grid-cols-4 gap-1.5 text-center font-mono">
-            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+          <div class="text-[var(--muted-foreground)] font-semibold">Consumo Estimado por Canal (mL):</div>
+          <div class="grid grid-cols-5 gap-1 text-center font-mono">
+            <div class="p-1 rounded bg-[var(--background)] border border-[var(--border)]">
               <div style="color:#00aeef" class="font-bold">C</div>
               <div id="ml-c">1.35</div>
             </div>
-            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+            <div class="p-1 rounded bg-[var(--background)] border border-[var(--border)]">
               <div style="color:#ec008c" class="font-bold">M</div>
               <div id="ml-m">1.22</div>
             </div>
-            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+            <div class="p-1 rounded bg-[var(--background)] border border-[var(--border)]">
               <div style="color:#eab308" class="font-bold">Y</div>
               <div id="ml-y">1.18</div>
             </div>
-            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+            <div class="p-1 rounded bg-[var(--background)] border border-[var(--border)]">
               <div class="font-bold">K</div>
               <div id="ml-k">1.73</div>
+            </div>
+            <div class="p-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="font-bold text-[var(--primary)]">W</div>
+              <div id="ml-w">0.00</div>
             </div>
           </div>
         </div>
@@ -571,55 +775,117 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
 
   <script>
     // ============================================================================
-    // MOTOR RIP AUTO-CONTENIDO (ApexRIP Studio Pro v2.4)
+    // MOTOR RIP AUTO-CONTENIDO v2.5 (Mutoh VJ-1624 & Mimaki UJV100-160 + Bobina 50m)
     // ============================================================================
+    const MAX_COIL_MM = 50000; // 50 metros máximo de bobina
+
+    const DEFAULT_PROFILES = [
+      {
+        id: 'mutoh_vinyl_1370',
+        name: 'Mutoh VJ-1624 — Vinilo Adhesivo Brillante 137cm',
+        printer: 'mutoh_vj_1624',
+        width_mm: 1370,
+        coil_m: 50,
+        dpi: '720x1440',
+        passes: 8,
+        til: 270,
+        gains: { C: 100, M: 98, Y: 100, K: 102, W: 0 },
+        heaters: { pre: 40, platen: 42, dryer: 48 },
+        uv: 0
+      },
+      {
+        id: 'mutoh_banner_1600',
+        name: 'Mutoh VJ-1624 — Lona Frontlit 13oz 160cm',
+        printer: 'mutoh_vj_1624',
+        width_mm: 1600,
+        coil_m: 50,
+        dpi: '720x720',
+        passes: 6,
+        til: 250,
+        gains: { C: 103, M: 102, Y: 101, K: 105, W: 0 },
+        heaters: { pre: 42, platen: 44, dryer: 50 },
+        uv: 0
+      },
+      {
+        id: 'mimaki_uv_vinyl_1520',
+        name: 'Mimaki UJV100-160 — Vinilo / PET UV 152cm (CMYK)',
+        printer: 'mimaki_ujv100_160',
+        width_mm: 1520,
+        coil_m: 50,
+        dpi: '600x1200',
+        passes: 8,
+        til: 280,
+        gains: { C: 98, M: 97, Y: 100, K: 100, W: 0 },
+        heaters: { pre: 0, platen: 0, dryer: 0 },
+        uv: 80
+      },
+      {
+        id: 'mimaki_uv_backlit_1600',
+        name: 'Mimaki UJV100-160 — Film Transparente / Backlit 160cm (CMYK + Blanco)',
+        printer: 'mimaki_ujv100_160',
+        width_mm: 1600,
+        coil_m: 50,
+        dpi: '600x1200',
+        passes: 12,
+        til: 300,
+        gains: { C: 102, M: 102, Y: 100, K: 104, W: 100 },
+        heaters: { pre: 0, platen: 0, dryer: 0 },
+        uv: 95
+      }
+    ];
+
+    // Cargar perfiles personalizados guardados por el usuario en localStorage
+    let savedProfiles = DEFAULT_PROFILES;
+    try {
+      const raw = localStorage.getItem('apex_rip_custom_profiles_v25');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) savedProfiles = parsed;
+      }
+    } catch (e) {}
+
     const STATE = {
       activeChannel: 'composite',
-      activeQueueId: 'q_ecosol',
+      activeQueueId: 'q_mutoh',
+      activeProfileId: savedProfiles[0].id,
       customImage: null,
+      profiles: savedProfiles,
       queues: [
         {
-          id: 'q_ecosol',
-          code: 'COLA A',
-          name: 'Ecosolvente — Vinilo & Lona 160cm',
-          printer: 'Epson SureColor SC-S80600',
-          profile: 'vinyl',
-          roll_mm: 1600,
+          id: 'q_mutoh',
+          code: 'COLA MUTOH',
+          name: 'Mutoh ValueJet VJ-1624 (Ecosolvente)',
+          printer: 'mutoh_vj_1624',
+          printerLabel: 'Mutoh ValueJet VJ-1624',
+          profileId: 'mutoh_vinyl_1370',
+          roll_mm: 1370,
+          coil_m: 50,
           jobs: [
-            { id: 'JOB-101', title: 'Grafica_Vehicular_Racing.tif', w: 1200, h: 840, copies: 1, color: '#0ea5e9' },
-            { id: 'JOB-102', title: 'Stickers_Troquelados_Logo.eps', w: 460, h: 380, copies: 3, color: '#ec4899' }
+            { id: 'JOB-101', title: 'Grafica_Vehicular_Vinilo_137cm.tif', w: 1320, h: 2400, copies: 1, color: '#0ea5e9' },
+            { id: 'JOB-102', title: 'Stickers_Troquelados_Logo.eps', w: 620, h: 900, copies: 2, color: '#ec4899' }
           ]
         },
         {
-          id: 'q_sub',
-          code: 'COLA B',
-          name: 'Sublimación Textil — Transfer 110cm',
-          printer: 'Epson SureColor SC-F9470H',
-          profile: 'sublimation',
-          roll_mm: 1118,
+          id: 'q_mimaki',
+          code: 'COLA MIMAKI',
+          name: 'Mimaki UJV100-160 (UV LED + Blanco)',
+          printer: 'mimaki_ujv100_160',
+          printerLabel: 'Mimaki UJV100-160',
+          profileId: 'mimaki_uv_vinyl_1520',
+          roll_mm: 1520,
+          coil_m: 50,
           jobs: [
-            { id: 'JOB-201', title: 'Camiseta_Deportiva_FullPrint.pdf', w: 950, h: 1150, copies: 2, color: '#eab308' }
-          ]
-        },
-        {
-          id: 'q_uv',
-          code: 'COLA C',
-          name: 'UV LED Print & Cut — Blanco + Barniz',
-          printer: 'Mimaki UCJV300-160',
-          profile: 'uv',
-          roll_mm: 1600,
-          jobs: [
-            { id: 'JOB-301', title: 'Senaletica_Acrilico_Backlit.tif', w: 620, h: 450, copies: 2, color: '#10b981' }
+            { id: 'JOB-201', title: 'Backlit_UV_CapaBlanca_152cm.pdf', w: 1480, h: 1800, copies: 1, color: '#10b981' }
           ]
         }
       ],
       masterQueue: [
         {
           id: 'MST-901',
-          title: 'Campana_Exterior_Vinilo_160cm [RIPEADO]',
-          printer: 'Epson SureColor SC-S80600',
-          profile: 'Vinilo Brillante Ecosolvente',
-          mode: '720x1440 DPI (8P Bidir)'
+          title: 'Lona_Frontlit_Tirada_12m [RIPEADO]',
+          printer: 'Mutoh ValueJet VJ-1624',
+          profile: 'Vinilo Brillante (1370 mm / Bobina 50m)',
+          mode: '720x1440 DPI (8P Bidir i² Wave)'
         }
       ],
       spots: [
@@ -628,12 +894,10 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         { code: 'PANTONE 300 C', L: 44.0, a: -3.5, b: -58.0 },
         { code: 'PANTONE 116 C', L: 83.5, a: 8.5, b: 85.0 },
         { code: 'PANTONE 354 C', L: 63.8, a: -65.0, b: 42.0 },
-        { code: 'PANTONE 021 C', L: 60.5, a: 62.0, b: 72.0 },
-        { code: 'PANTONE Rhodamine Red C', L: 51.0, a: 79.0, b: -14.0 }
+        { code: 'PANTONE 021 C', L: 60.5, a: 62.0, b: 72.0 }
       ]
     };
 
-    // Matriz Bayer 8x8 para tramado FM
     const BAYER8 = [
       [ 0, 48, 12, 60,  3, 51, 15, 63],
       [32, 16, 44, 28, 35, 19, 47, 31],
@@ -645,7 +909,12 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       [42, 26, 38, 22, 41, 25, 37, 21]
     ];
 
-    // Conversión CIE L*a*b* -> sRGB y CMYK
+    function persistProfiles() {
+      try {
+        localStorage.setItem('apex_rip_custom_profiles_v25', JSON.stringify(STATE.profiles));
+      } catch (e) {}
+    }
+
     function labToRgb(L, a, b) {
       const fy = (L + 16) / 116;
       const fx = a / 500 + fy;
@@ -681,7 +950,139 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase();
     }
 
-    // Dibuja la carta de prueba fuente en un canvas oculto
+    // Sincronizar el ancho escrito por el usuario en todos los módulos
+    function syncMaterialWidthAndCoil() {
+      const matW = Math.max(100, Math.min(1625, parseFloat(document.getElementById('mat-width-mm').value) || 1370));
+      let coilM = parseFloat(document.getElementById('mat-coil-m').value) || 50;
+      if (coilM > 50) {
+        coilM = 50;
+        document.getElementById('mat-coil-m').value = 50;
+      }
+      const jobH = Math.min(MAX_COIL_MM, parseFloat(document.getElementById('hw-height-mm').value) || 840);
+      if (parseFloat(document.getElementById('hw-height-mm').value) > MAX_COIL_MM) {
+        document.getElementById('hw-height-mm').value = MAX_COIL_MM;
+      }
+
+      const usableW = Math.max(50, matW - 20);
+      const remM = Math.max(0, coilM - jobH / 1000);
+
+      document.getElementById('lbl-usable-width').textContent = `${usableW} mm (${(usableW / 10).toFixed(1)} cm)`;
+      document.getElementById('lbl-coil-rem').textContent = `${remM.toFixed(2)} m de ${coilM.toFixed(1)} m`;
+      document.getElementById('stat-mat-w').textContent = `${matW} mm (Máx ${coilM}m)`;
+
+      document.getElementById('nest-roll-mm').value = matW;
+      document.getElementById('tile-roll').value = matW;
+
+      const activeQ = STATE.queues.find((q) => q.id === STATE.activeQueueId);
+      if (activeQ) {
+        activeQ.roll_mm = matW;
+        activeQ.coil_m = coilM;
+      }
+    }
+
+    // Actualizar interfaz según impresora activa (Mutoh VJ-1624 vs Mimaki UJV100-160)
+    function updateHardwareUI() {
+      const model = document.getElementById('hw-model').value;
+      const isMimaki = model === 'mimaki_ujv100_160';
+      document.getElementById('box-mutoh-heaters').classList.toggle('hidden', isMimaki);
+      document.getElementById('box-mimaki-uv').classList.toggle('hidden', !isMimaki);
+      document.getElementById('stat-tech').textContent = isMimaki ? 'Mimaki MAPS4 UV' : 'Mutoh i² Wave';
+      document.getElementById('spool-ip').value = isMimaki ? '192.168.1.202:9100' : '192.168.1.201:9100';
+    }
+
+    // Cargar un perfil de material en todos los controles
+    function applyMaterialProfile(profId) {
+      const prof = STATE.profiles.find((p) => p.id === profId);
+      if (!prof) return;
+      STATE.activeProfileId = prof.id;
+
+      document.getElementById('icc-profile').value = prof.id;
+      document.getElementById('hw-model').value = prof.printer;
+      document.getElementById('mat-width-mm').value = prof.width_mm;
+      document.getElementById('mat-coil-m').value = Math.min(50, prof.coil_m || 50);
+      document.getElementById('hw-dpi').value = prof.dpi;
+      document.getElementById('hw-passes').value = String(prof.passes);
+
+      document.getElementById('slider-til').value = prof.til;
+      document.getElementById('lbl-til').textContent = `${prof.til}%`;
+
+      ['c', 'm', 'y', 'k', 'w'].forEach((ch) => {
+        const val = prof.gains[ch.toUpperCase()] ?? 100;
+        document.getElementById(`slider-${ch}`).value = val;
+        document.getElementById(`lbl-${ch}`).textContent = `${val}%`;
+      });
+
+      if (prof.heaters) {
+        document.getElementById('hw-pre-c').value = prof.heaters.pre || 40;
+        document.getElementById('hw-platen-c').value = prof.heaters.platen || 42;
+        document.getElementById('hw-dryer-c').value = prof.heaters.dryer || 48;
+      }
+      if (typeof prof.uv === 'number') {
+        document.getElementById('hw-uv-pct').value = prof.uv || 85;
+        document.getElementById('lbl-uv-pct').textContent = `${prof.uv || 85}%`;
+      }
+
+      updateHardwareUI();
+      syncMaterialWidthAndCoil();
+      renderRipCanvas();
+      renderNestingAndTiling();
+      renderQueuesUI();
+    }
+
+    function populateProfilesDropdownAndTable() {
+      const sel = document.getElementById('icc-profile');
+      sel.innerHTML = STATE.profiles
+        .map((p) => `<option value="${p.id}">${p.name} (${p.width_mm}mm • TIL ${p.til}%)</option>`)
+        .join('');
+      sel.value = STATE.activeProfileId;
+
+      const tbody = document.getElementById('profiles-tbody');
+      tbody.innerHTML = STATE.profiles
+        .map((p) => {
+          const pName = p.printer === 'mimaki_ujv100_160' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+          const tempStr =
+            p.printer === 'mimaki_ujv100_160'
+              ? `UV LED ${p.uv}%`
+              : `${p.heaters.pre}/${p.heaters.platen}/${p.heaters.dryer} °C`;
+          return `
+            <tr class="hover:bg-[var(--secondary)]">
+              <td class="p-2 font-bold">${p.name}</td>
+              <td class="p-2">${pName}</td>
+              <td class="p-2 font-mono text-[var(--primary)]">${p.width_mm} mm / ${p.coil_m}m</td>
+              <td class="p-2 font-mono">TIL ${p.til}% (C${p.gains.C} M${p.gains.M} Y${p.gains.Y} K${p.gains.K} W${p.gains.W || 0})</td>
+              <td class="p-2 font-mono">${tempStr}</td>
+              <td class="p-2 flex gap-1">
+                <button data-load-prof="${p.id}" class="px-2 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+                  Cargar
+                </button>
+                <button data-del-prof="${p.id}" class="px-2 py-1 rounded border border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] cursor-pointer">
+                  ✕
+                </button>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      tbody.querySelectorAll('[data-load-prof]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          applyMaterialProfile(btn.getAttribute('data-load-prof'));
+        });
+      });
+
+      tbody.querySelectorAll('[data-del-prof]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (STATE.profiles.length <= 1) return;
+          const id = btn.getAttribute('data-del-prof');
+          STATE.profiles = STATE.profiles.filter((x) => x.id !== id);
+          persistProfiles();
+          if (STATE.activeProfileId === id) STATE.activeProfileId = STATE.profiles[0].id;
+          populateProfilesDropdownAndTable();
+          applyMaterialProfile(STATE.activeProfileId);
+        });
+      });
+    }
+
     function createSourceCanvas(w = 540, h = 360) {
       const off = document.createElement('canvas');
       off.width = w;
@@ -703,23 +1104,11 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         grad.addColorStop(1, '#fff200');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#0f172a';
-        for (let i = -h; i < w; i += 44) {
-          ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i + 18, 0);
-          ctx.lineTo(i + h + 18, h);
-          ctx.lineTo(i + h, h);
-          ctx.fill();
-        }
         ctx.fillStyle = 'rgba(15,23,42,0.88)';
         ctx.fillRect(28, h - 92, w - 56, 66);
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 16px sans-serif';
-        ctx.fillText('SUBLIMACION TEXTIL PRO — HDK DEEP BLACK', 44, h - 62);
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '12px monospace';
-        ctx.fillText('CONTROL DE TRANSFERENCIA Y SATURACION CROMATICA', 44, h - 40);
+        ctx.fillText('TEST ALTA SATURACION — MUTOH VJ-1624 & MIMAKI UJV100-160', 42, h - 62);
         return off;
       }
 
@@ -734,22 +1123,17 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         ctx.lineWidth = 5;
         ctx.strokeRect(24, 24, w - 48, h - 48);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('CARTELERIA BACKLIT UV LED + CAPA BLANCA', 48, 72);
-        ctx.fillStyle = '#f472b6';
-        ctx.font = '13px monospace';
-        ctx.fillText('CURADO INSTANTANEO • BARNIZ SELECTIVO • CUTCONTOUR', 48, 100);
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('MIMAKI UJV100-160 — BACKLIT UV + CAPA BLANCA', 44, 72);
         return off;
       }
 
-      // Default: Motorsport & Carta CMYK
       const bg = ctx.createLinearGradient(0, 0, 0, h);
       bg.addColorStop(0, '#0f172a');
       bg.addColorStop(1, '#1e293b');
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
-      // Franjas diagonales CMY
       const stripes = [
         { col: '#00aeef', x0: 40, x1: 280 },
         { col: '#ec008c', x0: 120, x1: 360 },
@@ -766,7 +1150,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         ctx.fill();
       });
 
-      // Diana de registro
       const cx = w * 0.74, cy = h * 0.44;
       [[90, '#e1251b'], [66, '#ffffff'], [44, '#0f172a'], [26, '#00aeef'], [11, '#fff200']].forEach(([rad, col]) => {
         ctx.fillStyle = col;
@@ -775,7 +1158,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         ctx.fill();
       });
 
-      // Parches inferiores CMYK + PANTONE
       const patches = [
         ['C 100', '#00aeef'],
         ['M 100', '#ec008c'],
@@ -798,25 +1180,25 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         ctx.fillText(lbl, px + 5, h - 41);
       });
 
-      // Cuadro técnico
-      ctx.fillStyle = 'rgba(9, 13, 22, 0.88)';
-      ctx.fillRect(24, 22, 310, 95);
+      ctx.fillStyle = 'rgba(9, 13, 22, 0.90)';
+      ctx.fillRect(24, 22, 330, 95);
       ctx.strokeStyle = '#38bdf8';
-      ctx.strokeRect(24, 22, 310, 95);
+      ctx.strokeRect(24, 22, 330, 95);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText('APEX-RIP WIDE FORMAT TEST CHART', 36, 46);
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('MUTOH VJ-1624 & MIMAKI UJV100-160 RIP', 36, 46);
       ctx.fillStyle = '#38bdf8';
       ctx.font = '11px monospace';
-      ctx.fillText('ICC: Vinilo Ecosolvente | 720x1440 DPI', 36, 68);
+      const curW = document.getElementById('mat-width-mm').value || 1370;
+      ctx.fillText(`Ancho Material: ${curW} mm | Bobina Máx: 50 m`, 36, 68);
       ctx.fillStyle = '#f472b6';
-      ctx.fillText('Canales: C M Y K Lc Lm + CutContour', 36, 88);
+      ctx.fillText('Control: C M Y K + Blanco UV + CutContour', 36, 88);
 
       return off;
     }
 
-    // Ejecuta el motor de Ripeo real sobre los píxeles
     function renderRipCanvas() {
+      syncMaterialWidthAndCoil();
       const srcCanvas = createSourceCanvas(540, 360);
       const sw = srcCanvas.width;
       const sh = srcCanvas.height;
@@ -839,12 +1221,11 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       const gainM = parseFloat(document.getElementById('slider-m').value) / 100;
       const gainY = parseFloat(document.getElementById('slider-y').value) / 100;
       const gainK = parseFloat(document.getElementById('slider-k').value) / 100;
+      const gainW = parseFloat(document.getElementById('slider-w').value) / 100;
       const tilNorm = parseFloat(document.getElementById('slider-til').value) / 100;
       const htMode = document.getElementById('hw-halftone').value;
-      const prof = document.getElementById('icc-profile').value;
-      const gcrFactor = prof === 'banner' ? 0.86 : (prof === 'sublimation' ? 0.68 : 0.78);
 
-      let sumC = 0, sumM = 0, sumY = 0, sumK = 0, peakTil = 0;
+      let sumC = 0, sumM = 0, sumY = 0, sumK = 0, sumW = 0, peakTil = 0;
 
       for (let y = 0; y < sh; y++) {
         for (let x = 0; x < sw; x++) {
@@ -854,12 +1235,15 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           const bf = data[idx + 2] / 255;
 
           const kRaw = 1 - Math.max(rf, gf, bf);
-          let k = kRaw * gcrFactor;
+          let k = kRaw * 0.78;
           const denom = Math.max(1e-5, 1 - k);
           let c = Math.max(0, Math.min(1, ((1 - rf - k) / denom) * gainC));
           let m = Math.max(0, Math.min(1, ((1 - gf - k) / denom) * gainM));
           let yel = Math.max(0, Math.min(1, ((1 - bf - k) / denom) * gainY));
           k = Math.max(0, Math.min(1, k * gainK));
+
+          const lum = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+          let wChan = lum < 0.95 ? Math.min(1, gainW * (1 - lum * 0.3)) : 0;
 
           const tot = c + m + yel + k;
           if (tot > tilNorm && (c + m + yel) > 0) {
@@ -871,7 +1255,7 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           const afterTot = c + m + yel + k;
           if (afterTot > peakTil) peakTil = afterTot;
 
-          sumC += c; sumM += m; sumY += yel; sumK += k;
+          sumC += c; sumM += m; sumY += yel; sumK += k; sumW += wChan;
 
           if (htMode === 'bayer') {
             const thr = (BAYER8[y & 7][x & 7] + 0.5) / 64;
@@ -879,6 +1263,7 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
             m = m > thr ? 1 : 0;
             yel = yel > thr ? 1 : 0;
             k = k > thr ? 1 : 0;
+            wChan = wChan > thr ? 1 : 0;
           } else if (htMode === 'rosette') {
             const scr = (ang) => {
               const rad = (ang * Math.PI) / 180;
@@ -908,6 +1293,11 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           } else if (STATE.activeChannel === 'K') {
             const v = Math.round(255 * (1 - k));
             rOut = v; gOut = v; bOut = v;
+          } else if (STATE.activeChannel === 'W') {
+            // Vista técnica de capa Blanca UV sobre fondo azul oscuro
+            rOut = Math.round(15 + wChan * 225);
+            gOut = Math.round(23 + wChan * 225);
+            bOut = Math.round(42 + wChan * 213);
           } else {
             rOut = Math.round(255 * (1 - c) * (1 - k));
             gOut = Math.round(255 * (1 - m) * (1 - k));
@@ -922,7 +1312,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       }
       wCtx.putImageData(imgData, 0, 0);
 
-      // Componer en el lienzo principal con marcas de corte OPOS, Printline y Barra de Color
       const outCanvas = document.getElementById('rip-canvas');
       const padL = 32, padT = 32, padR = 54, padB = 32;
       outCanvas.width = sw + padL + padR;
@@ -932,14 +1321,12 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
       ctx.drawImage(workCanvas, padL, padT);
 
-      // Printline (Línea de corte perimetral)
       if (document.getElementById('opt-printline').checked) {
         ctx.strokeStyle = '#ec008c';
         ctx.lineWidth = 2;
         ctx.strokeRect(padL - 3, padT - 3, sw + 6, sh + 6);
       }
 
-      // Marcas ópticas OPOS / ARMS
       if (document.getElementById('opt-cropmarks').checked) {
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = '#000000';
@@ -961,7 +1348,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         });
       }
 
-      // Barra lateral de control de inyectores CMYK
       if (document.getElementById('opt-colorbar').checked) {
         const cbX = padL + sw + 24;
         const cols = ['#00aeef', '#ec008c', '#fff200', '#111827'];
@@ -974,10 +1360,9 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         }
       }
 
-      // Actualizar estadísticas e indicadores de tinta
       const nPx = sw * sh;
       const wMm = parseFloat(document.getElementById('hw-width-mm').value) || 1200;
-      const hMm = parseFloat(document.getElementById('hw-height-mm').value) || 840;
+      const hMm = Math.min(MAX_COIL_MM, parseFloat(document.getElementById('hw-height-mm').value) || 840);
       const areaM2 = Math.max(0.01, (wMm / 1000) * (hMm / 1000));
       const passes = parseInt(document.getElementById('hw-passes').value, 10) || 8;
       const factorMl = 3.2 * (1 + (passes - 6) * 0.03);
@@ -986,19 +1371,19 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       const mlM = (sumM / nPx) * areaM2 * factorMl;
       const mlY = (sumY / nPx) * areaM2 * factorMl;
       const mlK = (sumK / nPx) * areaM2 * factorMl;
-      const mlTot = mlC + mlM + mlY + mlK;
+      const mlW = (sumW / nPx) * areaM2 * factorMl * 1.3;
+      const mlTot = mlC + mlM + mlY + mlK + mlW;
 
       document.getElementById('stat-area').textContent = `${areaM2.toFixed(2)} m²`;
       document.getElementById('stat-ink').textContent = `${mlTot.toFixed(2)} mL`;
       document.getElementById('stat-til').textContent = `${Math.round(peakTil * 100)}%`;
-      document.getElementById('stat-passes').textContent = `${passes}P ${document.getElementById('hw-dir').value}`;
       document.getElementById('ml-c').textContent = mlC.toFixed(2);
       document.getElementById('ml-m').textContent = mlM.toFixed(2);
       document.getElementById('ml-y').textContent = mlY.toFixed(2);
       document.getElementById('ml-k').textContent = mlK.toFixed(2);
+      document.getElementById('ml-w').textContent = mlW.toFixed(2);
     }
 
-    // Generador de Atlas de Colores
     function renderColorAtlas() {
       const canvas = document.getElementById('atlas-canvas');
       const ctx = canvas.getContext('2d');
@@ -1017,12 +1402,13 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      const curProf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(`ATLAS DE COLORES RIP — BASE #${hex.toUpperCase()} (C${baseCmyk.C} M${baseCmyk.M} Y${baseCmyk.Y} K${baseCmyk.K})`, 30, 24);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`ATLAS DE COLORES — ${curProf.name.toUpperCase()} (${curProf.width_mm}MM)`, 30, 24);
       ctx.fillStyle = '#475569';
       ctx.font = '11px monospace';
-      ctx.fillText(`Paso: ${step}% | Ejes: ${axes} | Perfil: ${document.getElementById('icc-profile').value.toUpperCase()}`, 30, 42);
+      ctx.fillText(`Base #${hex.toUpperCase()} (C${baseCmyk.C} M${baseCmyk.M} Y${baseCmyk.Y} K${baseCmyk.K}) | Paso: ${step}% | Ejes: ${axes}`, 30, 42);
 
       const mid = Math.floor(n / 2);
       for (let r = 0; r < n; r++) {
@@ -1059,7 +1445,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       }
     }
 
-    // Tabla de Colores PANTONE / CIE Lab
     function renderSpotsTable() {
       const tbody = document.getElementById('spot-tbody');
       tbody.innerHTML = STATE.spots.map((sp) => {
@@ -1088,14 +1473,12 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       });
     }
 
-    // Composición Automática (Nesting) y Panelación (Tiling)
     function renderNestingAndTiling() {
-      // 1. Nesting
       const nCanvas = document.getElementById('nest-canvas');
       const nCtx = nCanvas.getContext('2d');
       nCtx.clearRect(0, 0, nCanvas.width, nCanvas.height);
 
-      const rollMm = parseFloat(document.getElementById('nest-roll-mm').value) || 1600;
+      const rollMm = parseFloat(document.getElementById('nest-roll-mm').value) || 1370;
       const activeQ = STATE.queues.find((q) => q.id === STATE.activeQueueId) || STATE.queues[0];
       const scale = (nCanvas.width - 40) / rollMm;
 
@@ -1104,7 +1487,7 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       activeQ.jobs.forEach((j) => {
         for (let c = 0; c < j.copies; c++) {
           const w = Math.min(rollMm - 30, j.w);
-          const h = j.h;
+          const h = Math.min(MAX_COIL_MM, j.h);
           if (xCur + w > rollMm - 15) {
             xCur = 15;
             yCur += rowH + 15;
@@ -1116,18 +1499,19 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           usedArea += w * h;
         }
       });
-      const totalLen = yCur + rowH + 20;
+      const totalLen = Math.min(MAX_COIL_MM, yCur + rowH + 20);
       const eff = Math.min(98, Math.round((usedArea / Math.max(1, rollMm * totalLen)) * 100));
+      const remFrom50 = Math.max(0, 50 - totalLen / 1000).toFixed(2);
       document.getElementById('nesting-readout').textContent =
-        `Rollo: ${rollMm} mm | Largo Total: ${(totalLen / 1000).toFixed(2)} m | Aprovechamiento: ${eff}%`;
+        `Ancho Material: ${rollMm} mm | Largo Usado: ${(totalLen / 1000).toFixed(2)} m (Restan ${remFrom50} m de 50m) | Eficiencia: ${eff}%`;
 
       nCtx.strokeStyle = '#38bdf8';
-      nCtx.strokeRect(20, 12, rollMm * scale, Math.min(nCanvas.height - 24, totalLen * scale * 0.45));
+      nCtx.strokeRect(20, 12, rollMm * scale, Math.min(nCanvas.height - 24, totalLen * scale * 0.25));
       placed.forEach((p) => {
         const px = 20 + p.x * scale;
-        const py = 12 + p.y * scale * 0.45;
+        const py = 12 + p.y * scale * 0.25;
         const pw = p.w * scale;
-        const ph = p.h * scale * 0.45;
+        const ph = p.h * scale * 0.25;
         nCtx.fillStyle = p.color + '44';
         nCtx.fillRect(px, py, pw, ph);
         nCtx.strokeStyle = p.color;
@@ -1137,22 +1521,22 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         nCtx.fillText(`${p.title} (${p.w}x${p.h})`, px + 5, py + 14);
       });
 
-      // 2. Panelación (Tiling)
       const tCanvas = document.getElementById('tile-canvas');
       const tCtx = tCanvas.getContext('2d');
       tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
 
       const jobW = parseFloat(document.getElementById('tile-w').value) || 4200;
-      const jobH = parseFloat(document.getElementById('tile-h').value) || 2300;
-      const tRoll = parseFloat(document.getElementById('tile-roll').value) || 1600;
+      const jobH = Math.min(MAX_COIL_MM, parseFloat(document.getElementById('tile-h').value) || 2400);
+      const tRoll = parseFloat(document.getElementById('tile-roll').value) || 1370;
       const overlap = parseFloat(document.getElementById('tile-overlap').value) || 18;
 
-      const usable = Math.max(200, tRoll - 40);
+      const usable = Math.max(150, tRoll - 20);
       const cols = Math.max(1, Math.ceil((jobW - overlap) / (usable - overlap)));
       const stepW = (jobW - overlap) / cols;
+      const totalLinearM = ((cols * jobH) / 1000).toFixed(2);
 
       document.getElementById('tiling-readout').textContent =
-        `${cols} Paneles de ~${Math.round(stepW + overlap)} x ${jobH} mm | Solapamiento: ${overlap} mm | Giro 180° Alterno Activo`;
+        `${cols} Paneles en material de ${tRoll} mm | Consumo Bobina: ${totalLinearM} m de 50 m máx | Overlap: ${overlap} mm`;
 
       const tScale = Math.min((tCanvas.width - 40) / jobW, (tCanvas.height - 28) / jobH);
       for (let i = 0; i < cols; i++) {
@@ -1170,15 +1554,14 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         tCtx.strokeRect(px, py, pw, ph);
         tCtx.fillStyle = '#ffffff';
         tCtx.font = 'bold 11px monospace';
-        tCtx.fillText(`PANEL P0${i + 1}`, px + 8, py + 20);
+        tCtx.fillText(`PANEL P0${i + 1}`, px + 6, py + 20);
         tCtx.font = '10px monospace';
         tCtx.fillStyle = isEven ? '#f472b6' : '#38bdf8';
-        tCtx.fillText(`${Math.round(wTile)}x${jobH}mm`, px + 8, py + 36);
-        tCtx.fillText(isEven ? '↺ GIRO 180°' : '↑ NORMAL', px + 8, py + 52);
+        tCtx.fillText(`${Math.round(wTile)}x${jobH}mm`, px + 6, py + 36);
+        tCtx.fillText(isEven ? '↺ GIRO 180°' : '↑ NORMAL', px + 6, py + 52);
       }
     }
 
-    // Impresión de Datos Variables (VDP)
     function renderVdpSheet() {
       const canvas = document.getElementById('vdp-canvas');
       const ctx = canvas.getContext('2d');
@@ -1224,7 +1607,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         ctx.fillStyle = '#ec008c';
         ctx.fillText('CUTCONTOUR ACTIVO', x + 10, y + 115);
 
-        // Matriz QR simulada determinista
         const qx = x + bw - 54, qy = y + 44;
         for (let qr = 0; qr < 6; qr++) {
           for (let qc = 0; qc < 6; qc++) {
@@ -1237,7 +1619,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       });
     }
 
-    // Colas de Impresión y Cola Maestra
     function renderQueuesUI() {
       const qList = document.getElementById('queues-list');
       qList.innerHTML = STATE.queues.map((q) => {
@@ -1248,10 +1629,10 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           }">
             <div class="flex justify-between items-center">
               <span class="font-mono font-bold text-xs text-[var(--primary)]">${q.code}</span>
-              <span class="text-xs text-[var(--muted-foreground)]">Rollo ${q.roll_mm} mm</span>
+              <span class="text-xs font-mono text-[var(--muted-foreground)]">Ancho ${q.roll_mm} mm / ${q.coil_m}m</span>
             </div>
             <div class="font-bold mt-0.5">${q.name}</div>
-            <div class="text-[var(--muted-foreground)] text-xs">${q.printer} • ${q.jobs.length} trabajo(s)</div>
+            <div class="text-[var(--muted-foreground)] text-xs">${q.jobs.length} trabajo(s) en cola</div>
           </div>
         `;
       }).join('');
@@ -1261,12 +1642,8 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           STATE.activeQueueId = el.getAttribute('data-qid');
           const q = STATE.queues.find((x) => x.id === STATE.activeQueueId);
           if (q) {
-            document.getElementById('icc-profile').value = q.profile;
-            document.getElementById('opt-mirror').checked = q.id === 'q_sub';
+            applyMaterialProfile(q.profileId);
           }
-          renderQueuesUI();
-          renderRipCanvas();
-          renderNestingAndTiling();
         });
       });
 
@@ -1297,44 +1674,44 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       `).join('');
     }
 
-    // Genera y descarga un archivo binario .PRN (ESC/P2 + RTL) real en el navegador
     function generateAndDownloadPrn(customName) {
-      const model = document.getElementById('hw-model').value;
+      const modelId = document.getElementById('hw-model').value;
+      const modelName = modelId === 'mimaki_ujv100_160' ? 'Mimaki UJV100-160' : 'Mutoh ValueJet VJ-1624';
       const dpi = document.getElementById('hw-dpi').value;
       const passes = document.getElementById('hw-passes').value;
       const dir = document.getElementById('hw-dir').value;
+      const matW = document.getElementById('mat-width-mm').value;
+      const coilM = document.getElementById('mat-coil-m').value;
       const autoCut = document.getElementById('opt-autocut').checked ? 1 : 0;
 
-      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nRIPPRO-PRN-V2|MODEL=${model}|DPI=${dpi}|PASSES=${passes}|DIR=${dir}|AUTOCUT=${autoCut}\n`;
+      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nRIPPRO-PRN-V2.5|MODEL=${modelName}|MAT_W_MM=${matW}|MAX_COIL_M=${coilM}|DPI=${dpi}|PASSES=${passes}|DIR=${dir}|AUTOCUT=${autoCut}\n`;
       const bodyBytes = new Uint8Array(4096);
-      for (let i = 0; i < bodyBytes.length; i++) {
-        bodyBytes[i] = (i * 73 + 19) & 0xff;
-      }
+      for (let i = 0; i < bodyBytes.length; i++) bodyBytes[i] = (i * 73 + 19) & 0xff;
       const footer = autoCut ? '\x0c\x1b(c\x02\x00\x01\x01\x1b@' : '\x0c\x1b@';
       const blob = new Blob([header, bodyBytes, footer], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const cleanName = (customName || 'Trabajo_GranFormato_RIP').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const cleanName = (customName || `RIP_${modelId}_${matW}mm`).replace(/[^a-zA-Z0-9_-]/g, '_');
       a.href = url;
-      a.download = `${cleanName}_${Date.now().toString().slice(-4)}.prn`;
+      a.download = `${cleanName}.prn`;
       a.click();
       URL.revokeObjectURL(url);
 
+      const curProf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
       STATE.masterQueue.unshift({
         id: 'MST-' + Math.floor(100 + Math.random() * 899),
         title: `${cleanName} [RIPEADO]`,
-        printer: model,
-        profile: document.getElementById('icc-profile').options[document.getElementById('icc-profile').selectedIndex].text,
+        printer: modelName,
+        profile: `${curProf.name} (${matW} mm / ${coilM}m)`,
         mode: `${dpi} (${passes}P ${dir})`
       });
       renderQueuesUI();
       document.getElementById('spool-log').textContent =
-        `✓ Stream binario .PRN generado (${(blob.size / 1024).toFixed(1)} KB) para ${model} [${dpi}, ${passes} pasadas, ${dir}] y almacenado en Cola Maestra.`;
+        `✓ Archivo binario .PRN generado para ${modelName} [Ancho material: ${matW} mm, Bobina: ${coilM} m, ${dpi}, ${passes} pasadas] y guardado en Cola Maestra.`;
     }
 
-    // Inicialización de Eventos
     document.addEventListener('DOMContentLoaded', () => {
-      // Navegación entre pestañas
+      // Pestañas principales
       document.querySelectorAll('.tab-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.tab-btn').forEach((b) => {
@@ -1346,23 +1723,62 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         });
       });
 
-      // Selector de canal CMYK
+      document.getElementById('btn-goto-new-profile').addEventListener('click', () => {
+        document.querySelector('[data-target="pane-profiles"]').click();
+      });
+
+      // Botones rápidos de ancho de material + escritura libre
+      document.querySelectorAll('.quick-w-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.quick-w-btn').forEach((b) => {
+            b.className = 'quick-w-btn px-2 py-0.5 rounded bg-[var(--secondary)] font-mono cursor-pointer hover:opacity-80';
+          });
+          btn.className = 'quick-w-btn px-2 py-0.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-mono cursor-pointer';
+          document.getElementById('mat-width-mm').value = btn.getAttribute('data-w');
+          syncMaterialWidthAndCoil();
+          renderRipCanvas();
+          renderNestingAndTiling();
+        });
+      });
+
+      ['mat-width-mm', 'mat-coil-m'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          syncMaterialWidthAndCoil();
+          renderRipCanvas();
+          renderNestingAndTiling();
+        });
+      });
+
+      // Selector de canal CMYK + W
       document.querySelectorAll('.ch-pill').forEach((btn) => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.ch-pill').forEach((b) => {
-            b.className = 'ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer';
+            b.className = 'ch-pill px-2 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer';
           });
-          btn.className = 'ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer';
+          btn.className = 'ch-pill px-2 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer';
           STATE.activeChannel = btn.getAttribute('data-ch');
           renderRipCanvas();
         });
       });
 
-      // Controles que actualizan el ripeo en vivo
+      // Cambio de perfil de material activo
+      document.getElementById('icc-profile').addEventListener('change', (ev) => {
+        applyMaterialProfile(ev.target.value);
+      });
+
+      document.getElementById('hw-model').addEventListener('change', () => {
+        updateHardwareUI();
+        renderRipCanvas();
+      });
+
+      document.getElementById('hw-uv-pct').addEventListener('input', (ev) => {
+        document.getElementById('lbl-uv-pct').textContent = `${ev.target.value}%`;
+      });
+
       [
-        'preset-select', 'hw-model', 'hw-dpi', 'hw-passes', 'hw-dir', 'hw-halftone',
+        'preset-select', 'hw-dpi', 'hw-passes', 'hw-dir', 'hw-halftone',
         'hw-width-mm', 'hw-height-mm', 'opt-autocut', 'opt-printline', 'opt-cropmarks',
-        'opt-colorbar', 'opt-mirror', 'icc-profile', 'slider-til', 'slider-c', 'slider-m', 'slider-y', 'slider-k'
+        'opt-colorbar', 'opt-mirror', 'slider-til', 'slider-c', 'slider-m', 'slider-y', 'slider-k', 'slider-w'
       ].forEach((id) => {
         const el = document.getElementById(id);
         el.addEventListener('input', () => {
@@ -1371,12 +1787,43 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
           document.getElementById('lbl-m').textContent = `${document.getElementById('slider-m').value}%`;
           document.getElementById('lbl-y').textContent = `${document.getElementById('slider-y').value}%`;
           document.getElementById('lbl-k').textContent = `${document.getElementById('slider-k').value}%`;
+          document.getElementById('lbl-w').textContent = `${document.getElementById('slider-w').value}%`;
           if (id === 'preset-select') STATE.customImage = null;
           renderRipCanvas();
         });
       });
 
-      // Subir imagen propia desde el ordenador del usuario
+      // Guardar nuevo perfil de material personalizado
+      document.getElementById('btn-save-profile').addEventListener('click', () => {
+        const newProf = {
+          id: 'prof_' + Date.now(),
+          name: document.getElementById('np-name').value.trim() || 'Material Personalizado',
+          printer: document.getElementById('np-printer').value,
+          width_mm: Math.max(200, Math.min(1625, parseFloat(document.getElementById('np-width').value) || 1370)),
+          coil_m: Math.max(1, Math.min(50, parseFloat(document.getElementById('np-coil').value) || 50)),
+          dpi: document.getElementById('np-dpi').value,
+          passes: parseInt(document.getElementById('np-passes').value, 10) || 8,
+          til: parseInt(document.getElementById('np-til').value, 10) || 270,
+          gains: {
+            C: parseInt(document.getElementById('np-c').value, 10) || 100,
+            M: parseInt(document.getElementById('np-m').value, 10) || 100,
+            Y: parseInt(document.getElementById('np-y').value, 10) || 100,
+            K: parseInt(document.getElementById('np-k').value, 10) || 100,
+            W: parseInt(document.getElementById('np-w').value, 10) || 0
+          },
+          heaters: {
+            pre: parseInt(document.getElementById('np-pre').value, 10) || 40,
+            platen: parseInt(document.getElementById('np-platen').value, 10) || 42,
+            dryer: parseInt(document.getElementById('np-dryer').value, 10) || 48
+          },
+          uv: parseInt(document.getElementById('np-uv').value, 10) || 85
+        };
+        STATE.profiles.unshift(newProf);
+        persistProfiles();
+        populateProfilesDropdownAndTable();
+        applyMaterialProfile(newProf.id);
+      });
+
       document.getElementById('upload-art-input').addEventListener('change', (ev) => {
         const file = ev.target.files[0];
         if (!file) return;
@@ -1392,7 +1839,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         reader.readAsDataURL(file);
       });
 
-      // Controles del Atlas de Color
       ['atlas-hex', 'atlas-size', 'atlas-step', 'atlas-axes'].forEach((id) => {
         document.getElementById(id).addEventListener('input', renderColorAtlas);
       });
@@ -1409,13 +1855,11 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         renderColorAtlas();
       });
 
-      // Controles de Nesting y Tiling
       ['nest-roll-mm', 'tile-w', 'tile-h', 'tile-roll', 'tile-overlap'].forEach((id) => {
         document.getElementById(id).addEventListener('input', renderNestingAndTiling);
       });
       document.getElementById('btn-recalc-nest').addEventListener('click', renderNestingAndTiling);
 
-      // Controles VDP
       document.getElementById('vdp-input').addEventListener('input', renderVdpSheet);
       document.getElementById('btn-vdp-queue').addEventListener('click', () => {
         const activeQ = STATE.queues.find((x) => x.id === STATE.activeQueueId) || STATE.queues[0];
@@ -1431,11 +1875,10 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         renderNestingAndTiling();
       });
 
-      // Añadir trabajo actual a la cola
       document.getElementById('btn-add-job-queue').addEventListener('click', () => {
         const activeQ = STATE.queues.find((x) => x.id === STATE.activeQueueId) || STATE.queues[0];
         const w = parseFloat(document.getElementById('hw-width-mm').value) || 1200;
-        const h = parseFloat(document.getElementById('hw-height-mm').value) || 840;
+        const h = Math.min(MAX_COIL_MM, parseFloat(document.getElementById('hw-height-mm').value) || 840);
         activeQ.jobs.unshift({
           id: 'JOB-' + Math.floor(100 + Math.random() * 899),
           title: STATE.customImage ? 'Arte_Personalizado_RIP.tif' : 'Grafica_Gran_Formato.tif',
@@ -1448,7 +1891,6 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
         renderNestingAndTiling();
       });
 
-      // Descargas de vistas y .PRN
       document.getElementById('btn-download-tiff').addEventListener('click', () => {
         const c = document.getElementById('rip-canvas');
         const a = document.createElement('a');
@@ -1468,22 +1910,10 @@ SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
       document.getElementById('btn-export-prn-top').addEventListener('click', () => generateAndDownloadPrn());
       document.getElementById('btn-generate-prn-main').addEventListener('click', () => generateAndDownloadPrn());
 
-      document.getElementById('btn-save-app-pc').addEventListener('click', () => {
-        const localThemeCss = `<style>:root{--background:#0d1117;--foreground:#f0f4f8;--card:#151b24;--card-border:#263042;--border:#263042;--primary:#0ea5e9;--primary-foreground:#041019;--secondary:#1e293b;--secondary-foreground:#e2e8f0;--muted-foreground:#94a3b8;}</style><script src="https://cdn.tailwindcss.com"><\/script>`;
-        const htmlContent = '<!DOCTYPE html>\n<html lang="es">\n' + document.documentElement.innerHTML.replace('</head>', localThemeCss + '</head>') + '\n</html>';
-        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'ApexRIP_Studio_Pro_Completo.html';
-        a.click();
-      });
-
-      // Render inicial
-      renderQueuesUI();
-      renderRipCanvas();
+      populateProfilesDropdownAndTable();
+      applyMaterialProfile(STATE.activeProfileId);
       renderColorAtlas();
       renderSpotsTable();
-      renderNestingAndTiling();
       renderVdpSheet();
     });
   </script>

@@ -31,46 +31,74 @@ BUILTIN_SPOT_LIBRARY: List[Dict[str, Any]] = [
     {"code": "PANTONE 485 C", "name": "Rojo Señalización", "L": 47.0, "a": 71.5, "b": 56.0, "category": "Formula Guide Coated"},
 ]
 
-# Perfiles ICC y configuraciones de sustrato predefinidas para Gran Formato
+# Perfiles ICC y configuraciones de sustrato predefinidas y editables para Mutoh VJ-1624 y Mimaki UJV100-160
 ICC_MEDIA_PROFILES: Dict[str, Dict[str, Any]] = {
-    "ecosol_vinyl_gloss": {
-        "id": "ecosol_vinyl_gloss",
-        "name": "Vinilo Adhesivo Brillante (Ecosolvente)",
-        "ink_type": "Ecosolvente CMYK + LcLm",
+    "mutoh_vinyl_gloss_1370": {
+        "id": "mutoh_vinyl_gloss_1370",
+        "name": "Mutoh VJ-1624 — Vinilo Adhesivo Brillante",
+        "printer_id": "mutoh_vj_1624",
+        "ink_type": "Ecosolvente CMYK (i² Wave)",
+        "default_width_mm": 1370.0,
+        "coil_length_m": 50.0,
+        "rendering_intent": "Perceptual",
+        "total_ink_limit": 270,
+        "black_generation": "GCR Medio",
+        "channel_gains": {"C": 1.0, "M": 0.98, "Y": 1.0, "K": 1.02, "W": 0.0},
+        "heaters_c": {"pre": 40, "platen": 42, "dryer": 48},
+        "uv_lamp_pct": 0,
+        "resolution": "720x1440",
+        "passes": 8,
+        "gamma": 1.0,
+    },
+    "mutoh_banner_1600": {
+        "id": "mutoh_banner_1600",
+        "name": "Mutoh VJ-1624 — Lona Frontlit 13oz",
+        "printer_id": "mutoh_vj_1624",
+        "ink_type": "Ecosolvente CMYK",
+        "default_width_mm": 1600.0,
+        "coil_length_m": 50.0,
+        "rendering_intent": "Relative Colorimetric",
+        "total_ink_limit": 250,
+        "black_generation": "GCR Fuerte",
+        "channel_gains": {"C": 1.03, "M": 1.02, "Y": 1.01, "K": 1.05, "W": 0.0},
+        "heaters_c": {"pre": 42, "platen": 44, "dryer": 50},
+        "uv_lamp_pct": 0,
+        "resolution": "720x720",
+        "passes": 6,
+        "gamma": 0.96,
+    },
+    "mimaki_uv_vinyl_1520": {
+        "id": "mimaki_uv_vinyl_1520",
+        "name": "Mimaki UJV100-160 — Vinilo / PET UV (CMYK)",
+        "printer_id": "mimaki_ujv100_160",
+        "ink_type": "UV LED LUS-170 CMYK (MAPS4)",
+        "default_width_mm": 1520.0,
+        "coil_length_m": 50.0,
         "rendering_intent": "Perceptual",
         "total_ink_limit": 280,
         "black_generation": "GCR Medio",
-        "channel_gains": {"C": 1.0, "M": 0.98, "Y": 1.0, "K": 1.02},
+        "channel_gains": {"C": 0.98, "M": 0.97, "Y": 1.0, "K": 1.0, "W": 0.0},
+        "heaters_c": {"pre": 0, "platen": 0, "dryer": 0},
+        "uv_lamp_pct": 80,
+        "resolution": "600x1200",
+        "passes": 8,
         "gamma": 1.0,
     },
-    "ecosol_banner_frontlit": {
-        "id": "ecosol_banner_frontlit",
-        "name": "Lona Frontlit 13oz Mate (Ecosolvente)",
-        "ink_type": "Ecosolvente CMYK",
-        "rendering_intent": "Relative Colorimetric",
-        "total_ink_limit": 260,
-        "black_generation": "GCR Fuerte",
-        "channel_gains": {"C": 1.04, "M": 1.03, "Y": 1.02, "K": 1.05},
-        "gamma": 0.95,
-    },
-    "sublimation_transfer_paper": {
-        "id": "sublimation_transfer_paper",
-        "name": "Papel Transfer Sublimación Textil Poliéster",
-        "ink_type": "Sublimación CMYK (HDK)",
-        "rendering_intent": "Saturation",
-        "total_ink_limit": 240,
-        "black_generation": "UCR Ligero",
-        "channel_gains": {"C": 1.08, "M": 1.06, "Y": 1.05, "K": 1.10},
-        "gamma": 0.90,
-    },
-    "uv_rigid_acrylic": {
-        "id": "uv_rigid_acrylic",
-        "name": "Rígido Acrílico / PVC (UV LED + Blanco/Barniz)",
-        "ink_type": "UV Curable CMYK + W + V",
+    "mimaki_uv_backlit_white_1600": {
+        "id": "mimaki_uv_backlit_white_1600",
+        "name": "Mimaki UJV100-160 — Film Transparente / Backlit (CMYK + Blanco)",
+        "printer_id": "mimaki_ujv100_160",
+        "ink_type": "UV LED CMYK + Blanco (W) + Barniz (V)",
+        "default_width_mm": 1600.0,
+        "coil_length_m": 50.0,
         "rendering_intent": "Relative Colorimetric",
         "total_ink_limit": 300,
         "black_generation": "GCR Medio",
-        "channel_gains": {"C": 0.96, "M": 0.96, "Y": 0.98, "K": 1.0},
+        "channel_gains": {"C": 1.02, "M": 1.02, "Y": 1.0, "K": 1.04, "W": 1.0},
+        "heaters_c": {"pre": 0, "platen": 0, "dryer": 0},
+        "uv_lamp_pct": 95,
+        "resolution": "600x1200",
+        "passes": 12,
         "gamma": 1.02,
     },
 }
@@ -210,7 +238,7 @@ def rgb_to_device_cmyk(
     r: int,
     g: int,
     b: int,
-    profile_id: str = "ecosol_vinyl_gloss",
+    profile_id: str = "mutoh_vinyl_gloss_1370",
     channel_curves: Optional[Dict[str, float]] = None,
     total_ink_limit: Optional[float] = None,
 ) -> Dict[str, float]:
@@ -219,7 +247,7 @@ def rgb_to_device_cmyk(
     generación de negro GCR, curvas por canal y límite de tinta total (TIL).
     Retorna porcentajes de 0.0 a 100.0 por canal.
     """
-    prof = ICC_MEDIA_PROFILES.get(profile_id, ICC_MEDIA_PROFILES["ecosol_vinyl_gloss"])
+    prof = ICC_MEDIA_PROFILES.get(profile_id, ICC_MEDIA_PROFILES["mutoh_vinyl_gloss_1370"])
     gains = dict(prof["channel_gains"])
     if channel_curves:
         for k, v in channel_curves.items():
@@ -271,7 +299,7 @@ def rgb_to_device_cmyk(
     }
 
 
-def enrich_spot_color(entry: Dict[str, Any], profile_id: str = "ecosol_vinyl_gloss") -> Dict[str, Any]:
+def enrich_spot_color(entry: Dict[str, Any], profile_id: str = "mutoh_vinyl_gloss_1370") -> Dict[str, Any]:
     """Calcula equivalencias RGB, Hex, CMYK de dispositivo y Delta E estimado para un color Lab/PANTONE."""
     L, a, b = float(entry["L"]), float(entry["a"]), float(entry["b"])
     X, Y, Z = lab_to_xyz(L, a, b)
@@ -295,7 +323,7 @@ def generate_color_atlas(
     cols: int = 7,
     step_pct: float = 4.0,
     variation_mode: str = "C_vs_M",
-    profile_id: str = "ecosol_vinyl_gloss",
+    profile_id: str = "mutoh_vinyl_gloss_1370",
     include_crop_marks: bool = True,
 ) -> Dict[str, Any]:
     """
