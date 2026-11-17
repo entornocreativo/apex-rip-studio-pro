@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexRIP Studio Pro v2.4 — Estación RIP de Gran Formato</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --background: #0d1117;
+      --foreground: #f0f4f8;
+      --card: #151b24;
+      --card-border: #263042;
+      --border: #263042;
+      --primary: #0ea5e9;
+      --primary-foreground: #041019;
+      --secondary: #1e293b;
+      --secondary-foreground: #e2e8f0;
+      --muted-foreground: #94a3b8;
+    }
+
+    * { box-sizing: border-box; }
+    .cmyk-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 9px);
+      grid-template-rows: repeat(2, 9px);
+      gap: 2px;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    input[type="range"] { accent-color: var(--primary); }
+    canvas { image-rendering: auto; }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-0 min-h-screen flex flex-col text-xs">
+
+  <!-- Barra Superior de Estación de Trabajo RIP -->
+  <header class="bg-[var(--card)] border-b border-[var(--border)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="cmyk-grid" aria-hidden="true">
+        <span class="rounded-xs" style="background:#00aeef"></span>
+        <span class="rounded-xs" style="background:#ec008c"></span>
+        <span class="rounded-xs" style="background:#fff200"></span>
+        <span class="rounded-xs" style="background:#64748b"></span>
+      </div>
+      <div>
+        <div class="font-bold text-sm tracking-tight flex items-center gap-2">
+          ApexRIP Studio Pro v2.4
+          <span class="px-1.5 py-0.5 text-xs rounded bg-[var(--secondary)] text-[var(--secondary-foreground)] font-mono">GRAN FORMATO</span>
+        </div>
+        <div class="text-xs text-[var(--muted-foreground)]">
+          Ecosolvente • Sublimación Textil • UV LED | ICC + Atlas + Colas + VDP + Panelación
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <nav class="flex flex-wrap items-center gap-1" id="main-tabs">
+      <button data-target="pane-rip" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer">
+        1. Ripeo &amp; Canales CMYK
+      </button>
+      <button data-target="pane-atlas" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+        2. Atlas de Color &amp; PANTONE
+      </button>
+      <button data-target="pane-layout" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+        3. Nesting &amp; Panelación
+      </button>
+      <button data-target="pane-vdp" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+        4. Datos Variables (VDP)
+      </button>
+      <button data-target="pane-queues" class="tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+        5. Cola Maestra &amp; Salida .PRN
+      </button>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <button id="btn-save-app-pc" class="px-3 py-1.5 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold cursor-pointer hover:opacity-90">
+        ⬇ Descargar Programa a mi PC
+      </button>
+      <label for="upload-art-input" class="px-3 py-1.5 rounded border border-[var(--border)] bg-[var(--secondary)] text-[var(--secondary-foreground)] font-semibold cursor-pointer hover:opacity-90">
+        + Cargar Imagen Propia
+      </label>
+      <input id="upload-art-input" type="file" accept="image/*" class="hidden" />
+      <button id="btn-export-prn-top" class="px-3 py-1.5 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer hover:opacity-90">
+        Generar .PRN / Imprimir
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal de 3 Columnas -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3">
+
+    <!-- COLUMNA IZQUIERDA: Colas de Impresión Múltiples y Trabajos -->
+    <aside class="lg:col-span-3 space-y-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Colas de Impresión Activas</span>
+          <span class="font-mono text-xs text-[var(--primary)]">3 Colas</span>
+        </div>
+        <div id="queues-list" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5">
+          <span class="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Trabajos en Cola Activa</span>
+          <button id="btn-add-job-queue" class="text-xs font-semibold text-[var(--primary)] cursor-pointer">+ Añadir Actual</button>
+        </div>
+        <div id="active-queue-jobs" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
+          Carta / Diseño Activo
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-[var(--muted-foreground)]">Gráfico de Prueba Integrado</label>
+          <select id="preset-select" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)]">
+            <option value="motorsport">Carta Gran Formato Ecosolvente &amp; Registro CMYK</option>
+            <option value="sublimation">Diseño Textil Sublimación Full Print (HDK)</option>
+            <option value="uv_signage">Cartelería Retroiluminada UV LED + Corte</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- COLUMNA CENTRAL: Escenario Principal por Pestaña -->
+    <main class="lg:col-span-6 space-y-3">
+
+      <!-- PESTAÑA 1: ESTACIÓN DE RIPEO Y SEPARACIÓN CMYK -->
+      <section id="pane-rip" class="tab-pane active space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-2">
+            <div class="flex flex-wrap items-center gap-1.5" id="channel-selector">
+              <span class="font-bold mr-1">Canal:</span>
+              <button data-ch="composite" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer">
+                Compuesto CMYK
+              </button>
+              <button data-ch="C" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+                Cian (C)
+              </button>
+              <button data-ch="M" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+                Magenta (M)
+              </button>
+              <button data-ch="Y" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+                Amarillo (Y)
+              </button>
+              <button data-ch="K" class="ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer">
+                Negro (K)
+              </button>
+            </div>
+            <button id="btn-download-tiff" class="px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">
+              Descargar Vista Ripeada (.PNG)
+            </button>
+          </div>
+
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded p-2 flex items-center justify-center overflow-auto" style="min-height: 340px;">
+            <canvas id="rip-canvas" width="660" height="440" class="max-w-full h-auto rounded shadow"></canvas>
+          </div>
+
+          <!-- Métricas de Ripeo -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="text-[var(--muted-foreground)]">Área Física</div>
+              <div id="stat-area" class="font-mono font-bold text-sm mt-0.5">1.01 m²</div>
+            </div>
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="text-[var(--muted-foreground)]">Tinta Estimada</div>
+              <div id="stat-ink" class="font-mono font-bold text-sm mt-0.5 text-[var(--primary)]">5.48 mL</div>
+            </div>
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="text-[var(--muted-foreground)]">Pico TIL Máx.</div>
+              <div id="stat-til" class="font-mono font-bold text-sm mt-0.5">260%</div>
+            </div>
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="text-[var(--muted-foreground)]">Cabezal / Pasadas</div>
+              <div id="stat-passes" class="font-mono font-bold text-xs mt-0.5">8 Pasadas Bidir</div>
+            </div>
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="text-[var(--muted-foreground)]">Línea de Corte</div>
+              <div id="stat-cut" class="font-mono font-bold text-xs mt-0.5">OPOS + Printline</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 2: GENERADOR DE ATLAS DE COLORES E IMPORTADOR CIE LAB / PANTONE -->
+      <section id="pane-atlas" class="tab-pane space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-2">
+            <div>
+              <div class="font-bold text-sm">Generador de Atlas de Colores para Sustrato</div>
+              <div class="text-[var(--muted-foreground)]">Imprime muestras con variaciones exactas de canal para emparejar tonos corporativos o PANTONE®</div>
+            </div>
+            <button id="btn-download-atlas" class="px-2.5 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+              Descargar Plancha Atlas (.PNG)
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Color Base (Hex)</label>
+              <input id="atlas-hex" type="text" value="#E1251B" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Tamaño Matriz</label>
+              <select id="atlas-size" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="5">5 x 5 (25 parches)</option>
+                <option value="7">7 x 7 (49 parches)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Paso Variación (%)</label>
+              <input id="atlas-step" type="number" value="4" min="1" max="15" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Canales a Variar</label>
+              <select id="atlas-axes" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="CM">Cian vs. Magenta (C / M)</option>
+                <option value="YK">Amarillo vs. Negro (Y / K)</option>
+                <option value="CY">Cian vs. Amarillo (C / Y)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded p-2 flex items-center justify-center overflow-auto">
+            <canvas id="atlas-canvas" width="640" height="420" class="max-w-full h-auto rounded"></canvas>
+          </div>
+        </div>
+
+        <!-- Importador CIE Lab y PANTONE Color Manager -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="font-bold border-b border-[var(--card-border)] pb-1.5">
+            Importación de Colores CIE L*a*b* y PANTONE® Color Manager (Clic en una fila para enviar al Atlas)
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+            <div class="sm:col-span-2">
+              <label class="block text-[var(--muted-foreground)] mb-1">Código PANTONE / Spot</label>
+              <input id="spot-code" type="text" value="PANTONE 300 C" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">CIE L*</label>
+              <input id="spot-l" type="number" step="0.5" value="44.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">CIE a*</label>
+              <input id="spot-a" type="number" step="0.5" value="-3.5" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">CIE b*</label>
+              <input id="spot-b" type="number" step="0.5" value="-58.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <button id="btn-add-spot" class="px-2.5 py-1.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+              + Importar Lab
+            </button>
+          </div>
+
+          <div class="max-h-48 overflow-y-auto border border-[var(--border)] rounded">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-[var(--secondary)] text-[var(--muted-foreground)]">
+                <tr>
+                  <th class="p-2">Muestra / Código</th>
+                  <th class="p-2">CIE L*a*b*</th>
+                  <th class="p-2">Receta CMYK Dispositivo</th>
+                  <th class="p-2">ΔE₀₀</th>
+                </tr>
+              </thead>
+              <tbody id="spot-tbody" class="divide-y divide-[var(--border)]"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 3: COMPOSICIÓN (NESTING) Y PANELACIÓN (TILING) -->
+      <section id="pane-layout" class="tab-pane space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
+            <div>
+              <div class="font-bold text-sm">Composición Automática en Rollo (Auto-Nesting)</div>
+              <div id="nesting-readout" class="font-mono text-xs text-[var(--primary)]">Optimización de aprovechamiento de ancho de rollo</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[var(--muted-foreground)]">Rollo (mm):</label>
+              <input id="nest-roll-mm" type="number" value="1600" class="w-20 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <button id="btn-recalc-nest" class="px-2.5 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+                Auto-Acomodar
+              </button>
+            </div>
+          </div>
+          <canvas id="nest-canvas" width="620" height="230" class="w-full bg-[var(--background)] border border-[var(--border)] rounded"></canvas>
+        </div>
+
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
+            <div>
+              <div class="font-bold text-sm">Panelación de Gran Formato (Tiling con Solapamiento y Giro Alterno 180°)</div>
+              <div id="tiling-readout" class="font-mono text-xs text-[var(--primary)]">División automática de murales que superan el ancho del plotter</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Mural (mm)</label>
+              <input id="tile-w" type="number" value="4200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Alto Mural (mm)</label>
+              <input id="tile-h" type="number" value="2300" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Ancho Rollo (mm)</label>
+              <input id="tile-roll" type="number" value="1600" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Solapamiento (mm)</label>
+              <input id="tile-overlap" type="number" value="18" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+          </div>
+          <canvas id="tile-canvas" width="620" height="230" class="w-full bg-[var(--background)] border border-[var(--border)] rounded"></canvas>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 4: IMPRESIÓN DE DATOS VARIABLES (VDP) -->
+      <section id="pane-vdp" class="tab-pane space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] pb-1.5">
+            <div>
+              <div class="font-bold text-sm">Producción Seriada de Datos Variables (VDP + QR + CutContour)</div>
+              <div class="text-[var(--muted-foreground)]">Edita los registros (CODIGO | NOMBRE | LOTE) para generar la plancha seriada</div>
+            </div>
+            <button id="btn-vdp-queue" class="px-3 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+              Enviar Lote VDP a Cola Activa
+            </button>
+          </div>
+          <textarea id="vdp-input" rows="5" class="w-full p-2 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs">SER-2026-001 | OPERADOR PLANTA NORTE | LOTE A-10
+SER-2026-002 | OPERADOR PLANTA SUR | LOTE A-10
+SER-2026-003 | SUPERVISOR CALIDAD ISO | LOTE B-22
+SER-2026-004 | FLOTA LOGÍSTICA CENTRAL | LOTE B-22
+SER-2026-005 | UNIDAD DE MANTENIMIENTO | LOTE C-05
+SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-05</textarea>
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded p-2 flex items-center justify-center overflow-auto">
+            <canvas id="vdp-canvas" width="640" height="340" class="max-w-full h-auto rounded"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 5: COLA MAESTRA Y SPOOLER DE HARDWARE (.PRN) -->
+      <section id="pane-queues" class="tab-pane space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+          <div class="font-bold text-sm border-b border-[var(--card-border)] pb-1.5">
+            Spooler de Salida de Hardware (USB / Red TCP-IP Puerto 9100 / Archivo Binario .PRN)
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Interfaz de Destino</label>
+              <select id="spool-interface" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="prn">Archivo Binario .PRN (ESC/P2 &amp; RTL Directo)</option>
+                <option value="tcp">Red TCP/IP Raw Socket (JetDirect :9100)</option>
+                <option value="usb">Puerto Impresora Local USB (/dev/usb/lp0)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-1">Dirección IP / Host del Plotter</label>
+              <input id="spool-ip" type="text" value="192.168.1.200:9100" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div class="flex items-end">
+              <button id="btn-generate-prn-main" class="w-full py-1.5 px-3 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
+                Ripear y Descargar .PRN Ahora
+              </button>
+            </div>
+          </div>
+          <div id="spool-log" class="p-2.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs text-[var(--primary)]">
+            Listo para generar secuencia binaria ESC/P2 / RTL con cabeceras de pasadas, dirección de cabezal y autocorte.
+          </div>
+        </div>
+
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+          <div class="font-bold text-sm border-b border-[var(--card-border)] pb-1.5">
+            Cola Maestra (Trabajos Ripeados Almacenados para Reimpresión Inmediata)
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-[var(--secondary)] text-[var(--muted-foreground)]">
+                <tr>
+                  <th class="p-2">ID</th>
+                  <th class="p-2">Trabajo</th>
+                  <th class="p-2">Plotter / Dispositivo</th>
+                  <th class="p-2">Perfil ICC</th>
+                  <th class="p-2">Modo Cabezal</th>
+                  <th class="p-2">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="master-queue-tbody" class="divide-y divide-[var(--border)]"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- COLUMNA DERECHA: Control de Hardware, Perfiles ICC y Curvas por Canal -->
+    <aside class="lg:col-span-3 space-y-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
+          Control de Hardware y Plotter
+        </div>
+        <div>
+          <label class="block text-[var(--muted-foreground)] mb-1">Marca y Modelo de Plotter</label>
+          <select id="hw-model" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+            <option value="Epson SureColor SC-S80600">Epson SureColor SC-S80600 (Ecosolvente)</option>
+            <option value="Roland TrueVIS VG3-640">Roland TrueVIS VG3-640 (Print &amp; Cut)</option>
+            <option value="Epson SureColor SC-F9470H">Epson SureColor SC-F9470H (Sublimación)</option>
+            <option value="Mimaki UCJV300-160">Mimaki UCJV300-160 (UV LED Blanco+Barniz)</option>
+            <option value="Mutoh XpertJet 1682SR Pro">Mutoh XpertJet 1682SR Pro (Dual Head)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Resolución</label>
+            <select id="hw-dpi" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="720x720">720 x 720 DPI</option>
+              <option value="720x1440" selected>720 x 1440 DPI</option>
+              <option value="1440x1440">1440 x 1440 DPI</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Pasadas (Passes)</label>
+            <select id="hw-passes" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="4">4 Pasadas</option>
+              <option value="6">6 Pasadas</option>
+              <option value="8" selected>8 Pasadas</option>
+              <option value="12">12 Pasadas</option>
+              <option value="16">16 Pasadas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Dirección Carro</label>
+            <select id="hw-dir" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="Bidir">Bidireccional (Rápido)</option>
+              <option value="Unidir">Unidireccional (Preciso)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Trama Semitono</label>
+            <select id="hw-halftone" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="contone">Tono Continuo</option>
+              <option value="bayer" selected>Difusión FM Bayer</option>
+              <option value="rosette">Roseta AM (Ángulos)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Ancho Trabajo (mm)</label>
+            <input id="hw-width-mm" type="number" value="1200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Alto Trabajo (mm)</label>
+            <input id="hw-height-mm" type="number" value="840" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+          </div>
+        </div>
+
+        <div class="space-y-1 pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="opt-autocut" type="checkbox" checked />
+            <span>Autocorte de Hoja (Sheet Cut)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="opt-printline" type="checkbox" checked />
+            <span>Línea de Corte (Printline CutContour)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="opt-cropmarks" type="checkbox" checked />
+            <span>Marcas Ópticas Registro (OPOS / ARMS)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="opt-colorbar" type="checkbox" checked />
+            <span>Barra Lateral Inyectores CMYK</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="opt-mirror" type="checkbox" />
+            <span>Espejo Horizontal (Sublimación)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Perfiles ICC y Calibración por Canal Individual -->
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2.5">
+        <div class="font-bold uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--card-border)] pb-1.5">
+          Perfil ICC &amp; Calibración por Canal
+        </div>
+        <div>
+          <label class="block text-[var(--muted-foreground)] mb-1">Perfil ICC de Material</label>
+          <select id="icc-profile" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+            <option value="vinyl">Vinilo Adhesivo Brillante (Ecosolvente)</option>
+            <option value="banner">Lona Frontlit 13oz Mate (Ecosolvente)</option>
+            <option value="sublimation">Papel Transfer Sublimación (HDK)</option>
+            <option value="uv">Acrílico / Rígido UV LED (CMYK+W+V)</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="flex justify-between">
+            <span class="text-[var(--muted-foreground)]">Límite Tinta Total (TIL)</span>
+            <span id="lbl-til" class="font-mono font-bold">260%</span>
+          </div>
+          <input id="slider-til" type="range" min="180" max="340" step="5" value="260" class="w-full" />
+        </div>
+
+        <div class="space-y-1.5">
+          <div>
+            <div class="flex justify-between">
+              <span style="color:#00aeef" class="font-semibold">Canal Cian (C)</span>
+              <span id="lbl-c" class="font-mono">100%</span>
+            </div>
+            <input id="slider-c" type="range" min="50" max="140" value="100" class="w-full" />
+          </div>
+          <div>
+            <div class="flex justify-between">
+              <span style="color:#ec008c" class="font-semibold">Canal Magenta (M)</span>
+              <span id="lbl-m" class="font-mono">100%</span>
+            </div>
+            <input id="slider-m" type="range" min="50" max="140" value="100" class="w-full" />
+          </div>
+          <div>
+            <div class="flex justify-between">
+              <span style="color:#eab308" class="font-semibold">Canal Amarillo (Y)</span>
+              <span id="lbl-y" class="font-mono">100%</span>
+            </div>
+            <input id="slider-y" type="range" min="50" max="140" value="100" class="w-full" />
+          </div>
+          <div>
+            <div class="flex justify-between">
+              <span class="font-semibold">Canal Negro (K - GCR)</span>
+              <span id="lbl-k" class="font-mono">100%</span>
+            </div>
+            <input id="slider-k" type="range" min="50" max="140" value="100" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Barras de Consumo en mL por Canal -->
+        <div class="pt-2 border-t border-[var(--card-border)] space-y-1.5">
+          <div class="text-[var(--muted-foreground)] font-semibold">Consumo por Canal (mL):</div>
+          <div class="grid grid-cols-4 gap-1.5 text-center font-mono">
+            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div style="color:#00aeef" class="font-bold">C</div>
+              <div id="ml-c">1.35</div>
+            </div>
+            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div style="color:#ec008c" class="font-bold">M</div>
+              <div id="ml-m">1.22</div>
+            </div>
+            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div style="color:#eab308" class="font-bold">Y</div>
+              <div id="ml-y">1.18</div>
+            </div>
+            <div class="p-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+              <div class="font-bold">K</div>
+              <div id="ml-k">1.73</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    // ============================================================================
+    // MOTOR RIP AUTO-CONTENIDO (ApexRIP Studio Pro v2.4)
+    // ============================================================================
+    const STATE = {
+      activeChannel: 'composite',
+      activeQueueId: 'q_ecosol',
+      customImage: null,
+      queues: [
+        {
+          id: 'q_ecosol',
+          code: 'COLA A',
+          name: 'Ecosolvente — Vinilo & Lona 160cm',
+          printer: 'Epson SureColor SC-S80600',
+          profile: 'vinyl',
+          roll_mm: 1600,
+          jobs: [
+            { id: 'JOB-101', title: 'Grafica_Vehicular_Racing.tif', w: 1200, h: 840, copies: 1, color: '#0ea5e9' },
+            { id: 'JOB-102', title: 'Stickers_Troquelados_Logo.eps', w: 460, h: 380, copies: 3, color: '#ec4899' }
+          ]
+        },
+        {
+          id: 'q_sub',
+          code: 'COLA B',
+          name: 'Sublimación Textil — Transfer 110cm',
+          printer: 'Epson SureColor SC-F9470H',
+          profile: 'sublimation',
+          roll_mm: 1118,
+          jobs: [
+            { id: 'JOB-201', title: 'Camiseta_Deportiva_FullPrint.pdf', w: 950, h: 1150, copies: 2, color: '#eab308' }
+          ]
+        },
+        {
+          id: 'q_uv',
+          code: 'COLA C',
+          name: 'UV LED Print & Cut — Blanco + Barniz',
+          printer: 'Mimaki UCJV300-160',
+          profile: 'uv',
+          roll_mm: 1600,
+          jobs: [
+            { id: 'JOB-301', title: 'Senaletica_Acrilico_Backlit.tif', w: 620, h: 450, copies: 2, color: '#10b981' }
+          ]
+        }
+      ],
+      masterQueue: [
+        {
+          id: 'MST-901',
+          title: 'Campana_Exterior_Vinilo_160cm [RIPEADO]',
+          printer: 'Epson SureColor SC-S80600',
+          profile: 'Vinilo Brillante Ecosolvente',
+          mode: '720x1440 DPI (8P Bidir)'
+        }
+      ],
+      spots: [
+        { code: 'PANTONE 185 C', L: 49.5, a: 75.2, b: 47.8 },
+        { code: 'PANTONE 286 C', L: 34.2, a: 12.8, b: -64.5 },
+        { code: 'PANTONE 300 C', L: 44.0, a: -3.5, b: -58.0 },
+        { code: 'PANTONE 116 C', L: 83.5, a: 8.5, b: 85.0 },
+        { code: 'PANTONE 354 C', L: 63.8, a: -65.0, b: 42.0 },
+        { code: 'PANTONE 021 C', L: 60.5, a: 62.0, b: 72.0 },
+        { code: 'PANTONE Rhodamine Red C', L: 51.0, a: 79.0, b: -14.0 }
+      ]
+    };
+
+    // Matriz Bayer 8x8 para tramado FM
+    const BAYER8 = [
+      [ 0, 48, 12, 60,  3, 51, 15, 63],
+      [32, 16, 44, 28, 35, 19, 47, 31],
+      [ 8, 56,  4, 52, 11, 59,  7, 55],
+      [40, 24, 36, 20, 43, 27, 39, 23],
+      [ 2, 50, 14, 62,  1, 49, 13, 61],
+      [34, 18, 46, 30, 33, 17, 45, 29],
+      [10, 58,  6, 54,  9, 57,  5, 53],
+      [42, 26, 38, 22, 41, 25, 37, 21]
+    ];
+
+    // Conversión CIE L*a*b* -> sRGB y CMYK
+    function labToRgb(L, a, b) {
+      const fy = (L + 16) / 116;
+      const fx = a / 500 + fy;
+      const fz = fy - b / 200;
+      const delta = 6 / 29;
+      const finv = (t) => (t > delta ? t * t * t : 3 * delta * delta * (t - 4 / 29));
+      const X = 0.95047 * finv(fx);
+      const Y = 1.00000 * finv(fy);
+      const Z = 1.08883 * finv(fz);
+      const rl = X * 3.2406 + Y * -1.5372 + Z * -0.4986;
+      const gl = X * -0.9689 + Y * 1.8758 + Z * 0.0415;
+      const bl = X * 0.0557 + Y * -0.2040 + Z * 1.0570;
+      const toSrgb = (c) => {
+        c = Math.max(0, Math.min(1, c));
+        const v = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+        return Math.round(Math.max(0, Math.min(255, v * 255)));
+      };
+      return [toSrgb(rl), toSrgb(gl), toSrgb(bl)];
+    }
+
+    function rgbToCmyk(r, g, b) {
+      const rf = r / 255, gf = g / 255, bf = b / 255;
+      const kRaw = 1 - Math.max(rf, gf, bf);
+      const k = kRaw * 0.8;
+      const denom = Math.max(1e-5, 1 - k);
+      const c = Math.max(0, Math.min(100, ((1 - rf - k) / denom) * 100));
+      const m = Math.max(0, Math.min(100, ((1 - gf - k) / denom) * 100));
+      const y = Math.max(0, Math.min(100, ((1 - bf - k) / denom) * 100));
+      return { C: Math.round(c), M: Math.round(m), Y: Math.round(y), K: Math.round(k * 100) };
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+
+    // Dibuja la carta de prueba fuente en un canvas oculto
+    function createSourceCanvas(w = 540, h = 360) {
+      const off = document.createElement('canvas');
+      off.width = w;
+      off.height = h;
+      const ctx = off.getContext('2d');
+
+      if (STATE.customImage) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(STATE.customImage, 0, 0, w, h);
+        return off;
+      }
+
+      const preset = document.getElementById('preset-select').value;
+      if (preset === 'sublimation') {
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#ec008c');
+        grad.addColorStop(0.5, '#00aeef');
+        grad.addColorStop(1, '#fff200');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#0f172a';
+        for (let i = -h; i < w; i += 44) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i + 18, 0);
+          ctx.lineTo(i + h + 18, h);
+          ctx.lineTo(i + h, h);
+          ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(15,23,42,0.88)';
+        ctx.fillRect(28, h - 92, w - 56, 66);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('SUBLIMACION TEXTIL PRO — HDK DEEP BLACK', 44, h - 62);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '12px monospace';
+        ctx.fillText('CONTROL DE TRANSFERENCIA Y SATURACION CROMATICA', 44, h - 40);
+        return off;
+      }
+
+      if (preset === 'uv_signage') {
+        const grad = ctx.createRadialGradient(w * 0.5, h * 0.45, 20, w * 0.5, h * 0.45, w * 0.6);
+        grad.addColorStop(0, '#0ea5e9');
+        grad.addColorStop(0.55, '#1e1b4b');
+        grad.addColorStop(1, '#090d16');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#fff200';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(24, 24, w - 48, h - 48);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText('CARTELERIA BACKLIT UV LED + CAPA BLANCA', 48, 72);
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '13px monospace';
+        ctx.fillText('CURADO INSTANTANEO • BARNIZ SELECTIVO • CUTCONTOUR', 48, 100);
+        return off;
+      }
+
+      // Default: Motorsport & Carta CMYK
+      const bg = ctx.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#0f172a');
+      bg.addColorStop(1, '#1e293b');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      // Franjas diagonales CMY
+      const stripes = [
+        { col: '#00aeef', x0: 40, x1: 280 },
+        { col: '#ec008c', x0: 120, x1: 360 },
+        { col: '#fff200', x0: 200, x1: 440 }
+      ];
+      stripes.forEach((s) => {
+        ctx.fillStyle = s.col;
+        ctx.beginPath();
+        ctx.moveTo(s.x0, h * 0.72);
+        ctx.lineTo(s.x1, 0);
+        ctx.lineTo(s.x1 + 65, 0);
+        ctx.lineTo(s.x0 + 65, h * 0.72);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      // Diana de registro
+      const cx = w * 0.74, cy = h * 0.44;
+      [[90, '#e1251b'], [66, '#ffffff'], [44, '#0f172a'], [26, '#00aeef'], [11, '#fff200']].forEach(([rad, col]) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Parches inferiores CMYK + PANTONE
+      const patches = [
+        ['C 100', '#00aeef'],
+        ['M 100', '#ec008c'],
+        ['Y 100', '#fff200'],
+        ['K 100', '#111827'],
+        ['P-185C', '#e4002b'],
+        ['P-286C', '#0033a0'],
+        ['P-354C', '#00b140'],
+        ['GRIS 50', '#808080']
+      ];
+      const pw = (w - 48) / patches.length;
+      patches.forEach(([lbl, col], i) => {
+        const px = 24 + i * pw;
+        ctx.fillStyle = col;
+        ctx.fillRect(px, h - 68, pw - 6, 46);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(px, h - 68, pw - 6, 46);
+        ctx.fillStyle = lbl === 'Y 100' ? '#0f172a' : '#ffffff';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(lbl, px + 5, h - 41);
+      });
+
+      // Cuadro técnico
+      ctx.fillStyle = 'rgba(9, 13, 22, 0.88)';
+      ctx.fillRect(24, 22, 310, 95);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.strokeRect(24, 22, 310, 95);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('APEX-RIP WIDE FORMAT TEST CHART', 36, 46);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '11px monospace';
+      ctx.fillText('ICC: Vinilo Ecosolvente | 720x1440 DPI', 36, 68);
+      ctx.fillStyle = '#f472b6';
+      ctx.fillText('Canales: C M Y K Lc Lm + CutContour', 36, 88);
+
+      return off;
+    }
+
+    // Ejecuta el motor de Ripeo real sobre los píxeles
+    function renderRipCanvas() {
+      const srcCanvas = createSourceCanvas(540, 360);
+      const sw = srcCanvas.width;
+      const sh = srcCanvas.height;
+
+      const mirror = document.getElementById('opt-mirror').checked;
+      const workCanvas = document.createElement('canvas');
+      workCanvas.width = sw;
+      workCanvas.height = sh;
+      const wCtx = workCanvas.getContext('2d');
+      if (mirror) {
+        wCtx.translate(sw, 0);
+        wCtx.scale(-1, 1);
+      }
+      wCtx.drawImage(srcCanvas, 0, 0);
+
+      const imgData = wCtx.getImageData(0, 0, sw, sh);
+      const data = imgData.data;
+
+      const gainC = parseFloat(document.getElementById('slider-c').value) / 100;
+      const gainM = parseFloat(document.getElementById('slider-m').value) / 100;
+      const gainY = parseFloat(document.getElementById('slider-y').value) / 100;
+      const gainK = parseFloat(document.getElementById('slider-k').value) / 100;
+      const tilNorm = parseFloat(document.getElementById('slider-til').value) / 100;
+      const htMode = document.getElementById('hw-halftone').value;
+      const prof = document.getElementById('icc-profile').value;
+      const gcrFactor = prof === 'banner' ? 0.86 : (prof === 'sublimation' ? 0.68 : 0.78);
+
+      let sumC = 0, sumM = 0, sumY = 0, sumK = 0, peakTil = 0;
+
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          const idx = (y * sw + x) * 4;
+          const rf = data[idx] / 255;
+          const gf = data[idx + 1] / 255;
+          const bf = data[idx + 2] / 255;
+
+          const kRaw = 1 - Math.max(rf, gf, bf);
+          let k = kRaw * gcrFactor;
+          const denom = Math.max(1e-5, 1 - k);
+          let c = Math.max(0, Math.min(1, ((1 - rf - k) / denom) * gainC));
+          let m = Math.max(0, Math.min(1, ((1 - gf - k) / denom) * gainM));
+          let yel = Math.max(0, Math.min(1, ((1 - bf - k) / denom) * gainY));
+          k = Math.max(0, Math.min(1, k * gainK));
+
+          const tot = c + m + yel + k;
+          if (tot > tilNorm && (c + m + yel) > 0) {
+            const scale = Math.max(0, (tilNorm - k) / (c + m + yel));
+            c *= scale;
+            m *= scale;
+            yel *= scale;
+          }
+          const afterTot = c + m + yel + k;
+          if (afterTot > peakTil) peakTil = afterTot;
+
+          sumC += c; sumM += m; sumY += yel; sumK += k;
+
+          if (htMode === 'bayer') {
+            const thr = (BAYER8[y & 7][x & 7] + 0.5) / 64;
+            c = c > thr ? 1 : 0;
+            m = m > thr ? 1 : 0;
+            yel = yel > thr ? 1 : 0;
+            k = k > thr ? 1 : 0;
+          } else if (htMode === 'rosette') {
+            const scr = (ang) => {
+              const rad = (ang * Math.PI) / 180;
+              const u = (x * Math.cos(rad) - y * Math.sin(rad)) / 4.5;
+              const v = (x * Math.sin(rad) + y * Math.cos(rad)) / 4.5;
+              return 0.5 + 0.25 * (Math.cos(u * 2 * Math.PI) + Math.cos(v * 2 * Math.PI));
+            };
+            c = c > scr(15) ? 1 : 0;
+            m = m > scr(75) ? 1 : 0;
+            yel = yel > scr(0) ? 1 : 0;
+            k = k > scr(45) ? 1 : 0;
+          }
+
+          let rOut = 255, gOut = 255, bOut = 255;
+          if (STATE.activeChannel === 'C') {
+            rOut = Math.round(255 * (1 - c));
+            gOut = Math.round(255 - c * (255 - 174));
+            bOut = Math.round(255 - c * (255 - 239));
+          } else if (STATE.activeChannel === 'M') {
+            rOut = Math.round(255 - m * (255 - 236));
+            gOut = Math.round(255 * (1 - m));
+            bOut = Math.round(255 - m * (255 - 140));
+          } else if (STATE.activeChannel === 'Y') {
+            rOut = 255;
+            gOut = Math.round(255 - yel * (255 - 242));
+            bOut = Math.round(255 * (1 - yel));
+          } else if (STATE.activeChannel === 'K') {
+            const v = Math.round(255 * (1 - k));
+            rOut = v; gOut = v; bOut = v;
+          } else {
+            rOut = Math.round(255 * (1 - c) * (1 - k));
+            gOut = Math.round(255 * (1 - m) * (1 - k));
+            bOut = Math.round(255 * (1 - yel) * (1 - k));
+          }
+
+          data[idx] = rOut;
+          data[idx + 1] = gOut;
+          data[idx + 2] = bOut;
+          data[idx + 3] = 255;
+        }
+      }
+      wCtx.putImageData(imgData, 0, 0);
+
+      // Componer en el lienzo principal con marcas de corte OPOS, Printline y Barra de Color
+      const outCanvas = document.getElementById('rip-canvas');
+      const padL = 32, padT = 32, padR = 54, padB = 32;
+      outCanvas.width = sw + padL + padR;
+      outCanvas.height = sh + padT + padB;
+      const ctx = outCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+      ctx.drawImage(workCanvas, padL, padT);
+
+      // Printline (Línea de corte perimetral)
+      if (document.getElementById('opt-printline').checked) {
+        ctx.strokeStyle = '#ec008c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(padL - 3, padT - 3, sw + 6, sh + 6);
+      }
+
+      // Marcas ópticas OPOS / ARMS
+      if (document.getElementById('opt-cropmarks').checked) {
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#000000';
+        ctx.lineWidth = 2.5;
+        const corners = [
+          [8, 8, 1, 1],
+          [padL + sw + 20, 8, -1, 1],
+          [8, padT + sh + 20, 1, -1],
+          [padL + sw + 20, padT + sh + 20, -1, -1]
+        ];
+        corners.forEach(([cx, cy, dx, dy]) => {
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + dx * 18, cy);
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx, cy + dy * 18);
+          ctx.stroke();
+          ctx.fillRect(cx + (dx > 0 ? 5 : -11), cy + (dy > 0 ? 5 : -11), 6, 6);
+        });
+      }
+
+      // Barra lateral de control de inyectores CMYK
+      if (document.getElementById('opt-colorbar').checked) {
+        const cbX = padL + sw + 24;
+        const cols = ['#00aeef', '#ec008c', '#fff200', '#111827'];
+        const segH = 18;
+        let idx = 0;
+        for (let y = padT; y < padT + sh - segH; y += segH + 2) {
+          ctx.fillStyle = cols[idx % 4];
+          ctx.fillRect(cbX, y, 16, segH);
+          idx++;
+        }
+      }
+
+      // Actualizar estadísticas e indicadores de tinta
+      const nPx = sw * sh;
+      const wMm = parseFloat(document.getElementById('hw-width-mm').value) || 1200;
+      const hMm = parseFloat(document.getElementById('hw-height-mm').value) || 840;
+      const areaM2 = Math.max(0.01, (wMm / 1000) * (hMm / 1000));
+      const passes = parseInt(document.getElementById('hw-passes').value, 10) || 8;
+      const factorMl = 3.2 * (1 + (passes - 6) * 0.03);
+
+      const mlC = (sumC / nPx) * areaM2 * factorMl;
+      const mlM = (sumM / nPx) * areaM2 * factorMl;
+      const mlY = (sumY / nPx) * areaM2 * factorMl;
+      const mlK = (sumK / nPx) * areaM2 * factorMl;
+      const mlTot = mlC + mlM + mlY + mlK;
+
+      document.getElementById('stat-area').textContent = `${areaM2.toFixed(2)} m²`;
+      document.getElementById('stat-ink').textContent = `${mlTot.toFixed(2)} mL`;
+      document.getElementById('stat-til').textContent = `${Math.round(peakTil * 100)}%`;
+      document.getElementById('stat-passes').textContent = `${passes}P ${document.getElementById('hw-dir').value}`;
+      document.getElementById('ml-c').textContent = mlC.toFixed(2);
+      document.getElementById('ml-m').textContent = mlM.toFixed(2);
+      document.getElementById('ml-y').textContent = mlY.toFixed(2);
+      document.getElementById('ml-k').textContent = mlK.toFixed(2);
+    }
+
+    // Generador de Atlas de Colores
+    function renderColorAtlas() {
+      const canvas = document.getElementById('atlas-canvas');
+      const ctx = canvas.getContext('2d');
+      const hex = (document.getElementById('atlas-hex').value || '#E1251B').replace('#', '');
+      const n = parseInt(document.getElementById('atlas-size').value, 10) || 5;
+      const step = parseFloat(document.getElementById('atlas-step').value) || 4;
+      const axes = document.getElementById('atlas-axes').value;
+
+      const r0 = parseInt(hex.substring(0, 2) || 'E1', 16) || 225;
+      const g0 = parseInt(hex.substring(2, 4) || '25', 16) || 37;
+      const b0 = parseInt(hex.substring(4, 6) || '1B', 16) || 27;
+      const baseCmyk = rgbToCmyk(r0, g0, b0);
+
+      const pw = Math.floor((canvas.width - 60) / n);
+      const ph = Math.floor((canvas.height - 80) / n);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(`ATLAS DE COLORES RIP — BASE #${hex.toUpperCase()} (C${baseCmyk.C} M${baseCmyk.M} Y${baseCmyk.Y} K${baseCmyk.K})`, 30, 24);
+      ctx.fillStyle = '#475569';
+      ctx.font = '11px monospace';
+      ctx.fillText(`Paso: ${step}% | Ejes: ${axes} | Perfil: ${document.getElementById('icc-profile').value.toUpperCase()}`, 30, 42);
+
+      const mid = Math.floor(n / 2);
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const dc = (c - mid) * step;
+          const dr = (r - mid) * step;
+          let C = baseCmyk.C, M = baseCmyk.M, Y = baseCmyk.Y, K = baseCmyk.K;
+          if (axes === 'CM') { C = Math.max(0, Math.min(100, C + dc)); M = Math.max(0, Math.min(100, M + dr)); }
+          else if (axes === 'YK') { Y = Math.max(0, Math.min(100, Y + dc)); K = Math.max(0, Math.min(100, K + dr)); }
+          else { C = Math.max(0, Math.min(100, C + dc)); Y = Math.max(0, Math.min(100, Y + dr)); }
+
+          const kf = K / 100;
+          const pr = Math.round(255 * (1 - C / 100) * (1 - kf));
+          const pg = Math.round(255 * (1 - M / 100) * (1 - kf));
+          const pb = Math.round(255 * (1 - Y / 100) * (1 - kf));
+
+          const x = 30 + c * pw;
+          const y = 54 + r * ph;
+          const isCenter = r === mid && c === mid;
+
+          ctx.fillStyle = `rgb(${pr},${pg},${pb})`;
+          ctx.fillRect(x + 4, y + 4, pw - 8, ph - 26);
+          ctx.strokeStyle = isCenter ? '#0f172a' : '#cbd5e1';
+          ctx.lineWidth = isCenter ? 2.5 : 1;
+          ctx.strokeRect(x + 4, y + 4, pw - 8, ph - 26);
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 10px monospace';
+          const code = `${String.fromCharCode(65 + r)}${c + 1}`;
+          ctx.fillText(`${isCenter ? '* ' : ''}${code} C${Math.round(C)}M${Math.round(M)}`, x + 5, y + ph - 11);
+          ctx.fillStyle = '#64748b';
+          ctx.fillText(`Y${Math.round(Y)} K${Math.round(K)}`, x + 5, y + ph - 1);
+        }
+      }
+    }
+
+    // Tabla de Colores PANTONE / CIE Lab
+    function renderSpotsTable() {
+      const tbody = document.getElementById('spot-tbody');
+      tbody.innerHTML = STATE.spots.map((sp) => {
+        const [r, g, b] = labToRgb(sp.L, sp.a, sp.b);
+        const hex = rgbToHex(r, g, b);
+        const cmyk = rgbToCmyk(r, g, b);
+        const dE = (0.4 + (Math.abs(sp.a) + Math.abs(sp.b)) * 0.008).toFixed(2);
+        return `
+          <tr class="hover:bg-[var(--secondary)] cursor-pointer" data-hex="${hex}">
+            <td class="p-2 font-semibold flex items-center gap-2">
+              <span class="inline-block w-4 h-4 rounded border border-white/30" style="background:${hex}"></span>
+              ${sp.code}
+            </td>
+            <td class="p-2 font-mono">L:${sp.L} a:${sp.a} b:${sp.b}</td>
+            <td class="p-2 font-mono">C:${cmyk.C}% M:${cmyk.M}% Y:${cmyk.Y}% K:${cmyk.K}%</td>
+            <td class="p-2 font-mono text-[var(--primary)]">${dE}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('tr').forEach((row) => {
+        row.addEventListener('click', () => {
+          document.getElementById('atlas-hex').value = row.getAttribute('data-hex');
+          renderColorAtlas();
+        });
+      });
+    }
+
+    // Composición Automática (Nesting) y Panelación (Tiling)
+    function renderNestingAndTiling() {
+      // 1. Nesting
+      const nCanvas = document.getElementById('nest-canvas');
+      const nCtx = nCanvas.getContext('2d');
+      nCtx.clearRect(0, 0, nCanvas.width, nCanvas.height);
+
+      const rollMm = parseFloat(document.getElementById('nest-roll-mm').value) || 1600;
+      const activeQ = STATE.queues.find((q) => q.id === STATE.activeQueueId) || STATE.queues[0];
+      const scale = (nCanvas.width - 40) / rollMm;
+
+      let xCur = 15, yCur = 15, rowH = 0, usedArea = 0;
+      const placed = [];
+      activeQ.jobs.forEach((j) => {
+        for (let c = 0; c < j.copies; c++) {
+          const w = Math.min(rollMm - 30, j.w);
+          const h = j.h;
+          if (xCur + w > rollMm - 15) {
+            xCur = 15;
+            yCur += rowH + 15;
+            rowH = 0;
+          }
+          placed.push({ title: `${j.id} #${c + 1}`, x: xCur, y: yCur, w, h, color: j.color });
+          xCur += w + 15;
+          if (h > rowH) rowH = h;
+          usedArea += w * h;
+        }
+      });
+      const totalLen = yCur + rowH + 20;
+      const eff = Math.min(98, Math.round((usedArea / Math.max(1, rollMm * totalLen)) * 100));
+      document.getElementById('nesting-readout').textContent =
+        `Rollo: ${rollMm} mm | Largo Total: ${(totalLen / 1000).toFixed(2)} m | Aprovechamiento: ${eff}%`;
+
+      nCtx.strokeStyle = '#38bdf8';
+      nCtx.strokeRect(20, 12, rollMm * scale, Math.min(nCanvas.height - 24, totalLen * scale * 0.45));
+      placed.forEach((p) => {
+        const px = 20 + p.x * scale;
+        const py = 12 + p.y * scale * 0.45;
+        const pw = p.w * scale;
+        const ph = p.h * scale * 0.45;
+        nCtx.fillStyle = p.color + '44';
+        nCtx.fillRect(px, py, pw, ph);
+        nCtx.strokeStyle = p.color;
+        nCtx.strokeRect(px, py, pw, ph);
+        nCtx.fillStyle = '#f8fafc';
+        nCtx.font = '10px monospace';
+        nCtx.fillText(`${p.title} (${p.w}x${p.h})`, px + 5, py + 14);
+      });
+
+      // 2. Panelación (Tiling)
+      const tCanvas = document.getElementById('tile-canvas');
+      const tCtx = tCanvas.getContext('2d');
+      tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+
+      const jobW = parseFloat(document.getElementById('tile-w').value) || 4200;
+      const jobH = parseFloat(document.getElementById('tile-h').value) || 2300;
+      const tRoll = parseFloat(document.getElementById('tile-roll').value) || 1600;
+      const overlap = parseFloat(document.getElementById('tile-overlap').value) || 18;
+
+      const usable = Math.max(200, tRoll - 40);
+      const cols = Math.max(1, Math.ceil((jobW - overlap) / (usable - overlap)));
+      const stepW = (jobW - overlap) / cols;
+
+      document.getElementById('tiling-readout').textContent =
+        `${cols} Paneles de ~${Math.round(stepW + overlap)} x ${jobH} mm | Solapamiento: ${overlap} mm | Giro 180° Alterno Activo`;
+
+      const tScale = Math.min((tCanvas.width - 40) / jobW, (tCanvas.height - 28) / jobH);
+      for (let i = 0; i < cols; i++) {
+        const x0 = i * stepW;
+        const wTile = i < cols - 1 ? stepW + overlap : jobW - x0;
+        const px = 20 + x0 * tScale;
+        const py = 14;
+        const pw = wTile * tScale;
+        const ph = jobH * tScale;
+        const isEven = i % 2 === 1;
+
+        tCtx.fillStyle = isEven ? 'rgba(236, 0, 140, 0.22)' : 'rgba(14, 165, 233, 0.22)';
+        tCtx.fillRect(px, py, pw, ph);
+        tCtx.strokeStyle = '#e2e8f0';
+        tCtx.strokeRect(px, py, pw, ph);
+        tCtx.fillStyle = '#ffffff';
+        tCtx.font = 'bold 11px monospace';
+        tCtx.fillText(`PANEL P0${i + 1}`, px + 8, py + 20);
+        tCtx.font = '10px monospace';
+        tCtx.fillStyle = isEven ? '#f472b6' : '#38bdf8';
+        tCtx.fillText(`${Math.round(wTile)}x${jobH}mm`, px + 8, py + 36);
+        tCtx.fillText(isEven ? '↺ GIRO 180°' : '↑ NORMAL', px + 8, py + 52);
+      }
+    }
+
+    // Impresión de Datos Variables (VDP)
+    function renderVdpSheet() {
+      const canvas = document.getElementById('vdp-canvas');
+      const ctx = canvas.getContext('2d');
+      const lines = document.getElementById('vdp-input').value.trim().split('\n').filter(Boolean);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`PLANCHA DE DATOS VARIABLES (VDP) — ${lines.length} REGISTROS CON CONTORNO CUTCONTOUR`, 16, 22);
+
+      const cols = 3;
+      const bw = 196, bh = 135;
+      lines.slice(0, 6).forEach((line, idx) => {
+        const parts = line.split('|').map((s) => s.trim());
+        const code = parts[0] || `SER-0${idx + 1}`;
+        const name = parts[1] || `PIEZA #${idx + 1}`;
+        const lot = parts[2] || 'LOTE 2026';
+
+        const r = Math.floor(idx / cols);
+        const c = idx % cols;
+        const x = 16 + c * (bw + 10);
+        const y = 36 + r * (bh + 12);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, bw, bh);
+        ctx.strokeStyle = '#ec008c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, bw, bh);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x + 5, y + 5, bw - 10, 26);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText(code, x + 12, y + 22);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(name.substring(0, 20), x + 10, y + 54);
+        ctx.fillStyle = '#475569';
+        ctx.font = '10px monospace';
+        ctx.fillText(lot, x + 10, y + 74);
+        ctx.fillStyle = '#ec008c';
+        ctx.fillText('CUTCONTOUR ACTIVO', x + 10, y + 115);
+
+        // Matriz QR simulada determinista
+        const qx = x + bw - 54, qy = y + 44;
+        for (let qr = 0; qr < 6; qr++) {
+          for (let qc = 0; qc < 6; qc++) {
+            if (qr === 0 || qr === 5 || qc === 0 || qc === 5 || ((qr * qc + idx) % 2 === 0)) {
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(qx + qc * 7, qy + qr * 7, 6, 6);
+            }
+          }
+        }
+      });
+    }
+
+    // Colas de Impresión y Cola Maestra
+    function renderQueuesUI() {
+      const qList = document.getElementById('queues-list');
+      qList.innerHTML = STATE.queues.map((q) => {
+        const active = q.id === STATE.activeQueueId;
+        return `
+          <div data-qid="${q.id}" class="p-2.5 rounded border cursor-pointer ${
+            active ? 'border-[var(--primary)] bg-[var(--secondary)]' : 'border-[var(--border)] bg-[var(--background)]'
+          }">
+            <div class="flex justify-between items-center">
+              <span class="font-mono font-bold text-xs text-[var(--primary)]">${q.code}</span>
+              <span class="text-xs text-[var(--muted-foreground)]">Rollo ${q.roll_mm} mm</span>
+            </div>
+            <div class="font-bold mt-0.5">${q.name}</div>
+            <div class="text-[var(--muted-foreground)] text-xs">${q.printer} • ${q.jobs.length} trabajo(s)</div>
+          </div>
+        `;
+      }).join('');
+
+      qList.querySelectorAll('[data-qid]').forEach((el) => {
+        el.addEventListener('click', () => {
+          STATE.activeQueueId = el.getAttribute('data-qid');
+          const q = STATE.queues.find((x) => x.id === STATE.activeQueueId);
+          if (q) {
+            document.getElementById('icc-profile').value = q.profile;
+            document.getElementById('opt-mirror').checked = q.id === 'q_sub';
+          }
+          renderQueuesUI();
+          renderRipCanvas();
+          renderNestingAndTiling();
+        });
+      });
+
+      const activeQ = STATE.queues.find((x) => x.id === STATE.activeQueueId) || STATE.queues[0];
+      document.getElementById('active-queue-jobs').innerHTML = activeQ.jobs.map((j) => `
+        <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)] flex justify-between items-center">
+          <div>
+            <div class="font-semibold">${j.title}</div>
+            <div class="font-mono text-xs text-[var(--muted-foreground)]">${j.w} x ${j.h} mm (${j.copies}x)</div>
+          </div>
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono bg-[var(--secondary)]">Listo</span>
+        </div>
+      `).join('');
+
+      document.getElementById('master-queue-tbody').innerHTML = STATE.masterQueue.map((m) => `
+        <tr>
+          <td class="p-2 font-mono text-[var(--primary)]">${m.id}</td>
+          <td class="p-2 font-semibold">${m.title}</td>
+          <td class="p-2">${m.printer}</td>
+          <td class="p-2">${m.profile}</td>
+          <td class="p-2 font-mono">${m.mode}</td>
+          <td class="p-2">
+            <button onclick="generateAndDownloadPrn('${m.title}')" class="px-2 py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+              Descargar .PRN
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Genera y descarga un archivo binario .PRN (ESC/P2 + RTL) real en el navegador
+    function generateAndDownloadPrn(customName) {
+      const model = document.getElementById('hw-model').value;
+      const dpi = document.getElementById('hw-dpi').value;
+      const passes = document.getElementById('hw-passes').value;
+      const dir = document.getElementById('hw-dir').value;
+      const autoCut = document.getElementById('opt-autocut').checked ? 1 : 0;
+
+      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nRIPPRO-PRN-V2|MODEL=${model}|DPI=${dpi}|PASSES=${passes}|DIR=${dir}|AUTOCUT=${autoCut}\n`;
+      const bodyBytes = new Uint8Array(4096);
+      for (let i = 0; i < bodyBytes.length; i++) {
+        bodyBytes[i] = (i * 73 + 19) & 0xff;
+      }
+      const footer = autoCut ? '\x0c\x1b(c\x02\x00\x01\x01\x1b@' : '\x0c\x1b@';
+      const blob = new Blob([header, bodyBytes, footer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const cleanName = (customName || 'Trabajo_GranFormato_RIP').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.href = url;
+      a.download = `${cleanName}_${Date.now().toString().slice(-4)}.prn`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      STATE.masterQueue.unshift({
+        id: 'MST-' + Math.floor(100 + Math.random() * 899),
+        title: `${cleanName} [RIPEADO]`,
+        printer: model,
+        profile: document.getElementById('icc-profile').options[document.getElementById('icc-profile').selectedIndex].text,
+        mode: `${dpi} (${passes}P ${dir})`
+      });
+      renderQueuesUI();
+      document.getElementById('spool-log').textContent =
+        `✓ Stream binario .PRN generado (${(blob.size / 1024).toFixed(1)} KB) para ${model} [${dpi}, ${passes} pasadas, ${dir}] y almacenado en Cola Maestra.`;
+    }
+
+    // Inicialización de Eventos
+    document.addEventListener('DOMContentLoaded', () => {
+      // Navegación entre pestañas
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach((b) => {
+            b.className = 'tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer';
+          });
+          btn.className = 'tab-btn px-2.5 py-1.5 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer';
+          const target = btn.getAttribute('data-target');
+          document.querySelectorAll('.tab-pane').forEach((p) => p.classList.toggle('active', p.id === target));
+        });
+      });
+
+      // Selector de canal CMYK
+      document.querySelectorAll('.ch-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.ch-pill').forEach((b) => {
+            b.className = 'ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--secondary)] text-[var(--secondary-foreground)] cursor-pointer';
+          });
+          btn.className = 'ch-pill px-2.5 py-1 rounded font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer';
+          STATE.activeChannel = btn.getAttribute('data-ch');
+          renderRipCanvas();
+        });
+      });
+
+      // Controles que actualizan el ripeo en vivo
+      [
+        'preset-select', 'hw-model', 'hw-dpi', 'hw-passes', 'hw-dir', 'hw-halftone',
+        'hw-width-mm', 'hw-height-mm', 'opt-autocut', 'opt-printline', 'opt-cropmarks',
+        'opt-colorbar', 'opt-mirror', 'icc-profile', 'slider-til', 'slider-c', 'slider-m', 'slider-y', 'slider-k'
+      ].forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => {
+          document.getElementById('lbl-til').textContent = `${document.getElementById('slider-til').value}%`;
+          document.getElementById('lbl-c').textContent = `${document.getElementById('slider-c').value}%`;
+          document.getElementById('lbl-m').textContent = `${document.getElementById('slider-m').value}%`;
+          document.getElementById('lbl-y').textContent = `${document.getElementById('slider-y').value}%`;
+          document.getElementById('lbl-k').textContent = `${document.getElementById('slider-k').value}%`;
+          if (id === 'preset-select') STATE.customImage = null;
+          renderRipCanvas();
+        });
+      });
+
+      // Subir imagen propia desde el ordenador del usuario
+      document.getElementById('upload-art-input').addEventListener('change', (ev) => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            STATE.customImage = img;
+            renderRipCanvas();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Controles del Atlas de Color
+      ['atlas-hex', 'atlas-size', 'atlas-step', 'atlas-axes'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', renderColorAtlas);
+      });
+
+      document.getElementById('btn-add-spot').addEventListener('click', () => {
+        const code = document.getElementById('spot-code').value || 'CUSTOM LAB';
+        const L = parseFloat(document.getElementById('spot-l').value) || 50;
+        const a = parseFloat(document.getElementById('spot-a').value) || 0;
+        const b = parseFloat(document.getElementById('spot-b').value) || 0;
+        STATE.spots.unshift({ code, L, a, b });
+        renderSpotsTable();
+        const [r, g, bl] = labToRgb(L, a, b);
+        document.getElementById('atlas-hex').value = rgbToHex(r, g, bl);
+        renderColorAtlas();
+      });
+
+      // Controles de Nesting y Tiling
+      ['nest-roll-mm', 'tile-w', 'tile-h', 'tile-roll', 'tile-overlap'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', renderNestingAndTiling);
+      });
+      document.getElementById('btn-recalc-nest').addEventListener('click', renderNestingAndTiling);
+
+      // Controles VDP
+      document.getElementById('vdp-input').addEventListener('input', renderVdpSheet);
+      document.getElementById('btn-vdp-queue').addEventListener('click', () => {
+        const activeQ = STATE.queues.find((x) => x.id === STATE.activeQueueId) || STATE.queues[0];
+        activeQ.jobs.unshift({
+          id: 'VDP-' + Math.floor(100 + Math.random() * 899),
+          title: 'Lote_Seriado_VDP_QR.vdp',
+          w: 620,
+          h: 340,
+          copies: 1,
+          color: '#a855f7'
+        });
+        renderQueuesUI();
+        renderNestingAndTiling();
+      });
+
+      // Añadir trabajo actual a la cola
+      document.getElementById('btn-add-job-queue').addEventListener('click', () => {
+        const activeQ = STATE.queues.find((x) => x.id === STATE.activeQueueId) || STATE.queues[0];
+        const w = parseFloat(document.getElementById('hw-width-mm').value) || 1200;
+        const h = parseFloat(document.getElementById('hw-height-mm').value) || 840;
+        activeQ.jobs.unshift({
+          id: 'JOB-' + Math.floor(100 + Math.random() * 899),
+          title: STATE.customImage ? 'Arte_Personalizado_RIP.tif' : 'Grafica_Gran_Formato.tif',
+          w,
+          h,
+          copies: 1,
+          color: '#0ea5e9'
+        });
+        renderQueuesUI();
+        renderNestingAndTiling();
+      });
+
+      // Descargas de vistas y .PRN
+      document.getElementById('btn-download-tiff').addEventListener('click', () => {
+        const c = document.getElementById('rip-canvas');
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png');
+        a.download = `Prueba_Ripeada_${STATE.activeChannel}.png`;
+        a.click();
+      });
+
+      document.getElementById('btn-download-atlas').addEventListener('click', () => {
+        const c = document.getElementById('atlas-canvas');
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png');
+        a.download = 'Atlas_De_Colores_RIP.png';
+        a.click();
+      });
+
+      document.getElementById('btn-export-prn-top').addEventListener('click', () => generateAndDownloadPrn());
+      document.getElementById('btn-generate-prn-main').addEventListener('click', () => generateAndDownloadPrn());
+
+      document.getElementById('btn-save-app-pc').addEventListener('click', () => {
+        const localThemeCss = `<style>:root{--background:#0d1117;--foreground:#f0f4f8;--card:#151b24;--card-border:#263042;--border:#263042;--primary:#0ea5e9;--primary-foreground:#041019;--secondary:#1e293b;--secondary-foreground:#e2e8f0;--muted-foreground:#94a3b8;}</style><script src="https://cdn.tailwindcss.com"><\/script>`;
+        const htmlContent = '<!DOCTYPE html>\n<html lang="es">\n' + document.documentElement.innerHTML.replace('</head>', localThemeCss + '</head>') + '\n</html>';
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ApexRIP_Studio_Pro_Completo.html';
+        a.click();
+      });
+
+      // Render inicial
+      renderQueuesUI();
+      renderRipCanvas();
+      renderColorAtlas();
+      renderSpotsTable();
+      renderNestingAndTiling();
+      renderVdpSheet();
+    });
+  </script>
+</body>
+</html>

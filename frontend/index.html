@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexRIP Studio Pro — Software RIP de Gran Formato (Ecosolvente, Sublimación, UV)</title>
+  <meta name="description" content="Software profesional RIP para plotters de gran formato: gestión de color ICC, Atlas de Colores, CIE Lab y PANTONE, colas múltiples, datos variables, panelación y control directo de hardware." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Cabecera Principal de Estación RIP -->
+  <header class="top-header">
+    <div class="brand-group">
+      <div class="cmyk-mark" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="brand-title">
+        <h1>ApexRIP Studio Pro v2.4</h1>
+        <p>Motor RIP de Gran Formato • Ecosolvente / Sublimación / UV LED</p>
+      </div>
+    </div>
+
+    <nav class="main-nav" aria-label="Módulos del sistema RIP">
+      <button id="tab-btn-rip" class="nav-tab active" data-tab="view-rip">
+        1. Estación de Ripeo &amp; Canales
+      </button>
+      <button id="tab-btn-atlas" class="nav-tab" data-tab="view-atlas">
+        2. Atlas de Color &amp; PANTONE / Lab
+      </button>
+      <button id="tab-btn-layout" class="nav-tab" data-tab="view-layout">
+        3. Composición (Nesting) &amp; Panelación
+      </button>
+      <button id="tab-btn-vdp" class="nav-tab" data-tab="view-vdp">
+        4. Datos Variables (VDP)
+      </button>
+      <button id="tab-btn-queues" class="nav-tab" data-tab="view-queues">
+        5. Cola Maestra &amp; Spooler
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <span id="engine-status-pill" class="status-pill">● MOTOR PYTHON ICC ACTIVO</span>
+      <label for="file-upload-input" class="btn" style="cursor:pointer;">
+        Cargar Arte (PNG/TIFF/JPG)
+      </label>
+      <input id="file-upload-input" type="file" accept="image/*" style="display:none;" />
+    </div>
+  </header>
+
+  <!-- Cuerpo Principal de 3 Columnas -->
+  <main class="workspace">
+    <!-- Barra Izquierda: Colas de Impresión Múltiples y Trabajos Activos -->
+    <aside class="sidebar-left">
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Colas de Trabajo Activas</span>
+        </div>
+        <div id="queues-container" class="queue-list"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Trabajos en Cola Seleccionada</span>
+        </div>
+        <div id="queue-jobs-container"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Artes de Prueba Preinstalados</span>
+        </div>
+        <div class="form-row">
+          <label for="preset-artwork-select">Seleccionar Gráfico de Prueba</label>
+          <select id="preset-artwork-select">
+            <option value="motorsport_wrap">Gráfica Vehicular &amp; Carta Control CMYK</option>
+            <option value="sublimation_jersey">Textil Sublimación Full Print (HDK)</option>
+          </select>
+        </div>
+        <button id="btn-run-rip-left" class="btn btn-primary btn-block">
+          Procesar / Ripear Trabajo Ahora
+        </button>
+      </div>
+    </aside>
+
+    <!-- Escenario Central Dinámico según Pestaña -->
+    <section class="center-stage">
+      <!-- VISTA 1: ESTACIÓN DE RIPEO Y SEPARACIÓN DE CANALES -->
+      <div id="view-rip" class="tab-view active">
+        <div class="stage-toolbar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <strong>Inspección de Separación de Canales:</strong>
+            <div class="channel-pills">
+              <button class="ch-btn active" data-ch="composite">Compuesto CMYK + Marcas</button>
+              <button class="ch-btn" data-ch="C">Cian (C)</button>
+              <button class="ch-btn" data-ch="M">Magenta (M)</button>
+              <button class="ch-btn" data-ch="Y">Amarillo (Y)</button>
+              <button class="ch-btn" data-ch="K">Negro (K)</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="btn-rip-main" class="btn btn-primary">Actualizar Ripeo</button>
+            <button id="btn-send-printer-top" class="btn btn-success">Enviar a Plotter / Generar .PRN</button>
+          </div>
+        </div>
+
+        <div class="preview-viewport">
+          <img id="rip-preview-img" src="" alt="Previsualización de imagen ripeada con marcas de corte y barra de color" />
+        </div>
+
+        <div class="metrics-strip">
+          <div class="metric-box">
+            <div class="metric-label">Área de Impresión</div>
+            <div id="metric-area" class="metric-value">1.008 m²</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Consumo Tinta Total</div>
+            <div id="metric-ink-total" class="metric-value" style="color:var(--accent-hover);">5.12 mL</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Límite Tinta Pico (TIL)</div>
+            <div id="metric-peak-til" class="metric-value">248.0%</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Modo Cabezal / Pasadas</div>
+            <div id="metric-head-mode" class="metric-value" style="font-size:13px;">8 Pasadas Bidir</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Tiempo de Ripeo</div>
+            <div id="metric-rip-ms" class="metric-value" style="color:#34d399;">42 ms</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA 2: GENERADOR DE ATLAS DE COLORES E IMPORTADOR CIE LAB / PANTONE -->
+      <div id="view-atlas" class="tab-view">
+        <div class="two-col-layout">
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Generador de Atlas de Colores (Muestrario en Sustrato)</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:12px; margin-bottom:12px;">
+              Imprime una matriz de variaciones alrededor de un color objetivo directamente en tu vinilo, lona o papel de sublimación para elegir el tono exacto con precisión visual.
+            </p>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="atlas-base-hex">Color Objetivo (Hex)</label>
+                <input id="atlas-base-hex" type="text" value="#E1251B" />
+              </div>
+              <div class="form-row">
+                <label for="atlas-grid-size">Tamaño de Matriz</label>
+                <select id="atlas-grid-size">
+                  <option value="5">5 x 5 (25 Muestras)</option>
+                  <option value="7">7 x 7 (49 Muestras)</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="atlas-step-pct">Paso de Variación (%)</label>
+                <input id="atlas-step-pct" type="number" min="1" max="15" step="0.5" value="4.0" />
+              </div>
+              <div class="form-row">
+                <label for="atlas-variation-mode">Ejes de Variación</label>
+                <select id="atlas-variation-mode">
+                  <option value="C_vs_M">Cian vs. Magenta (C / M)</option>
+                  <option value="Y_vs_K">Amarillo vs. Negro (Y / K)</option>
+                  <option value="C_M_vs_Y">Cian vs. Amarillo (C / Y)</option>
+                </select>
+              </div>
+            </div>
+            <button id="btn-generate-atlas" class="btn btn-primary btn-block">
+              Generar Atlas de Color Listo para Imprimir
+            </button>
+          </div>
+
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Importación CIE L*a*b* y PANTONE® Color Manager</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:12px; margin-bottom:12px;">
+              Integra colores directos desde coordenadas CIE L*a*b* (D50/D65) y calcula automáticamente la receta CMYK para el perfil ICC activo y su desviación ΔE₀₀.
+            </p>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="spot-code-input">Código PANTONE / Spot</label>
+                <input id="spot-code-input" type="text" value="PANTONE 2995 C" />
+              </div>
+              <div class="form-row">
+                <label for="spot-name-input">Descripción</label>
+                <input id="spot-name-input" type="text" value="Azul Corporativo Claro" />
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+              <div>
+                <label for="spot-l-input">CIE L* (0..100)</label>
+                <input id="spot-l-input" type="number" step="0.1" value="59.0" />
+              </div>
+              <div>
+                <label for="spot-a-input">CIE a* (-128..127)</label>
+                <input id="spot-a-input" type="number" step="0.1" value="-26.5" />
+              </div>
+              <div>
+                <label for="spot-b-input">CIE b* (-128..127)</label>
+                <input id="spot-b-input" type="number" step="0.1" value="-49.0" />
+              </div>
+            </div>
+            <button id="btn-import-spot" class="btn btn-primary btn-block">
+              Importar a Biblioteca Spot &amp; Calcular Receta CMYK
+            </button>
+          </div>
+        </div>
+
+        <div class="two-col-layout">
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Previsualización de Hoja de Atlas de Color</span>
+            </div>
+            <div class="preview-viewport" style="min-height:330px;">
+              <img id="atlas-preview-img" src="" alt="Hoja generada del Atlas de Color con códigos CMYK" />
+            </div>
+          </div>
+
+          <div class="card-panel" style="max-height:420px; overflow-y:auto;">
+            <div class="section-header">
+              <span class="section-title">Biblioteca Activa PANTONE® / CIE Lab (Clic para usar en Atlas)</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Color / Código</th>
+                  <th>CIE Lab</th>
+                  <th>Receta CMYK</th>
+                  <th>ΔE₀₀</th>
+                </tr>
+              </thead>
+              <tbody id="spot-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA 3: COMPOSICIÓN (NESTING) Y PANELACIÓN (TILING DE GRAN FORMATO) -->
+      <div id="view-layout" class="tab-view">
+        <div class="two-col-layout">
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Composición Automática en Rollo (Nesting)</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
+              Agrupa y gira automáticamente los trabajos de la cola activa para aprovechar al máximo el ancho del rollo y ahorrar metros lineales de sustrato.
+            </p>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="nest-roll-w">Ancho de Rollo (mm)</label>
+                <input id="nest-roll-w" type="number" value="1600" />
+              </div>
+              <div class="form-row">
+                <label for="nest-gap">Separación entre Piezas (mm)</label>
+                <input id="nest-gap" type="number" value="12" />
+              </div>
+            </div>
+            <button id="btn-calc-nesting" class="btn btn-primary btn-block" style="margin-bottom:12px;">
+              Optimizar Disposición en Rollo (Auto-Nest)
+            </button>
+            <div id="nesting-summary" style="font-family:var(--font-mono); font-size:12px; margin-bottom:10px; color:var(--accent-hover);"></div>
+            <canvas id="nesting-canvas" width="520" height="300" style="width:100%; background:#090c10; border:1px solid var(--border-subtle); border-radius:5px;"></canvas>
+          </div>
+
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Panelación de Gran Formato (Tiling con Solapamiento)</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
+              Divide murales, vallas o gráficas que superan el ancho del plotter en paneles numerados con solapamiento (overlap) y giro alterno de 180° para igualar el tono entre uniones.
+            </p>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="tile-job-w">Ancho Total Mural (mm)</label>
+                <input id="tile-job-w" type="number" value="4200" />
+              </div>
+              <div class="form-row">
+                <label for="tile-job-h">Alto Total Mural (mm)</label>
+                <input id="tile-job-h" type="number" value="2400" />
+              </div>
+              <div class="form-row">
+                <label for="tile-roll-w">Ancho de Rollo (mm)</label>
+                <input id="tile-roll-w" type="number" value="1600" />
+              </div>
+              <div class="form-row">
+                <label for="tile-overlap">Solapamiento / Overlap (mm)</label>
+                <input id="tile-overlap" type="number" value="18" />
+              </div>
+            </div>
+            <button id="btn-calc-tiling" class="btn btn-primary btn-block" style="margin-bottom:12px;">
+              Calcular Paneles y Solapamientos
+            </button>
+            <div id="tiling-summary" style="font-family:var(--font-mono); font-size:12px; margin-bottom:10px; color:#34d399;"></div>
+            <canvas id="tiling-canvas" width="520" height="300" style="width:100%; background:#090c10; border:1px solid var(--border-subtle); border-radius:5px;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA 4: IMPRESIÓN DE DATOS VARIABLES (VDP) -->
+      <div id="view-vdp" class="tab-view">
+        <div class="two-col-layout">
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Generador de Lotes de Datos Variables (VDP)</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
+              Introduce registros seriados en formato <code>CODIGO | ETIQUETA | LOTE</code> (uno por línea) para generar automáticamente una plancha impuesta con códigos QR/DataMatrix, contornos de corte (CutContour) e inyectarla en la cola de ripeo.
+            </p>
+            <div class="form-row">
+              <label for="vdp-textarea">Registros Variables (CSV / Tubería)</label>
+              <textarea id="vdp-textarea" rows="7" style="font-family:var(--font-mono);">SER-2026-001 | UNIDAD LOGÍSTICA NORTE | LOTE A-10
+SER-2026-002 | UNIDAD LOGÍSTICA SUR | LOTE A-10
+SER-2026-003 | PLANTA ENSAMBLAJE 04 | LOTE B-22
+SER-2026-004 | CONTROL DE CALIDAD ISO | LOTE B-22
+SER-2026-005 | FLOTA TRANSPORTE PESADO | LOTE C-09
+SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-09</textarea>
+            </div>
+            <button id="btn-generate-vdp" class="btn btn-primary btn-block">
+              Generar Plancha VDP e Insertar en Cola Activa
+            </button>
+          </div>
+
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Previsualización de Plancha Seriada VDP</span>
+            </div>
+            <div class="preview-viewport" style="min-height:320px;">
+              <img id="vdp-preview-img" src="" alt="Previsualización de lote de impresión de datos variables" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA 5: COLA MAESTRA Y SPOOLER DIRECTO TCP/USB/.PRN -->
+      <div id="view-queues" class="tab-view">
+        <div class="two-col-layout">
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Envío Directo al Plotter (Red TCP/IP 9100 • USB • Archivo .PRN)</span>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="spool-mode-select">Modo de Salida de Hardware</label>
+                <select id="spool-mode-select">
+                  <option value="spool_file">Generar Archivo Nativo .PRN (ESC/P2 / RTL)</option>
+                  <option value="tcp_raw">Red TCP/IP Directo (Socket Raw Puerto 9100)</option>
+                  <option value="usb_direct">Puerto USB Directo (/dev/usb/lp0)</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="spool-host-input">IP del Plotter : Puerto</label>
+                <input id="spool-host-input" type="text" value="192.168.1.200:9100" />
+              </div>
+            </div>
+            <button id="btn-execute-spool" class="btn btn-success btn-block" style="margin-bottom:12px;">
+              Ejecutar Ripeo Final y Enviar a Dispositivo / Guardar en Cola Maestra
+            </button>
+            <div id="spool-result-box" style="padding:10px; border-radius:5px; background:var(--bg-input); border:1px solid var(--border-subtle); font-family:var(--font-mono); font-size:11.5px; color:#34d399;">
+              Listo para transmitir datos binarios ESC/P2 / RTL al plotter.
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <div class="section-header">
+              <span class="section-title">Puertos y Interfaces Detectados en la Estación</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tipo Interfaz</th>
+                  <th>URI / Destino</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="devices-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="section-header">
+            <span class="section-title">Cola Maestra (Trabajos Ripeados Almacenados Listos para Reimpresión Inmediata)</span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID Maestro</th>
+                <th>Trabajo</th>
+                <th>Plotter Destino</th>
+                <th>Perfil ICC de Sustrato</th>
+                <th>Configuración Cabezal</th>
+                <th>Tinta</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="master-queue-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra Derecha: Control de Hardware, Perfiles ICC y Calibración por Canal -->
+    <aside class="sidebar-right">
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Dispositivo y Control de Cabezal</span>
+        </div>
+        <div class="form-row">
+          <label for="printer-select">Marca y Modelo de Plotter</label>
+          <select id="printer-select"></select>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label for="resolution-select">Resolución (DPI)</label>
+            <select id="resolution-select">
+              <option value="720">720 x 720 DPI</option>
+              <option value="1440" selected>720 x 1440 DPI</option>
+              <option value="1200">1200 x 1200 DPI</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="passes-select">Pasadas (Passes)</label>
+            <select id="passes-select">
+              <option value="4">4 Pasadas (Rápido)</option>
+              <option value="6">6 Pasadas (Producción)</option>
+              <option value="8" selected>8 Pasadas (Calidad)</option>
+              <option value="12">12 Pasadas (Alta Densidad)</option>
+              <option value="16">16 Pasadas (Backlit/UV)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label for="head-dir-select">Dirección de Impresión</label>
+            <select id="head-dir-select">
+              <option value="bidirectional">Bidireccional (Velocidad)</option>
+              <option value="unidirectional">Unidireccional (Alta Precisión)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="halftone-select">Algoritmo de Tramado</label>
+            <select id="halftone-select">
+              <option value="bayer_fm">Difusión FM / Variable Dot</option>
+              <option value="am_rosette">Roseta AM (C15° M75° Y0° K45°)</option>
+              <option value="contone">Tono Continuo 8-bit</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label for="job-w-input">Ancho Trabajo (mm)</label>
+            <input id="job-w-input" type="number" value="1200" />
+          </div>
+          <div class="form-row">
+            <label for="job-h-input">Alto Trabajo (mm)</label>
+            <input id="job-h-input" type="number" value="840" />
+          </div>
+        </div>
+
+        <label class="checkbox-row">
+          <input id="chk-autocut" type="checkbox" checked />
+          <span>Autocorte de Hoja al finalizar (Sheet Cut)</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="chk-printline" type="checkbox" checked />
+          <span>Línea de Corte Perimetral (Printline CutContour)</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="chk-cropmarks" type="checkbox" checked />
+          <span>Marcas Ópticas de Registro (OPOS / ARMS)</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="chk-colorbar" type="checkbox" checked />
+          <span>Barra Lateral de Control de Inyectores CMYK</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="chk-mirror" type="checkbox" />
+          <span>Modo Espejo Horizontal (Sublimación / Transfer)</span>
+        </label>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Perfil ICC y Calibración por Canal</span>
+        </div>
+        <div class="form-row">
+          <label for="profile-select">Perfil ICC de Sustrato</label>
+          <select id="profile-select"></select>
+        </div>
+        <div class="form-row">
+          <label for="til-input">Límite de Tinta Total (TIL %): <span id="til-val-lbl">280%</span></label>
+          <input id="til-input" type="range" min="180" max="340" step="5" value="280" />
+        </div>
+
+        <div class="form-row">
+          <label>Ganancia / Linealización Cian (C): <span id="gain-c-lbl">100%</span></label>
+          <input id="gain-c-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
+        </div>
+        <div class="form-row">
+          <label>Ganancia / Linealización Magenta (M): <span id="gain-m-lbl">100%</span></label>
+          <input id="gain-m-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
+        </div>
+        <div class="form-row">
+          <label>Ganancia / Linealización Amarillo (Y): <span id="gain-y-lbl">100%</span></label>
+          <input id="gain-y-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
+        </div>
+        <div class="form-row">
+          <label>Ganancia / Densidad Negro (K): <span id="gain-k-lbl">100%</span></label>
+          <input id="gain-k-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">Cobertura y Consumo por Canal</span>
+        </div>
+        <div class="ink-bars">
+          <div class="ink-bar-row">
+            <strong style="color:var(--cyan-ink);">C</strong>
+            <div class="ink-track"><div id="bar-c" class="ink-fill" style="width:45%; background:var(--cyan-ink);"></div></div>
+            <span id="txt-c">1.40 mL</span>
+          </div>
+          <div class="ink-bar-row">
+            <strong style="color:var(--magenta-ink);">M</strong>
+            <div class="ink-track"><div id="bar-m" class="ink-fill" style="width:38%; background:var(--magenta-ink);"></div></div>
+            <span id="txt-m">1.18 mL</span>
+          </div>
+          <div class="ink-bar-row">
+            <strong style="color:var(--yellow-ink);">Y</strong>
+            <div class="ink-track"><div id="bar-y" class="ink-fill" style="width:42%; background:var(--yellow-ink);"></div></div>
+            <span id="txt-y">1.31 mL</span>
+          </div>
+          <div class="ink-bar-row">
+            <strong style="color:#cbd5e1;">K</strong>
+            <div class="ink-track"><div id="bar-k" class="ink-fill" style="width:52%; background:#94a3b8;"></div></div>
+            <span id="txt-k">1.65 mL</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
