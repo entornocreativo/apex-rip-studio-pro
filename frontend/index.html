@@ -3,27 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ApexRIP SoftRIP Edition v3.0 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
+  <title>ApexRIP SoftRIP Edition v3.1 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root {
-      --background: #0d1117;
-      --foreground: #f0f4f8;
-      --card: #151b24;
-      --card-border: #263042;
-      --border: #263042;
-      --primary: #0ea5e9;
-      --primary-foreground: #041019;
-      --secondary: #1e293b;
-      --secondary-foreground: #e2e8f0;
-      --muted-foreground: #94a3b8;
-    }
-
     * { box-sizing: border-box; user-select: none; }
     input, select, textarea { user-select: text; }
 
-    /* Estilo Técnico Wasatch SoftRIP Desktop */
     .ws-window {
       background: var(--background);
       color: var(--foreground);
@@ -37,6 +22,7 @@
       align-items: center;
       gap: 14px;
       font-size: 12px;
+      flex-shrink: 0;
     }
     .ws-menu-item {
       cursor: pointer;
@@ -56,6 +42,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
+      flex-shrink: 0;
     }
     .ws-tool-btn {
       display: inline-flex;
@@ -90,7 +77,6 @@
       font-weight: 700;
     }
 
-    /* Pestañas verticales laterales estilo Wasatch */
     .v-tabs-bar {
       display: flex;
       flex-direction: column;
@@ -121,7 +107,6 @@
       font-weight: 700;
     }
 
-    /* Pestañas Superiores del Área Central (Job | Layout | Queues | Template) */
     .ws-tab-btn {
       padding: 5px 14px;
       font-size: 12px;
@@ -140,7 +125,6 @@
       font-weight: 700;
     }
 
-    /* Groupbox clásico de diálogo técnico */
     .ws-groupbox {
       border: 1px solid var(--border);
       border-radius: 5px;
@@ -160,18 +144,10 @@
       color: var(--primary);
     }
 
-    /* Filas de estado en Rip Queue (Wasatch Verde = Ripeado, Rosa = Error, Blanco = En Espera) */
-    .rq-row-ripped {
-      background: rgba(16, 185, 129, 0.14);
-    }
-    .rq-row-pending {
-      background: transparent;
-    }
-    .rq-row-error {
-      background: rgba(239, 68, 68, 0.15);
-    }
+    .rq-row-ripped { background: rgba(16, 185, 129, 0.14); }
+    .rq-row-pending { background: transparent; }
+    .rq-row-error { background: rgba(239, 68, 68, 0.15); }
 
-    /* Modales superpuestos */
     .ws-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -182,9 +158,7 @@
       z-index: 50;
       padding: 12px;
     }
-    .ws-modal-backdrop.open {
-      display: flex;
-    }
+    .ws-modal-backdrop.open { display: flex; }
     .ws-modal-box {
       background: var(--card);
       border: 2px solid var(--border);
@@ -204,9 +178,30 @@
       font-weight: 700;
       font-size: 12.5px;
     }
+
+    /* Contenedor con Scroll Real para explorar el rollo y la cola de trabajo */
+    .roll-scroll-viewport {
+      overflow: auto !important;
+      scrollbar-width: auto;
+    }
+    .roll-scroll-viewport::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    .roll-scroll-viewport::-webkit-scrollbar-track {
+      background: #0f141c;
+    }
+    .roll-scroll-viewport::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 6px;
+      border: 2px solid #0f141c;
+    }
+    .roll-scroll-viewport::-webkit-scrollbar-thumb:hover {
+      background: #0ea5e9;
+    }
   </style>
 </head>
-<body class="ws-window min-h-screen flex flex-col m-0 p-0">
+<body class="ws-window h-screen flex flex-col m-0 p-0 overflow-hidden">
 
   <!-- 1. BARRA DE MENÚ SUPERIOR ESTILO WASATCH SOFTRIP -->
   <div class="ws-menubar">
@@ -222,41 +217,54 @@
     <span class="ws-menu-item" onclick="openAnnotationModal()">Tools</span>
     <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
     <span class="ml-auto font-mono text-xs text-[var(--muted-foreground)]">
-      Wasatch-Style SoftRIP Engine v3.0 • Bobina Máx: 50.0 m (50,000 mm)
+      Wasatch-Style SoftRIP Engine v3.1 • Proporción 1:1 Exacta • Drag &amp; Drop Libre • Bobina 50 m
     </span>
   </div>
 
-  <!-- 2. BARRA DE HERRAMIENTAS PRINCIPAL CON ICONOS Y SELECTOR DE PRINT UNIT -->
+  <!-- 2. BARRA DE HERRAMIENTAS PRINCIPAL -->
   <div class="ws-toolbar">
     <div class="flex flex-wrap items-center gap-1.5">
-      <button class="ws-tool-btn" onclick="document.getElementById('file-input-open').click()" title="Abrir Archivo (PNG, JPG, TIFF, PDF)">
-        📂 Abrir
+      <button class="ws-tool-btn" onclick="document.getElementById('file-input-open').click()" title="Cargar uno o varios archivos manteniendo su proporción original">
+        📂 Abrir Imagen
       </button>
-      <input id="file-input-open" type="file" accept="image/*" class="hidden" />
+      <input id="file-input-open" type="file" accept="image/*" multiple class="hidden" />
 
-      <button class="ws-tool-btn primary-rip" onclick="actionRipCurrentJob()" title="Ripear Trabajo Actual (Ctrl+R)">
+      <button class="ws-tool-btn primary-rip" onclick="actionRipCurrentJob()" title="Ripear Trabajo Actual">
         RIP
       </button>
-      <button class="ws-tool-btn primary-print" onclick="actionRipAndPrint()" title="Ripear e Imprimir / Generar .PRN">
+      <button class="ws-tool-btn primary-print" onclick="actionRipAndPrint()" title="Ripear y Exportar .PRN">
         🖨️ RIP &amp; Print (.PRN)
       </button>
-      <button class="ws-tool-btn" onclick="actionAddToLayout()" title="Añadir Trabajo a la Mesa de Montaje (Layout)">
+      <button class="ws-tool-btn" onclick="actionAddToLayout()" title="Añadir Trabajo Actual a la Mesa Layout sin deformar">
         ➕ Add to Layout
       </button>
-      <button class="ws-tool-btn" onclick="actionSmartNest()" title="Acomodo Inteligente en el Ancho del Material (Smart Nest)">
+      <button class="ws-tool-btn" onclick="actionSmartNest()" title="Acomodar automáticamente todas las piezas en el ancho del rollo">
         🧩 Smart Nest
       </button>
 
-      <span class="h-5 w-px bg-[var(--border)] mx-1"></span>
+      <span class="h-5 w-px bg-[var(--border)] mx-0.5"></span>
 
-      <button class="ws-tool-btn" onclick="actionRotate90()" title="Rotar 90°">
+      <!-- Control Directo de Medida Manual en la Barra Superior (Sin Deformar) -->
+      <div class="flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] rounded px-2 py-0.5">
+        <span class="text-[var(--muted-foreground)] font-semibold">Medida:</span>
+        <input id="top-w-mm" type="number" min="10" max="1625" step="1" value="297" title="Ancho de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold text-xs" />
+        <button id="btn-lock-ratio" onclick="toggleAspectRatioLock()" title="Bloquear/Desbloquear proporción original (evita deformación)" class="px-1.5 py-0.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-xs cursor-pointer">
+          🔗 Proporción Fija
+        </button>
+        <input id="top-h-mm" type="number" min="10" max="50000" step="1" value="420" title="Alto de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold text-xs" />
+        <span class="font-mono text-xs text-[var(--muted-foreground)]">mm</span>
+        <!-- Botones rápidos de formato estándar (adaptados a la proporción real de tu imagen) -->
+        <button onclick="applyPaperSizePreset(210, 297)" class="px-1.5 py-0.5 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer hover:opacity-80" title="Ajustar a formato A4 manteniendo proporción">A4</button>
+        <button onclick="applyPaperSizePreset(297, 420)" class="px-1.5 py-0.5 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer hover:opacity-80" title="Ajustar a formato A3 (297mm) manteniendo proporción">A3</button>
+        <button onclick="applyPaperSizePreset(420, 594)" class="px-1.5 py-0.5 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer hover:opacity-80" title="Ajustar a formato A2 manteniendo proporción">A2</button>
+        <button onclick="applyPaperSizePreset(594, 841)" class="px-1.5 py-0.5 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer hover:opacity-80" title="Ajustar a formato A1 manteniendo proporción">A1</button>
+      </div>
+
+      <button class="ws-tool-btn" onclick="actionRotate90()" title="Rotar 90° (Intercambiar Ancho y Alto)">
         ↻ 90°
       </button>
       <button class="ws-tool-btn" onclick="actionToggleMirror()" title="Espejo Horizontal">
         ⇄ Mirror
-      </button>
-      <button class="ws-tool-btn" onclick="openAnnotationModal()" title="Configurar Anotación Impresa y Patrón CMYK">
-        📝 Annotation
       </button>
 
       <!-- Selector rápido de canal de inspección -->
@@ -272,26 +280,24 @@
 
     <!-- Selector Derecho de Unidad de Impresión (Print Unit) + Botón Engranaje Setup -->
     <div class="flex items-center gap-1.5">
-      <label class="text-xs font-semibold text-[var(--muted-foreground)]">Print Unit:</label>
-      <select id="unit-selector" class="h-7 px-2.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-xs min-w-[310px]">
-        <option value="unit1">Unit 1: Mutoh VJ-1624 (CMYK, 720x1440, Rollo 1370mm)</option>
-        <option value="unit2">Unit 2: Mimaki UJV100-160 (CMYKW, 600x1200, Rollo 1520mm)</option>
+      <select id="unit-selector" class="h-7 px-2 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-xs">
+        <option value="unit1">Unit 1: Mutoh VJ-1624 (CMYK, 720x1440)</option>
+        <option value="unit2">Unit 2: Mimaki UJV100-160 (CMYKW, 600x1200)</option>
       </select>
-      <button class="ws-tool-btn" onclick="openSetupModal()" title="Setup - Print Unit (Ancho Material, Bobina 50m, Márgenes, Marcas, Corte)">
+      <button class="ws-tool-btn" onclick="openSetupModal()">
         ⚙️ Setup Unit
       </button>
-      <button class="ws-tool-btn" onclick="openImagingConfigModal()" title="Imaging Configuration / Crear y Editar Perfiles de Material">
+      <button class="ws-tool-btn" onclick="openImagingConfigModal()">
         🎨 Perfiles Material
       </button>
     </div>
   </div>
 
-  <!-- 3. ÁREA DE TRABAJO CENTRAL DIVIDIDA (PANEL IZQUIERDO CON PESTAÑAS VERTICALES + ESCENARIO CENTRAL) -->
+  <!-- 3. ÁREA DE TRABAJO CENTRAL DIVIDIDA -->
   <div class="flex-1 flex min-h-0 overflow-hidden">
 
-    <!-- PANEL IZQUIERDO ESTILO WASATCH (Queue Processing Active + Pestañas Verticales) -->
-    <div class="w-80 bg-[var(--card)] border-r border-[var(--border)] flex flex-col flex-shrink-0">
-      <!-- Casilla Queue Processing Active + Ancho Rápido -->
+    <!-- PANEL IZQUIERDO ESTILO WASATCH -->
+    <div class="w-80 bg-[var(--card)] border-r border-[var(--border)] flex flex-col flex-shrink-0 min-h-0">
       <div class="p-2 border-b border-[var(--border)] flex items-center justify-between bg-[var(--secondary)]">
         <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
           <input id="chk-queue-active" type="checkbox" checked />
@@ -300,7 +306,7 @@
         <span id="left-unit-badge" class="font-mono text-xs text-[var(--primary)] font-bold">Mutoh VJ-1624</span>
       </div>
 
-      <!-- Barra rápida siempre visible para escribir el Ancho del Material y ver la Bobina de 50m -->
+      <!-- Barra rápida para escribir el Ancho del Material y ver la Bobina de 50m -->
       <div class="p-2.5 border-b border-[var(--border)] bg-[var(--background)] space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-bold text-xs text-[var(--primary)]">ANCHO DEL MATERIAL Y BOBINA (50M)</span>
@@ -310,7 +316,7 @@
           <div>
             <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Ancho Material (mm)</label>
             <div class="flex gap-1">
-              <input id="quick-paper-width" type="number" min="200" max="1625" step="1" value="1370" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold text-xs" />
+              <input id="quick-paper-width" type="number" min="200" max="1625" step="1" value="1050" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold text-xs" />
               <button onclick="setMaximumPaperWidth()" title="Set Maximum Width (1625mm Mutoh / 1620mm Mimaki)" class="px-1.5 py-1 rounded bg-[var(--secondary)] border border-[var(--border)] font-mono text-xs cursor-pointer">Máx</button>
             </div>
           </div>
@@ -322,7 +328,6 @@
             </div>
           </div>
         </div>
-        <!-- Selector directo de Perfil de Material (Imaging Configuration) -->
         <div>
           <div class="flex justify-between items-center mb-0.5">
             <label class="text-[var(--muted-foreground)] text-xs">Perfil de Material (Imaging Config):</label>
@@ -332,7 +337,7 @@
         </div>
       </div>
 
-      <!-- Cuerpo con Pestañas Verticales Izquierdas (File Browser | Size & Crop | Tile | Repeats | Trace | Unit Options) -->
+      <!-- Cuerpo con Pestañas Verticales Izquierdas -->
       <div class="flex-1 flex min-h-0 overflow-hidden">
         <div class="v-tabs-bar">
           <button data-vtab="vpane-files" class="v-tab-btn active">File Browser</button>
@@ -344,63 +349,73 @@
         </div>
 
         <div class="flex-1 p-2.5 overflow-y-auto space-y-2.5">
-          <!-- VPANE 1: FILE BROWSER (como en capturas 1, 2 y 3 de Wasatch) -->
+          <!-- VPANE 1: FILE BROWSER -->
           <div id="vpane-files" class="v-pane space-y-2">
-            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Explorador de Archivos (Doble clic para cargar)</div>
-            <div class="border border-[var(--border)] rounded bg-[var(--background)] p-1.5 font-mono text-xs space-y-1">
-              <div>📁 Desktop</div>
-              <div class="pl-3">📂 Trabajos_Mutoh_1624</div>
-              <div class="pl-3">📂 Trabajos_Mimaki_UJV100</div>
-              <div class="pl-3 text-[var(--primary)] font-bold">📂 Cola_Produccion_Activa</div>
-            </div>
-
-            <div class="border border-[var(--border)] rounded bg-[var(--background)] divide-y divide-[var(--border)]" id="file-browser-list"></div>
-
-            <button onclick="document.getElementById('file-input-open').click()" class="w-full py-1.5 px-2 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold text-xs cursor-pointer">
-              + Examinar Archivo de tu PC...
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Explorador de Archivos</div>
+            <button onclick="document.getElementById('file-input-open').click()" class="w-full py-2 px-2 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold text-xs cursor-pointer hover:opacity-90">
+              + Cargar Imagen(es) de tu PC (Respeta Tamaño/Proporción)...
             </button>
 
+            <div class="text-xs text-[var(--muted-foreground)]">Archivos Cargados / Disponibles (Clic para seleccionar, Doble clic para añadir al Layout):</div>
+            <div class="border border-[var(--border)] rounded bg-[var(--background)] divide-y divide-[var(--border)] max-h-56 overflow-y-auto" id="file-browser-list"></div>
+
             <div class="pt-1">
-              <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Filtro de Formatos:</label>
-              <select class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] text-xs">
-                <option>All Formats (.ps, .prn, .pdf, .eps, .tif, .jpg, .png)</option>
-                <option>TIFF / PSD CMYK (.tif, .psd)</option>
-                <option>Vector PostScript / PDF (.pdf, .eps, .ps)</option>
+              <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Resolución Base de Importación (DPI):</label>
+              <select id="import-dpi-select" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] text-xs">
+                <option value="auto_a3">Auto-Detectar Formato Estándar (A3 / A4 / Proporcional)</option>
+                <option value="300">300 DPI (Tamaño Real de Píxeles a 300 PPP)</option>
+                <option value="150">150 DPI (Tamaño Real Gran Formato a 150 PPP)</option>
+                <option value="72">72 DPI (Escala Pantalla 72 PPP)</option>
               </select>
             </div>
           </div>
 
-          <!-- VPANE 2: SIZE (Escalado en mm y % para el trabajo activo) -->
+          <!-- VPANE 2: SIZE (Cambio Manual de Ancho y Alto Sin Deformar) -->
           <div id="vpane-size" class="v-pane hidden space-y-2.5">
-            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Dimensiones y Escala del Trabajo (Size)</div>
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Dimensiones y Escala Manual (Sin Deformar)</div>
+            <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs space-y-1">
+              <div class="text-[var(--muted-foreground)]">Proporción Original Detectada:</div>
+              <div id="lbl-orig-aspect" class="font-bold text-[var(--primary)]">297 x 420 mm (Ratio 1 : 1.414 A3)</div>
+            </div>
+
             <div>
               <label class="block text-[var(--muted-foreground)] mb-0.5">Ancho de Impresión (mm)</label>
-              <input id="job-w-mm" type="number" min="10" max="1625" value="1200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <input id="job-w-mm" type="number" min="10" max="1625" step="1" value="297" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold" />
             </div>
             <div>
               <label class="block text-[var(--muted-foreground)] mb-0.5">Alto / Largo Impresión (mm, máx 50,000)</label>
-              <input id="job-h-mm" type="number" min="10" max="50000" value="840" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <input id="job-h-mm" type="number" min="10" max="50000" step="1" value="420" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold" />
             </div>
+
+            <label class="flex items-center gap-1.5 font-bold text-[var(--primary)] cursor-pointer">
+              <input id="chk-lock-aspect" type="checkbox" checked onchange="syncLockCheckbox()" />
+              <span>🔗 Mantener Proporción (Sin Deformar)</span>
+            </label>
+
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[var(--muted-foreground)] mb-0.5">Escala X (%)</label>
-                <input id="job-scale-x" type="number" step="0.1" value="100.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Escala (%)</label>
+                <input id="job-scale-pct" type="number" step="1" min="5" max="1000" value="100" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
-              <div>
-                <label class="block text-[var(--muted-foreground)] mb-0.5">Escala Y (%)</label>
-                <input id="job-scale-y" type="number" step="0.1" value="100.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              <div class="flex items-end">
+                <button onclick="applyScalePercent()" class="w-full py-1 px-2 rounded bg-[var(--secondary)] border border-[var(--border)] font-semibold cursor-pointer">Aplicar %</button>
               </div>
             </div>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input id="chk-lock-aspect" type="checkbox" checked />
-              <span>Mantener Proporción (Aspect Ratio)</span>
-            </label>
-            <button onclick="fitJobToMaterialWidth()" class="w-full py-1.5 px-2 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
-              Ajustar al Ancho del Material Actual
-            </button>
+
+            <div class="space-y-1 pt-1">
+              <span class="block text-[var(--muted-foreground)] text-xs">Formatos Estándar (Ajuste Proporcional):</span>
+              <div class="grid grid-cols-3 gap-1">
+                <button onclick="applyPaperSizePreset(210, 297)" class="py-1 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer">A4 (21cm)</button>
+                <button onclick="applyPaperSizePreset(297, 420)" class="py-1 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-mono font-bold text-xs cursor-pointer">A3 (29.7cm)</button>
+                <button onclick="applyPaperSizePreset(420, 594)" class="py-1 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer">A2 (42cm)</button>
+                <button onclick="applyPaperSizePreset(594, 841)" class="py-1 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer">A1 (59.4cm)</button>
+                <button onclick="applyPaperSizePreset(841, 1189)" class="py-1 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer">A0 (84.1cm)</button>
+                <button onclick="fitJobToMaterialWidth()" class="py-1 rounded bg-[var(--secondary)] font-mono text-xs cursor-pointer">Ancho Rollo</button>
+              </div>
+            </div>
           </div>
 
-          <!-- VPANE 3: TILE (Panelación estilo Wasatch) -->
+          <!-- VPANE 3: TILE (Panelación) -->
           <div id="vpane-tile" class="v-pane hidden space-y-2.5">
             <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Panelación de Gran Formato (Tile)</div>
             <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
@@ -421,10 +436,6 @@
               <label class="block text-[var(--muted-foreground)] mb-0.5">Solapamiento / Overlap (mm)</label>
               <input id="tile-overlap-mm" type="number" min="0" max="100" value="15" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input id="chk-tile-flip" type="checkbox" checked />
-              <span>Alternar Giro 180° en Paneles Pares</span>
-            </label>
             <div id="tile-info-box" class="p-2 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs text-[var(--primary)]">
               3 paneles con 15 mm de solapamiento.
             </div>
@@ -435,12 +446,12 @@
             <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Repeticiones / Step &amp; Repeat</div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[var(--muted-foreground)] mb-0.5">Repeticiones X</label>
-                <input id="rep-x" type="number" min="1" max="50" value="1" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Columnas X</label>
+                <input id="rep-x" type="number" min="1" max="50" value="3" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
               <div>
-                <label class="block text-[var(--muted-foreground)] mb-0.5">Repeticiones Y</label>
-                <input id="rep-y" type="number" min="1" max="200" value="1" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Filas Y</label>
+                <input id="rep-y" type="number" min="1" max="200" value="2" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -454,23 +465,23 @@
               </div>
             </div>
             <button onclick="applyRepeatsToLayout()" class="w-full py-1.5 px-2 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
-              Enviar Repeticiones al Layout
+              Generar Repeticiones en Layout
             </button>
           </div>
 
-          <!-- VPANE 5: TRACE (Contorno de Corte como el escarabajo de la captura 2) -->
+          <!-- VPANE 5: TRACE -->
           <div id="vpane-trace" class="v-pane hidden space-y-2.5">
             <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Trazado de Corte (Trace / Cut Path)</div>
             <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
               <input id="chk-trace-active" type="checkbox" checked />
-              <span>Mostrar Trazado de Corte (CutContour)</span>
+              <span>Mostrar Contorno de Corte (CutContour)</span>
             </label>
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-0.5">Desplazamiento / Sangrado (Bleed mm)</label>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Sangrado / Bleed (mm)</label>
               <input id="trace-bleed" type="number" step="0.5" value="2.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
             </div>
             <div>
-              <label class="block text-[var(--muted-foreground)] mb-0.5">Color de Línea de Corte en Pantalla</label>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Color de Línea de Corte</label>
               <select id="trace-color" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
                 <option value="#fff200">Amarillo Intenso (Estilo Wasatch)</option>
                 <option value="#ec008c">Magenta CutContour</option>
@@ -479,7 +490,7 @@
             </div>
           </div>
 
-          <!-- VPANE 6: UNIT OPTIONS (Calibración rápida CMYKW, Pasadas, Temperaturas Mutoh / UV Mimaki) -->
+          <!-- VPANE 6: UNIT OPTIONS -->
           <div id="vpane-unit" class="v-pane hidden space-y-2">
             <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Opciones de Unidad y Calibración</div>
             <div>
@@ -506,54 +517,81 @@
       </div>
     </div>
 
-    <!-- ESCENARIO CENTRAL CON LAS PESTAÑAS ESTILO WASATCH: Job | Layout | Queues | Color Atlas | Variable Data -->
-    <div class="flex-1 flex flex-col min-w-0 bg-[var(--background)]">
+    <!-- ESCENARIO CENTRAL CON SCROLL COMPLETO -->
+    <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-[var(--background)]">
       <!-- Barra de Pestañas Centrales -->
-      <div class="px-3 pt-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-end justify-between">
+      <div class="px-3 pt-2 bg-[var(--secondary)] border-b border-[var(--border)] flex flex-wrap items-end justify-between flex-shrink-0">
         <div class="flex gap-1" id="center-tabs-bar">
-          <button data-ctab="tab-job" class="ws-tab-btn active">Job</button>
-          <button data-ctab="tab-layout" class="ws-tab-btn">Layout</button>
-          <button data-ctab="tab-queues" class="ws-tab-btn">Queues</button>
+          <button data-ctab="tab-job" class="ws-tab-btn active">Job (Vista Previa Proporcional)</button>
+          <button data-ctab="tab-layout" class="ws-tab-btn">Layout (Mesa Rollo Libre + Scroll)</button>
+          <button data-ctab="tab-queues" class="ws-tab-btn">Queues (Colas RIP / Print)</button>
           <button data-ctab="tab-atlas" class="ws-tab-btn">Color Atlas &amp; PANTONE</button>
           <button data-ctab="tab-vdp" class="ws-tab-btn">Variable Data (VDP)</button>
         </div>
         <div class="pb-1.5 font-mono text-xs text-[var(--muted-foreground)] flex items-center gap-3">
-          <span id="top-paper-summary">Material: 1370 mm x 50,000 mm (50.0 m)</span>
-          <span id="top-ink-summary" class="text-[var(--primary)] font-bold">Tinta: 5.42 mL</span>
+          <span id="top-paper-summary">Material: 1050 mm x 50,000 mm (50.0 m)</span>
+          <span id="top-ink-summary" class="text-[var(--primary)] font-bold">Tinta: 1.85 mL</span>
         </div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA 1: JOB (Con Reglas Graduadas Superiores/Laterales, Trazado, Panelación y Anotación) -->
-      <div id="tab-job" class="center-pane flex-1 flex flex-col p-3 overflow-auto">
-        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded flex items-center justify-center p-3 overflow-auto">
-          <canvas id="job-canvas" width="760" height="490" class="max-w-full h-auto shadow-lg rounded"></canvas>
-        </div>
-      </div>
-
-      <!-- CONTENIDO PESTAÑA 2: LAYOUT (Mesa de Montaje y Nesting con Reglas Graduadas estilo Captura 1) -->
-      <div id="tab-layout" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2 overflow-auto">
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <label class="font-semibold">Name:</label>
-            <input id="layout-name-input" type="text" value="Layout_Produccion_01" class="px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
-            <label class="font-semibold">Copies To Print:</label>
-            <input id="layout-copies-input" type="number" min="1" max="500" value="1" class="w-16 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
+      <!-- CONTENIDO PESTAÑA 1: JOB (Escala 1:1 Sin Deformar + Scroll Libre) -->
+      <div id="tab-job" class="center-pane flex-1 flex flex-col p-3 min-h-0 overflow-hidden">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-1.5 mb-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+          <div class="text-xs text-[var(--muted-foreground)]">
+            Vista individual con relación de aspecto bloqueada <strong>1:1</strong> (no deforma la imagen). Usa los controles de arriba para cambiar <strong>Ancho</strong> o <strong>Alto</strong> en mm.
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="actionSmartNest()" class="ws-tool-btn">🧩 Re-Nest (Optimizar Rollo)</button>
-            <button onclick="clearLayoutItems()" class="ws-tool-btn">🗑️ Limpiar Layout</button>
-            <span id="layout-count-badge" class="font-bold font-mono text-xs px-2 py-1 rounded bg-[var(--secondary)]">Images In Layout: 6</span>
+          <div class="flex items-center gap-1.5">
+            <button onclick="changeJobZoom(-0.15)" class="ws-tool-btn" style="height:24px;">🔍 -</button>
+            <span id="lbl-job-zoom" class="font-mono text-xs px-1">100%</span>
+            <button onclick="changeJobZoom(0.15)" class="ws-tool-btn" style="height:24px;">🔍 +</button>
           </div>
         </div>
-
-        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded flex items-center justify-center p-3 overflow-auto">
-          <canvas id="layout-canvas" width="780" height="450" class="max-w-full h-auto shadow-lg rounded cursor-pointer"></canvas>
+        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded p-4 roll-scroll-viewport flex items-start justify-center min-h-0">
+          <canvas id="job-canvas" width="600" height="500" class="shadow-lg rounded"></canvas>
         </div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA 3: QUEUES (Doble Tabla Exacta a Captura 3: Rip Queue a la izquierda y Print Queue a la derecha) -->
-      <div id="tab-queues" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2.5 overflow-auto">
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-4">
+      <!-- CONTENIDO PESTAÑA 2: LAYOUT (Mesa de Montaje Interactiva: Mover Libremente con Ratón + Cambiar Medida + Scroll a lo largo del Rollo) -->
+      <div id="tab-layout" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2 min-h-0 overflow-hidden">
+        <!-- Barra de control del elemento seleccionado en el Layout -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-bold text-[var(--primary)]">Pieza Seleccionada:</span>
+            <label class="text-xs text-[var(--muted-foreground)]">X(mm):</label>
+            <input id="sel-x-mm" type="number" step="1" value="15" class="w-16 px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
+            <label class="text-xs text-[var(--muted-foreground)]">Y(mm):</label>
+            <input id="sel-y-mm" type="number" step="1" value="15" class="w-16 px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
+            <label class="text-xs text-[var(--muted-foreground)]">Ancho(mm):</label>
+            <input id="sel-w-mm" type="number" step="1" value="297" class="w-16 px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-xs" />
+            <label class="text-xs text-[var(--muted-foreground)]">Alto(mm):</label>
+            <input id="sel-h-mm" type="number" step="1" value="420" class="w-16 px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-xs" />
+            <button onclick="duplicateSelectedLayoutItem()" class="ws-tool-btn" style="height:24px;" title="Duplicar la imagen seleccionada al lado">📋 Duplicar Pieza</button>
+            <button onclick="deleteSelectedLayoutItem()" class="ws-tool-btn" style="height:24px;" title="Eliminar la pieza seleccionada">🗑️ Borrar Pieza</button>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="changeLayoutZoom(-0.15)" class="ws-tool-btn" style="height:24px;" title="Alejar vista del rollo">🔍 -</button>
+            <span id="lbl-layout-zoom" class="font-mono text-xs px-1">100%</span>
+            <button onclick="changeLayoutZoom(0.15)" class="ws-tool-btn" style="height:24px;" title="Acercar vista del rollo">🔍 +</button>
+            <button onclick="addMoreRollViewLength()" class="ws-tool-btn" style="height:24px;" title="Ampliar vista de largo de bobina para seguir bajando con el scroll">+ Ver Más Rollo</button>
+            <button onclick="actionSmartNest()" class="ws-tool-btn primary-rip" style="height:24px;">🧩 Auto-Acomodar en Fila</button>
+            <span id="layout-count-badge" class="font-bold font-mono text-xs px-2 py-0.5 rounded bg-[var(--secondary)]">Piezas: 3</span>
+          </div>
+        </div>
+
+        <div class="text-xs text-[var(--muted-foreground)] px-1 flex-shrink-0">
+          💡 <strong>Arrastra cualquier imagen con el ratón</strong> para moverla libremente por el rollo, tira del <strong>cuadradito verde de su esquina inferior derecha</strong> para cambiar su tamaño sin deformarla, o usa la rueda del ratón / barra derecha para <strong>hacer scroll hacia abajo</strong> por toda la cola de impresión.
+        </div>
+
+        <!-- Viewport con Scroll Vertical y Horizontal Real -->
+        <div id="layout-scroll-container" class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded p-4 roll-scroll-viewport flex items-start justify-center min-h-0">
+          <canvas id="layout-canvas" width="760" height="900" class="shadow-lg rounded cursor-move"></canvas>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA 3: QUEUES (Con Scroll Completo para ver toda la Cola de Trabajo) -->
+      <div id="tab-queues" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2.5 min-h-0 overflow-hidden">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
           <div class="flex items-center gap-4">
             <span class="font-bold">Print Unit:</span>
             <label class="flex items-center gap-1 cursor-pointer">
@@ -578,24 +616,23 @@
           </div>
         </div>
 
-        <!-- Doble Cola Dividida: Rip Queue (Izquierda) y Print Queue (Derecha) -->
-        <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
-          <!-- RIP QUEUE -->
-          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col overflow-hidden">
-            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between">
-              <span id="rip-queue-title" class="font-bold">Rip Queue (5)</span>
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0 overflow-hidden">
+          <!-- RIP QUEUE CON SCROLL -->
+          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col min-h-0 overflow-hidden">
+            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
+              <span id="rip-queue-title" class="font-bold">Rip Queue</span>
               <div class="flex gap-1">
                 <button onclick="actionRipCurrentJob()" class="ws-tool-btn primary-rip" style="height:24px;">RIP</button>
                 <button onclick="deleteSelectedRipQueue()" class="ws-tool-btn" style="height:24px;">✕ Eliminar</button>
               </div>
             </div>
-            <div class="flex-1 overflow-auto">
+            <div class="flex-1 roll-scroll-viewport min-h-0">
               <table class="w-full text-left border-collapse text-xs">
-                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)] sticky top-0">
                   <tr>
                     <th class="p-2">RIP</th>
                     <th class="p-2">Copies</th>
-                    <th class="p-2">Job Name</th>
+                    <th class="p-2">Job Name / Medida</th>
                     <th class="p-2">Source file / Material</th>
                   </tr>
                 </thead>
@@ -604,21 +641,21 @@
             </div>
           </div>
 
-          <!-- PRINT QUEUE -->
-          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col overflow-hidden">
-            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between">
-              <span id="print-queue-title" class="font-bold">Print Queue (4)</span>
+          <!-- PRINT QUEUE CON SCROLL -->
+          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col min-h-0 overflow-hidden">
+            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
+              <span id="print-queue-title" class="font-bold">Print Queue</span>
               <div class="flex gap-1">
                 <button onclick="actionRipAndPrint()" class="ws-tool-btn primary-print" style="height:24px;">🖨️ Exportar .PRN</button>
               </div>
             </div>
-            <div class="flex-1 overflow-auto">
+            <div class="flex-1 roll-scroll-viewport min-h-0">
               <table class="w-full text-left border-collapse text-xs">
-                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)] sticky top-0">
                   <tr>
                     <th class="p-2">Copies</th>
                     <th class="p-2">Index</th>
-                    <th class="p-2">Notes / Perfil</th>
+                    <th class="p-2">Notes / Medida</th>
                     <th class="p-2">Acción (.PRN)</th>
                   </tr>
                 </thead>
@@ -630,7 +667,7 @@
       </div>
 
       <!-- CONTENIDO PESTAÑA 4: COLOR ATLAS & PANTONE -->
-      <div id="tab-atlas" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 overflow-auto">
+      <div id="tab-atlas" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 min-h-0 overflow-auto">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded p-3 flex flex-wrap items-end justify-between gap-2">
           <div class="flex flex-wrap gap-2 items-end">
             <div>
@@ -679,7 +716,7 @@
       </div>
 
       <!-- CONTENIDO PESTAÑA 5: VARIABLE DATA (VDP) -->
-      <div id="tab-vdp" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 overflow-auto">
+      <div id="tab-vdp" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 min-h-0 overflow-auto">
         <div class="bg-[var(--card)] border border-[var(--border)] rounded p-3 space-y-2">
           <div class="flex justify-between items-center">
             <span class="font-bold">Impresión de Datos Variables (VDP — Registros Seriados + QR + CutContour)</span>
@@ -698,23 +735,23 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       </div>
 
       <!-- BARRA DE ESTADO INFERIOR ESTILO WASATCH SOFTRIP -->
-      <div class="h-7 bg-[var(--card)] border-t border-[var(--border)] px-3 flex items-center justify-between font-mono text-xs text-[var(--muted-foreground)]">
+      <div class="h-7 bg-[var(--card)] border-t border-[var(--border)] px-3 flex items-center justify-between font-mono text-xs text-[var(--muted-foreground)] flex-shrink-0">
         <div class="flex items-center gap-4">
           <span id="status-nesting-eff" class="font-bold text-[var(--foreground)]">Nesting Efficiency: 78.40%</span>
-          <span id="status-xy-coords">X,Y: 120.0, 85.0 mm</span>
+          <span id="status-xy-coords">X,Y: 15.0, 15.0 mm | Pieza: 297 x 420 mm (A3)</span>
         </div>
         <div id="status-file-path" class="truncate max-w-md">
-          C:\Produccion\GranFormato\Grafica_Vehicular_Mutoh1624.tif
+          C:\Produccion\GranFormato\Poster_A3_297x420mm.jpg
         </div>
         <div id="status-coil-meter" class="text-[var(--primary)] font-bold">
-          Bobina: 49.16 m libres de 50.00 m
+          Bobina: 49.58 m libres de 50.00 m
         </div>
       </div>
     </div>
   </div>
 
   <!-- ========================================================================== -->
-  <!-- MODAL 1: SETUP - PRINT UNIT (IDÉNTICO A LA CAPTURA 4 DE WASATCH SOFTRIP)   -->
+  <!-- MODAL 1: SETUP - PRINT UNIT                                                -->
   <!-- ========================================================================== -->
   <div id="modal-setup-unit" class="ws-modal-backdrop">
     <div class="ws-modal-box w-full max-w-4xl">
@@ -724,7 +761,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       </div>
 
       <div class="p-4 space-y-4">
-        <!-- Fila Superior: Printer Model, Imaging Configuration, Physical Connection + Botones OK/Cancel/Edit/Download -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
           <div class="md:col-span-9 space-y-2">
             <div class="grid grid-cols-12 items-center gap-2">
@@ -764,15 +800,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           </div>
         </div>
 
-        <!-- Fila Central: Print Margins (Ancho Material y Alto 50 Metros) + Scale Adjustments (percent) -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <!-- Print Margins Groupbox -->
           <div class="md:col-span-7 ws-groupbox space-y-2">
             <span class="ws-groupbox-title">Print Margins (en milímetros — Bobina máx. 50,000 mm / 50 m)</span>
 
             <div class="grid grid-cols-12 items-center gap-2 pt-1">
               <label class="col-span-3">Paper Width (mm)</label>
-              <input id="setup-paper-w" type="number" min="200" max="1625" step="1" value="1370" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold" />
+              <input id="setup-paper-w" type="number" min="200" max="1625" step="1" value="1050" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold" />
               <button onclick="setMaximumPaperWidth()" class="col-span-4 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Maximum Width</button>
               <label class="col-span-2 flex items-center gap-1 cursor-pointer">
                 <input id="setup-w-center" type="checkbox" />
@@ -782,7 +816,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
             <div class="grid grid-cols-12 items-center gap-2">
               <label class="col-span-3">Paper Height (mm)</label>
-              <input id="setup-paper-h" type="number" min="500" max="50000" step="100" value="50000" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono font-bold" />
+              <input id="setup-paper-h" type="number" min="500" max="50000" step="100" value="50000" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold" />
               <button onclick="setMaximumPaperHeight()" class="col-span-4 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Maximum Height (50m)</button>
               <label class="col-span-2 flex items-center gap-1 cursor-pointer">
                 <input id="setup-h-center" type="checkbox" />
@@ -792,14 +826,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
             <div class="grid grid-cols-12 items-center gap-2">
               <label class="col-span-3">Left Margin (mm)</label>
-              <input id="setup-margin-l" type="number" min="0" max="100" step="0.5" value="10.0" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              <input id="setup-margin-l" type="number" min="0" max="100" step="0.5" value="5.0" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
               <button onclick="setMarginsToZero()" class="col-span-6 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Margins to Zero</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 pt-1">
               <div>
                 <label class="block text-[var(--muted-foreground)]">Right Margin (mm)</label>
-                <input id="setup-margin-r" type="number" min="0" max="100" step="0.5" value="10.0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+                <input id="setup-margin-r" type="number" min="0" max="100" step="0.5" value="5.0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
               </div>
               <div>
                 <label class="block text-[var(--muted-foreground)]">Top Margin (mm)</label>
@@ -812,7 +846,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </div>
           </div>
 
-          <!-- Scale Adjustments (percent) Groupbox -->
           <div class="md:col-span-5 ws-groupbox space-y-2.5">
             <span class="ws-groupbox-title">Scale Adjustments (percent)</span>
             <label class="flex items-center gap-2 pt-1 cursor-pointer">
@@ -840,7 +873,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           </div>
         </div>
 
-        <!-- Fila Inferior: Marks + Cutting Options -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div class="md:col-span-5 ws-groupbox space-y-2">
             <span class="ws-groupbox-title">Marks</span>
@@ -892,7 +924,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
   </div>
 
   <!-- ========================================================================== -->
-  <!-- MODAL 2: IMAGING CONFIGURATION & INKSET PROPERTIES (CAPTURA 5 DE WASATCH)  -->
+  <!-- MODAL 2: IMAGING CONFIGURATION & INKSET PROPERTIES                         -->
   <!-- ========================================================================== -->
   <div id="modal-imaging-config" class="ws-modal-backdrop">
     <div class="ws-modal-box w-full max-w-2xl">
@@ -905,7 +937,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-[var(--muted-foreground)] mb-1">Nombre del Perfil de Material (Inkset Name)</label>
-            <input id="ic-name" type="text" value="Mutoh VJ-1624 — Vinilo Polimérico 137cm" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-semibold" />
+            <input id="ic-name" type="text" value="Mutoh VJ-1624 — Papel / Vinilo 105cm" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-semibold" />
           </div>
           <div>
             <label class="block text-[var(--muted-foreground)] mb-1">Impresora Destino</label>
@@ -947,11 +979,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           </div>
           <div>
             <label class="block text-[var(--muted-foreground)] mb-1">Ancho Material (mm)</label>
-            <input id="ic-width" type="number" min="200" max="1625" value="1370" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold" />
+            <input id="ic-width" type="number" min="200" max="1625" value="1050" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold" />
           </div>
         </div>
 
-        <!-- Extra Ink (Blanco / Barniz UV para Mimaki) + Curvas CMYKW + TIL -->
         <div class="ws-groupbox space-y-2">
           <span class="ws-groupbox-title">Inkset Calibration &amp; Extra Ink (White / Varnish UV)</span>
           <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -1012,7 +1043,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
   </div>
 
   <!-- ========================================================================== -->
-  <!-- MODAL 3: ANNOTATION DETAILS (IDÉNTICO A LA CAPTURA 6 DE WASATCH SOFTRIP)   -->
+  <!-- MODAL 3: ANNOTATION DETAILS                                                -->
   <!-- ========================================================================== -->
   <div id="modal-annotation" class="ws-modal-backdrop">
     <div class="ws-modal-box w-full max-w-lg">
@@ -1072,11 +1103,26 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
   <script>
     // ============================================================================
-    // MOTOR WASATCH-STYLE SOFTRIP v3.0 — MUTOH VJ-1624 & MIMAKI UJV100-160 (50M)
+    // MOTOR WASATCH-STYLE SOFTRIP v3.1
+    // - Cero Deformación: Relación de aspecto 1:1 estricta en píxeles y milímetros
+    // - Cambio manual de Ancho o Alto recalculando automáticamente el otro eje
+    // - Drag & Drop Libre + Redimensionado proporcional desde la esquina en Layout
+    // - Scroll Vertical y Horizontal completo en Layout y Colas
     // ============================================================================
-    const MAX_COIL_MM = 50000; // 50 metros máximo de bobina
+    const MAX_COIL_MM = 50000;
 
     const INITIAL_PROFILES = [
+      {
+        id: 'mutoh_papel_1050',
+        name: 'Mutoh_VJ1624_Papel_Vinilo_105cm',
+        printer: 'mutoh_vj_1624',
+        mode: 'High Quality',
+        res: '720x1440',
+        passes: 8,
+        width_mm: 1050,
+        til: 270,
+        gains: { C: 100, M: 98, Y: 100, K: 102, W: 0 }
+      },
       {
         id: 'mutoh_vinyl_1370',
         name: 'Mutoh_VJ1624_Vinilo_Brillante_137cm',
@@ -1125,7 +1171,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     let storedProfiles = INITIAL_PROFILES;
     try {
-      const raw = localStorage.getItem('wasatch_softrip_profiles_v3');
+      const raw = localStorage.getItem('wasatch_softrip_profiles_v31');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) storedProfiles = parsed;
@@ -1136,34 +1182,38 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       activeUnit: 'unit1',
       activeProfileId: storedProfiles[0].id,
       activeChannel: 'composite',
-      rotationDeg: 0,
+      lockAspectRatio: true,
+      currentAspectRatio: 297 / 420, // Por defecto A3 Vertical (0.7071)
+      baseJobWidthMm: 297,
+      baseJobHeightMm: 420,
+      jobZoom: 1.0,
+      layoutZoom: 1.0,
+      extraRollViewMm: 1400, // Largo mínimo visible en el rollo con scroll
       customImage: null,
-      activeSampleArt: 'beetle_stars',
+      activeSampleArt: 'poster_a3',
       profiles: storedProfiles,
       sampleFiles: [
-        { id: 'beetle_stars', name: 'beetleStars_CutContour.pdf', size: '28.4 MB', w: 920, h: 680 },
-        { id: 'bakery_muffins', name: 'bakery_muffins_lote.tif', size: '44.1 MB', w: 420, h: 520 },
-        { id: 'macaroons_poster', name: 'macaroons_vitrola_137cm.jpg', size: '19.8 MB', w: 480, h: 650 },
-        { id: 'uv_backlit_sign', name: 'mimaki_backlit_white_uv.eps', size: '62.0 MB', w: 1200, h: 840 }
+        { id: 'poster_a3', name: 'Poster_A3_297x420mm.jpg', size: '18.2 MB', w: 297, h: 420, img: null },
+        { id: 'beetle_stars', name: 'beetleStars_CutContour.pdf', size: '28.4 MB', w: 420, h: 297, img: null },
+        { id: 'bakery_muffins', name: 'bakery_muffins_A3.tif', size: '44.1 MB', w: 297, h: 420, img: null },
+        { id: 'uv_backlit_sign', name: 'mimaki_backlit_white_uv.eps', size: '62.0 MB', w: 600, h: 400, img: null }
       ],
+      // Tres láminas A3 (297x420mm) colocadas en paralelo dentro del rollo de 1050mm sin deformarse
       layoutItems: [
-        { id: 'L1', name: 'strawberries.jpg', w: 310, h: 360, art: 'macaroons_poster', selected: false },
-        { id: 'L2', name: 'macaroons.jpg', w: 420, h: 620, art: 'macaroons_poster', selected: false },
-        { id: 'L3', name: 'muffins_1.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: true },
-        { id: 'L4', name: 'muffins_2.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: false },
-        { id: 'L5', name: 'muffins_3.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: false },
-        { id: 'L6', name: 'beetleStars.pdf', w: 580, h: 480, art: 'beetle_stars', selected: false }
+        { id: 'L1', name: 'Poster_A3_1.jpg', x: 15,  y: 15, w: 297, h: 420, aspectRatio: 297 / 420, art: 'poster_a3', img: null, selected: true },
+        { id: 'L2', name: 'Poster_A3_2.jpg', x: 327, y: 15, w: 297, h: 420, aspectRatio: 297 / 420, art: 'bakery_muffins', img: null, selected: false },
+        { id: 'L3', name: 'Poster_A3_3.jpg', x: 639, y: 15, w: 297, h: 420, aspectRatio: 297 / 420, art: 'poster_a3', img: null, selected: false }
       ],
+      dragState: null, // { mode: 'move' | 'resize', item, startMouseX, startMouseY, origX, origY, origW, origH }
       ripQueue: [
-        { id: 'RQ-1', status: 'R', copies: 1, name: 'beetleStars_000', source: 'C:\\Produccion\\Mutoh1624\\beetleStars.pdf', unit: 'unit1' },
-        { id: 'RQ-2', status: '0', copies: 2, name: 'bakery_muffins_001', source: 'C:\\Produccion\\Mutoh1624\\bakery_muffins.tif', unit: 'unit1' },
-        { id: 'RQ-3', status: 'R', copies: 1, name: 'macaroons_vitrola', source: 'C:\\Produccion\\Mutoh1624\\macaroons.jpg', unit: 'unit1' },
-        { id: 'RQ-4', status: 'R', copies: 1, name: 'mimaki_backlit_uv', source: 'C:\\Produccion\\MimakiUJV100\\backlit_uv.eps', unit: 'unit2' },
-        { id: 'RQ-5', status: 'F', copies: 0, name: 'corrupt_preview_x', source: 'C:\\Temp\\incomplete_file.psd', unit: 'unit2' }
+        { id: 'RQ-1', status: 'R', copies: 1, name: 'Poster_A3_297x420mm', source: '297 x 420 mm (A3) — Mutoh VJ-1624', unit: 'unit1' },
+        { id: 'RQ-2', status: '0', copies: 2, name: 'bakery_muffins_A3', source: '297 x 420 mm (A3) — Mutoh VJ-1624', unit: 'unit1' },
+        { id: 'RQ-3', status: 'R', copies: 1, name: 'beetleStars_CutContour', source: '420 x 297 mm (A3 Horiz) — Mutoh VJ-1624', unit: 'unit1' },
+        { id: 'RQ-4', status: 'R', copies: 1, name: 'mimaki_backlit_uv', source: '600 x 400 mm — Mimaki UJV100-160', unit: 'unit2' }
       ],
       printQueue: [
-        { id: 'PQ-1', copies: 1, index: '6661000', notes: 'beetleStars_000 (Mutoh VJ-1624)', unit: 'unit1' },
-        { id: 'PQ-2', copies: 1, index: '6662000', notes: 'macaroons_vitrola (Mutoh VJ-1624)', unit: 'unit1' },
+        { id: 'PQ-1', copies: 1, index: '6661000', notes: 'Poster_A3_297x420mm (Mutoh VJ-1624)', unit: 'unit1' },
+        { id: 'PQ-2', copies: 1, index: '6662000', notes: 'beetleStars_CutContour (Mutoh VJ-1624)', unit: 'unit1' },
         { id: 'PQ-3', copies: 2, index: '6668000', notes: 'mimaki_backlit_uv (Mimaki UJV100-160)', unit: 'unit2' }
       ],
       spots: [
@@ -1175,24 +1225,123 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       ]
     };
 
-    const BAYER8 = [
-      [ 0, 48, 12, 60,  3, 51, 15, 63],
-      [32, 16, 44, 28, 35, 19, 47, 31],
-      [ 8, 56,  4, 52, 11, 59,  7, 55],
-      [40, 24, 36, 20, 43, 27, 39, 23],
-      [ 2, 50, 14, 62,  1, 49, 13, 61],
-      [34, 18, 46, 30, 33, 17, 45, 29],
-      [10, 58,  6, 54,  9, 57,  5, 53],
-      [42, 26, 38, 22, 41, 25, 37, 21]
-    ];
-
     function saveProfilesToStorage() {
       try {
-        localStorage.setItem('wasatch_softrip_profiles_v3', JSON.stringify(STATE.profiles));
+        localStorage.setItem('wasatch_softrip_profiles_v31', JSON.stringify(STATE.profiles));
       } catch (e) {}
     }
 
-    // Cambiar pestaña central (Job | Layout | Queues | Atlas | VDP)
+    // Bloqueo / Desbloqueo de Proporción (Aspect Ratio)
+    function toggleAspectRatioLock() {
+      STATE.lockAspectRatio = !STATE.lockAspectRatio;
+      document.getElementById('chk-lock-aspect').checked = STATE.lockAspectRatio;
+      updateLockButtonUI();
+    }
+
+    function syncLockCheckbox() {
+      STATE.lockAspectRatio = document.getElementById('chk-lock-aspect').checked;
+      updateLockButtonUI();
+    }
+
+    function updateLockButtonUI() {
+      const btn = document.getElementById('btn-lock-ratio');
+      if (STATE.lockAspectRatio) {
+        btn.className = 'px-1.5 py-0.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-xs cursor-pointer';
+        btn.textContent = '🔗 Proporción Fija';
+      } else {
+        btn.className = 'px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-semibold text-xs cursor-pointer';
+        btn.textContent = '🔓 Libre';
+      }
+    }
+
+    // Cambiar medida manual manteniendo proporción exacta sin deformar
+    function setManualSizeFromWidth(newW) {
+      let w = Math.max(10, Math.min(1625, Math.round(newW || 297)));
+      let h = parseFloat(document.getElementById('job-h-mm').value) || 420;
+      if (STATE.lockAspectRatio && STATE.currentAspectRatio > 0) {
+        h = Math.max(10, Math.min(MAX_COIL_MM, Math.round(w / STATE.currentAspectRatio)));
+      }
+      applyNewJobAndSelectedDimensions(w, h);
+    }
+
+    function setManualSizeFromHeight(newH) {
+      let h = Math.max(10, Math.min(MAX_COIL_MM, Math.round(newH || 420)));
+      let w = parseFloat(document.getElementById('job-w-mm').value) || 297;
+      if (STATE.lockAspectRatio && STATE.currentAspectRatio > 0) {
+        w = Math.max(10, Math.min(1625, Math.round(h * STATE.currentAspectRatio)));
+      }
+      applyNewJobAndSelectedDimensions(w, h);
+    }
+
+    function applyNewJobAndSelectedDimensions(w, h) {
+      document.getElementById('job-w-mm').value = w;
+      document.getElementById('job-h-mm').value = h;
+      document.getElementById('top-w-mm').value = w;
+      document.getElementById('top-h-mm').value = h;
+      document.getElementById('sel-w-mm').value = w;
+      document.getElementById('sel-h-mm').value = h;
+
+      // Si hay una pieza seleccionada en el Layout, actualizar también su tamaño sin deformarla
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      if (selItem) {
+        selItem.w = w;
+        selItem.h = h;
+      }
+
+      const ratioStr = (w / h).toFixed(3);
+      document.getElementById('lbl-orig-aspect').textContent = `${w} x ${h} mm (Ratio ${ratioStr})`;
+      document.getElementById('status-xy-coords').textContent =
+        `X,Y: ${selItem ? Math.round(selItem.x) : 0}, ${selItem ? Math.round(selItem.y) : 0} mm | Medida: ${w} x ${h} mm`;
+
+      renderJobCanvas();
+      renderLayoutCanvas();
+    }
+
+    // Presets rápidos de formato (A4, A3, A2, A1, A0) respetando si la imagen es vertical u horizontal y su proporción exacta
+    function applyPaperSizePreset(shortSideMm, longSideMm) {
+      const isLandscape = STATE.currentAspectRatio > 1.0;
+      if (isLandscape) {
+        const targetW = longSideMm;
+        const targetH = STATE.lockAspectRatio ? Math.round(targetW / STATE.currentAspectRatio) : shortSideMm;
+        applyNewJobAndSelectedDimensions(targetW, targetH);
+      } else {
+        const targetW = shortSideMm;
+        const targetH = STATE.lockAspectRatio ? Math.round(targetW / STATE.currentAspectRatio) : longSideMm;
+        applyNewJobAndSelectedDimensions(targetW, targetH);
+      }
+    }
+
+    function applyScalePercent() {
+      const pct = Math.max(5, Math.min(1000, parseFloat(document.getElementById('job-scale-pct').value) || 100));
+      const newW = Math.round(STATE.baseJobWidthMm * (pct / 100));
+      setManualSizeFromWidth(newW);
+    }
+
+    function fitJobToMaterialWidth() {
+      const pW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const mL = parseFloat(document.getElementById('setup-margin-l').value) || 5;
+      const mR = parseFloat(document.getElementById('setup-margin-r').value) || 5;
+      const usable = Math.max(50, pW - mL - mR);
+      setManualSizeFromWidth(usable);
+    }
+
+    function changeJobZoom(delta) {
+      STATE.jobZoom = Math.max(0.4, Math.min(2.5, STATE.jobZoom + delta));
+      document.getElementById('lbl-job-zoom').textContent = `${Math.round(STATE.jobZoom * 100)}%`;
+      renderJobCanvas();
+    }
+
+    function changeLayoutZoom(delta) {
+      STATE.layoutZoom = Math.max(0.4, Math.min(2.5, STATE.layoutZoom + delta));
+      document.getElementById('lbl-layout-zoom').textContent = `${Math.round(STATE.layoutZoom * 100)}%`;
+      renderLayoutCanvas();
+    }
+
+    function addMoreRollViewLength() {
+      STATE.extraRollViewMm = Math.min(MAX_COIL_MM, STATE.extraRollViewMm + 1000);
+      renderLayoutCanvas();
+    }
+
     function switchCenterTab(tabId) {
       document.querySelectorAll('#center-tabs-bar .ws-tab-btn').forEach((b) => {
         b.classList.toggle('active', b.getAttribute('data-ctab') === tabId);
@@ -1207,7 +1356,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       if (tabId === 'tab-vdp') renderVdpCanvas();
     }
 
-    // Botones Set Maximum Width y Set Maximum Height (50 metros = 50,000 mm)
     function setMaximumPaperWidth() {
       const model = document.getElementById('setup-printer-model').value;
       const maxW = model === 'mimaki_ujv100_160' ? 1620 : 1625;
@@ -1229,23 +1377,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       syncPaperAndRender();
     }
 
-    function fitJobToMaterialWidth() {
-      const pW = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
-      const mL = parseFloat(document.getElementById('setup-margin-l').value) || 0;
-      const mR = parseFloat(document.getElementById('setup-margin-r').value) || 0;
-      const usable = Math.max(100, pW - mL - mR);
-      const oldW = parseFloat(document.getElementById('job-w-mm').value) || 920;
-      const oldH = parseFloat(document.getElementById('job-h-mm').value) || 680;
-      const ratio = usable / oldW;
-      document.getElementById('job-w-mm').value = Math.round(usable);
-      if (document.getElementById('chk-lock-aspect').checked) {
-        document.getElementById('job-h-mm').value = Math.min(MAX_COIL_MM, Math.round(oldH * ratio));
-      }
-      renderJobCanvas();
-    }
-
     function syncPaperAndRender() {
-      let pw = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
+      let pw = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
       let ph = parseFloat(document.getElementById('quick-paper-height').value) || MAX_COIL_MM;
       pw = Math.max(100, Math.min(1625, pw));
       ph = Math.max(200, Math.min(MAX_COIL_MM, ph));
@@ -1255,8 +1388,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('setup-paper-w').value = pw;
       document.getElementById('setup-paper-h').value = ph;
 
-      const jh = parseFloat(document.getElementById('job-h-mm').value) || 680;
-      const remM = Math.max(0, (ph - jh) / 1000).toFixed(2);
+      const maxUsedY = STATE.layoutItems.reduce((acc, it) => Math.max(acc, it.y + it.h), 420);
+      const remM = Math.max(0, (ph - maxUsedY) / 1000).toFixed(2);
       document.getElementById('top-paper-summary').textContent = `Material: ${pw} mm x ${ph} mm (${(ph / 1000).toFixed(1)} m)`;
       document.getElementById('status-coil-meter').textContent = `Bobina: ${remM} m libres de ${(ph / 1000).toFixed(2)} m`;
 
@@ -1264,22 +1397,21 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       renderLayoutCanvas();
     }
 
-    // Dibujo de Reglas Graduadas estilo Wasatch (capturas 1 y 2)
+    // Reglas graduadas reales en cm (10 mm = 1 cm) con escala 1:1 exacta en X e Y
     function drawWasatchRulers(ctx, x0, y0, wPx, hPx, maxMmX, maxMmY) {
       ctx.save();
       ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(x0 - 24, y0 - 22, wPx + 48, 22);
-      ctx.fillRect(x0 - 24, y0 + hPx, wPx + 48, 22);
-      ctx.fillRect(x0 - 24, y0, 24, hPx);
-      ctx.fillRect(x0 + wPx, y0, 24, hPx);
+      ctx.fillRect(x0 - 26, y0 - 22, wPx + 52, 22);
+      ctx.fillRect(x0 - 26, y0 + hPx, wPx + 52, 22);
+      ctx.fillRect(x0 - 26, y0, 26, hPx);
+      ctx.fillRect(x0 + wPx, y0, 26, hPx);
 
       ctx.strokeStyle = '#64748b';
       ctx.fillStyle = '#0f172a';
       ctx.font = '10px monospace';
       ctx.lineWidth = 1;
 
-      // Regla Horizontal Superior e Inferior (en cm / decímetros como Wasatch)
-      const stepMmX = maxMmX > 800 ? 100 : 50;
+      const stepMmX = maxMmX > 600 ? 100 : 50;
       for (let mm = 0; mm <= maxMmX; mm += stepMmX / 5) {
         const px = x0 + (mm / maxMmX) * wPx;
         const isMajor = mm % stepMmX === 0;
@@ -1293,12 +1425,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         if (isMajor) {
           const cmLbl = Math.round(mm / 10);
           ctx.fillText(String(cmLbl), px + 2, y0 - 9);
-          ctx.fillText(String(cmLbl), px + 2, y0 + hPx + 17);
+          ctx.fillText(String(cmLbl), px + 2, y0 + hPx + 16);
         }
       }
 
-      // Regla Vertical Izquierda y Derecha
-      const stepMmY = maxMmY > 800 ? 100 : 50;
+      const stepMmY = maxMmY > 600 ? 100 : 50;
       for (let mm = 0; mm <= maxMmY; mm += stepMmY / 5) {
         const py = y0 + (mm / maxMmY) * hPx;
         const isMajor = mm % stepMmY === 0;
@@ -1311,8 +1442,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ctx.stroke();
         if (isMajor) {
           const cmLbl = Math.round(mm / 10);
-          ctx.fillText(String(cmLbl), x0 - 21, py + 3);
-          ctx.fillText(String(cmLbl), x0 + wPx + 5, py + 3);
+          ctx.fillText(String(cmLbl), x0 - 23, py + 3);
+          ctx.fillText(String(cmLbl), x0 + wPx + 4, py + 3);
         }
       }
 
@@ -1321,21 +1452,65 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       ctx.restore();
     }
 
-    // Genera un gráfico de arte según el archivo seleccionado en el File Browser (o imagen subida)
-    function drawArtworkIntoRect(ctx, artType, x, y, w, h, withTrace = false) {
+    // Dibuja un arte o imagen subida respetando SIEMPRE su relación de aspecto (CERO DEFORMACIÓN)
+    function drawArtworkIntoRect(ctx, artType, customImgObj, x, y, w, h, withTrace = false) {
       ctx.save();
-      if (STATE.customImage && artType === 'custom') {
-        ctx.drawImage(STATE.customImage, x, y, w, h);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, w, h);
+
+      const imgToDraw = customImgObj || (artType === 'custom' ? STATE.customImage : null);
+      if (imgToDraw) {
+        // Dibujar manteniendo 100% la relación de aspecto natural dentro del rectángulo (contain)
+        const iw = imgToDraw.naturalWidth || imgToDraw.width || w;
+        const ih = imgToDraw.naturalHeight || imgToDraw.height || h;
+        const scale = Math.min(w / iw, h / ih);
+        const dw = iw * scale;
+        const dh = ih * scale;
+        const dx = x + (w - dw) / 2;
+        const dy = y + (h - dh) / 2;
+        ctx.drawImage(imgToDraw, dx, dy, dw, dh);
+        ctx.restore();
+        return;
+      }
+
+      if (artType === 'poster_a3') {
+        // Póster Vertical A3 (297 x 420 mm) proporcionado
+        const g = ctx.createLinearGradient(x, y, x, y + h);
+        g.addColorStop(0, '#0f172a');
+        g.addColorStop(0.6, '#1e293b');
+        g.addColorStop(1, '#090d16');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y, w, h);
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = Math.max(1.5, w * 0.012);
+        ctx.strokeRect(x + w * 0.05, y + h * 0.04, w * 0.9, h * 0.92);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(11, Math.round(w * 0.085))}px sans-serif`;
+        ctx.fillText('POSTER A3', x + w * 0.14, y + h * 0.14);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText('29.7 x 42 cm', x + w * 0.14, y + h * 0.22);
+
+        // Diana central perfectamente circular (verifica visualmente que 1mm X == 1mm Y sin deformación)
+        const cx = x + w * 0.5, cy = y + h * 0.54;
+        const rMax = Math.min(w, h) * 0.28;
+        [[1.0, '#e1251b'], [0.72, '#ffffff'], [0.48, '#0f172a'], [0.25, '#00aeef']].forEach(([f, col]) => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(cx, cy, rMax * f, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = `${Math.max(9, Math.round(w * 0.045))}px monospace`;
+        ctx.fillText('PROPORCION 1:1 EXACTA', x + w * 0.14, y + h * 0.90);
       } else if (artType === 'bakery_muffins') {
         ctx.fillStyle = '#dbeafe';
         ctx.fillRect(x, y, w, h);
-        const centers = [
-          [0.35, 0.25], [0.68, 0.22],
-          [0.32, 0.58], [0.65, 0.56],
-          [0.48, 0.84]
-        ];
+        const centers = [[0.35, 0.25], [0.68, 0.22], [0.32, 0.58], [0.65, 0.56], [0.48, 0.84]];
         centers.forEach(([cx, cy]) => {
-          const rx = x + w * cx, ry = y + h * cy, rad = Math.min(w, h) * 0.16;
+          const rx = x + w * cx, ry = y + h * cy, rad = Math.min(w, h) * 0.14;
           ctx.fillStyle = '#d97706';
           ctx.beginPath(); ctx.arc(rx, ry, rad, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#fef3c7';
@@ -1343,106 +1518,70 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           ctx.fillStyle = '#dc2626';
           ctx.beginPath(); ctx.arc(rx + rad * 0.2, ry - rad * 0.1, rad * 0.18, 0, Math.PI * 2); ctx.fill();
         });
-      } else if (artType === 'macaroons_poster') {
-        const g = ctx.createLinearGradient(x, y, x, y + h);
-        g.addColorStop(0, '#fbcfe8');
-        g.addColorStop(1, '#f472b6');
-        ctx.fillStyle = g;
-        ctx.fillRect(x, y, w, h);
-        ctx.fillStyle = '#ec4899';
-        ctx.beginPath();
-        ctx.ellipse(x + w * 0.45, y + h * 0.55, w * 0.28, h * 0.16, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fce7f3';
-        ctx.fillRect(x + w * 0.18, y + h * 0.52, w * 0.54, h * 0.06);
       } else if (artType === 'uv_backlit_sign') {
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(x, y, w, h);
         ctx.fillStyle = '#00aeef';
-        ctx.fillRect(x + 14, y + 14, w - 28, h * 0.28);
+        ctx.fillRect(x + w * 0.06, y + h * 0.08, w * 0.88, h * 0.28);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText('MIMAKI UJV100-160 UV LED + WHITE', x + 24, y + 38);
+        ctx.font = `bold ${Math.max(10, Math.round(w * 0.055))}px sans-serif`;
+        ctx.fillText('MIMAKI UJV100-160 UV LED', x + w * 0.1, y + h * 0.25);
       } else {
-        // Default: Escarabajo + Estrellas con trazado amarillo estilo Captura 2 de Wasatch
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x, y, w, h);
-
-        // Círculos retro e ilustración vectorial
+        // Escarabajo + Estrellas
         [[0.25, 0.72, 0.11, '#b91c1c'], [0.42, 0.74, 0.13, '#78350f'], [0.76, 0.70, 0.09, '#311042']].forEach(([cx, cy, r, col]) => {
           ctx.fillStyle = col;
           ctx.beginPath();
           ctx.arc(x + w * cx, y + h * cy, Math.min(w, h) * r, 0, Math.PI * 2);
           ctx.fill();
         });
-
-        // Estrellas superiores derechas
-        const drawStar = (sx, sy, rad, fillCol) => {
-          ctx.fillStyle = fillCol;
-          ctx.beginPath();
-          for (let i = 0; i < 10; i++) {
-            const r = i % 2 === 0 ? rad : rad * 0.45;
-            const a = (i * Math.PI) / 5 - Math.PI / 2;
-            const px = sx + r * Math.cos(a), py = sy + r * Math.sin(a);
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          ctx.fill();
-        };
-        drawStar(x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.17, '#991b1b');
-        drawStar(x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.11, '#4c1d95');
-        drawStar(x + w * 0.56, y + h * 0.36, Math.min(w, h) * 0.12, '#b91c1c');
-
-        // Silueta del Escarabajo (Beetle)
         ctx.fillStyle = '#3b0764';
         ctx.beginPath();
         ctx.ellipse(x + w * 0.48, y + h * 0.62, w * 0.26, h * 0.14, 0, Math.PI, 0);
         ctx.ellipse(x + w * 0.48, y + h * 0.64, w * 0.32, h * 0.10, 0, 0, Math.PI * 2);
         ctx.fill();
-
-        // Ruedas
-        ctx.fillStyle = '#1e1b4b';
-        ctx.beginPath(); ctx.arc(x + w * 0.36, y + h * 0.72, Math.min(w, h) * 0.08, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x + w * 0.64, y + h * 0.69, Math.min(w, h) * 0.07, 0, Math.PI * 2); ctx.fill();
-
         if (withTrace && document.getElementById('chk-trace-active').checked) {
           ctx.strokeStyle = document.getElementById('trace-color').value || '#fff200';
-          ctx.lineWidth = 3.5;
-          ctx.beginPath();
-          ctx.roundRect(x + w * 0.14, y + h * 0.12, w * 0.72, h * 0.74, 18);
-          ctx.stroke();
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x + w * 0.12, y + h * 0.12, w * 0.76, h * 0.74);
         }
       }
       ctx.restore();
     }
 
-    // Renderizar Vista Principal JOB (con separación de canales CMYKW, Panelación Tile, Trazado y Anotación)
+    // ============================================================================
+    // VISTA 1: JOB (Escala Isótropa 1:1 en Píxeles — NUNCA DEFORMA LA IMAGEN)
+    // ============================================================================
     function renderJobCanvas() {
+      const jobWMm = Math.max(10, parseFloat(document.getElementById('job-w-mm').value) || 297);
+      const jobHMm = Math.max(10, parseFloat(document.getElementById('job-h-mm').value) || 420);
+
+      // Calcular escala unificada (misma escala px/mm para Ancho y para Alto)
+      const baseMaxPx = 460 * STATE.jobZoom;
+      const scalePxPerMm = baseMaxPx / Math.max(jobWMm, jobHMm, 100);
+      const viewW = Math.max(80, Math.round(jobWMm * scalePxPerMm));
+      const viewH = Math.max(80, Math.round(jobHMm * scalePxPerMm));
+
+      const padX = 48, padTop = 34, padBottom = 52;
       const canvas = document.getElementById('job-canvas');
+      canvas.width = viewW + padX * 2;
+      canvas.height = viewH + padTop + padBottom;
+
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#e2e8f0';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const x0 = 44, y0 = 32;
-      const viewW = canvas.width - 88;
-      const viewH = canvas.height - 78;
-
-      const jobWMm = parseFloat(document.getElementById('job-w-mm').value) || 920;
-      const jobHMm = parseFloat(document.getElementById('job-h-mm').value) || 680;
-
-      // Crear imagen del trabajo procesada por los controles de canal CMYKW
       const off = document.createElement('canvas');
       off.width = viewW;
       off.height = viewH;
       const oCtx = off.getContext('2d');
 
-      if ( document.getElementById('setup-mirror').checked ) {
+      if (document.getElementById('setup-mirror').checked) {
         oCtx.translate(viewW, 0);
         oCtx.scale(-1, 1);
       }
-      drawArtworkIntoRect(oCtx, STATE.customImage ? 'custom' : STATE.activeSampleArt, 0, 0, viewW, viewH, true);
+      drawArtworkIntoRect(oCtx, STATE.customImage ? 'custom' : STATE.activeSampleArt, STATE.customImage, 0, 0, viewW, viewH, true);
 
-      // Aplicar ganancias de canal y separación de canal activo
+      // Separación CMYKW en vivo
       const imgData = oCtx.getImageData(0, 0, viewW, viewH);
       const d = imgData.data;
       const gC = parseFloat(document.getElementById('u-c-slider').value) / 100;
@@ -1489,10 +1628,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         }
       }
       oCtx.putImageData(imgData, 0, 0);
+      ctx.drawImage(off, padX, padTop);
 
-      ctx.drawImage(off, x0, y0);
-
-      // Si está activa la Panelación (Tile) en la barra izquierda, dibujar divisiones y solapamiento
+      // Panelación (Tile) si está activa
       if (document.getElementById('chk-tile-active').checked) {
         const tCols = Math.max(1, parseInt(document.getElementById('tile-cols').value, 10) || 3);
         const tRows = Math.max(1, parseInt(document.getElementById('tile-rows').value, 10) || 1);
@@ -1500,107 +1638,109 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ctx.strokeStyle = '#0284c7';
         ctx.lineWidth = 2;
         for (let c = 1; c < tCols; c++) {
-          const tx = x0 + (c / tCols) * viewW;
-          ctx.beginPath(); ctx.moveTo(tx, y0); ctx.lineTo(tx, y0 + viewH); ctx.stroke();
-          ctx.fillStyle = 'rgba(2, 132, 199, 0.18)';
-          ctx.fillRect(tx - 6, y0, 12, viewH);
+          const tx = padX + (c / tCols) * viewW;
+          ctx.beginPath(); ctx.moveTo(tx, padTop); ctx.lineTo(tx, padTop + viewH); ctx.stroke();
         }
         for (let r = 1; r < tRows; r++) {
-          const ty = y0 + (r / tRows) * viewH;
-          ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(x0 + viewW, ty); ctx.stroke();
+          const ty = padTop + (r / tRows) * viewH;
+          ctx.beginPath(); ctx.moveTo(padX, ty); ctx.lineTo(padX + viewW, ty); ctx.stroke();
         }
         document.getElementById('tile-info-box').textContent =
-          `${tCols * tRows} paneles de ~${Math.round(jobWMm / tCols + ovMm)} x ${Math.round(jobHMm / tRows)} mm (Overlap ${ovMm} mm)`;
+          `${tCols * tRows} paneles de ~${Math.round(jobWMm / tCols + ovMm)} x ${Math.round(jobHMm / tRows)} mm`;
       }
 
-      // Dibujar Reglas Graduadas alrededor del lienzo (estilo Wasatch Captura 2)
-      drawWasatchRulers(ctx, x0, y0, viewW, viewH, jobWMm, jobHMm);
+      drawWasatchRulers(ctx, padX, padTop, viewW, viewH, jobWMm, jobHMm);
 
-      // Si Annotate Prints está activo (Captura 6), imprimir línea de anotación y patrón CMYK al pie
+      // Anotación al pie y patrón CMYK
       if (document.getElementById('setup-annotate').checked) {
-        const ay = y0 + viewH + 24;
+        const ay = padTop + viewH + 24;
         ctx.fillStyle = '#0f172a';
         ctx.font = '10px monospace';
-        const parts = [];
-        if (document.getElementById('ann-jobname').checked) parts.push('Job: ' + STATE.activeSampleArt);
+        const parts = [`${jobWMm}x${jobHMm}mm`];
         if (document.getElementById('ann-printer').checked) {
           parts.push(STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624');
-        }
-        if (document.getElementById('ann-config').checked) {
-          const pf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
-          parts.push(pf.name);
         }
         if (document.getElementById('ann-comment').checked) {
           parts.push(document.getElementById('ann-comment-txt').value);
         }
-        ctx.fillText(parts.join('  |  '), x0, ay + 12);
-
-        if (document.getElementById('ann-cmyk-pattern').checked) {
-          const cols = ['#00aeef', '#ec008c', '#fff200', '#0f172a'];
-          cols.forEach((col, i) => {
-            ctx.fillStyle = col;
-            ctx.fillRect(x0 + viewW - 88 + i * 20, ay + 2, 16, 12);
-            ctx.strokeStyle = '#334155';
-            ctx.strokeRect(x0 + viewW - 88 + i * 20, ay + 2, 16, 12);
-          });
-        }
+        ctx.fillText(parts.join(' | '), padX, ay + 12);
       }
 
-      // Calcular tinta total en mL
       const areaM2 = (jobWMm / 1000) * (jobHMm / 1000);
-      const avgInk = sumInk / (viewW * viewH);
+      const avgInk = sumInk / Math.max(1, viewW * viewH);
       const ml = (avgInk * areaM2 * 3.1).toFixed(2);
       document.getElementById('top-ink-summary').textContent = `Tinta: ${ml} mL`;
     }
 
-    // Renderizar Vista LAYOUT (Mesa de Montaje con Reglas Graduadas estilo Captura 1 de Wasatch)
+    // ============================================================================
+    // VISTA 2: LAYOUT (Escala 1:1 Exacta + Drag & Drop Libre + Scroll de Bobina)
+    // ============================================================================
+    function getLayoutGeometry() {
+      const rollW_mm = Math.max(200, parseFloat(document.getElementById('quick-paper-width').value) || 1050);
+      const viewW = Math.round(680 * STATE.layoutZoom);
+      const scale = viewW / rollW_mm; // Misma escala px/mm para X y para Y (CERO DEFORMACIÓN)
+      const x0 = 42, y0 = 32;
+      const maxItemY = STATE.layoutItems.reduce((acc, it) => Math.max(acc, it.y + it.h), 450);
+      const visibleRollLenMm = Math.min(MAX_COIL_MM, Math.max(STATE.extraRollViewMm, maxItemY + 450));
+      const viewH = Math.round(visibleRollLenMm * scale);
+      return { rollW_mm, viewW, viewH, scale, x0, y0, visibleRollLenMm, maxItemY };
+    }
+
     function renderLayoutCanvas() {
       const canvas = document.getElementById('layout-canvas');
+      const { rollW_mm, viewW, viewH, scale, x0, y0, visibleRollLenMm, maxItemY } = getLayoutGeometry();
+
+      canvas.width = viewW + 84;
+      canvas.height = viewH + 68;
+
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#e2e8f0';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const x0 = 40, y0 = 30;
-      const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
-      const viewW = canvas.width - 68;
-      const scale = viewW / rollW_mm;
-
-      // Posicionar piezas en el rollo (Smart Nesting)
-      let curX = 12, curY = 12, shelfH = 0, usedArea = 0;
-      const placed = [];
-      STATE.layoutItems.forEach((it) => {
-        const w = Math.min(rollW_mm - 24, it.w);
-        const h = it.h;
-        if (curX + w > rollW_mm - 12) {
-          curX = 12;
-          curY += shelfH + 14;
-          shelfH = 0;
-        }
-        placed.push({ ...it, x: curX, y: curY, w, h });
-        curX += w + 14;
-        if (h > shelfH) shelfH = h;
-        usedArea += w * h;
-      });
-
-      const totalLenMm = Math.max(800, curY + shelfH + 24);
-      const viewH = Math.min(canvas.height - 54, Math.max(320, totalLenMm * scale));
-
+      // Fondo blanco del rollo de material
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x0, y0, viewW, viewH);
 
-      // Dibujar cada imagen anidada con borde punteado o verde si está seleccionada (como Captura 1)
-      placed.forEach((p) => {
-        const px = x0 + p.x * scale;
-        const py = y0 + p.y * scale;
-        const pw = p.w * scale;
-        const ph = p.h * scale;
-        drawArtworkIntoRect(ctx, p.art, px, py, pw, ph, false);
+      // Cuadrícula guía suave cada 10 cm (100 mm)
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+      ctx.lineWidth = 1;
+      for (let gx = 100; gx < rollW_mm; gx += 100) {
+        const px = x0 + gx * scale;
+        ctx.beginPath(); ctx.moveTo(px, y0); ctx.lineTo(px, y0 + viewH); ctx.stroke();
+      }
+      for (let gy = 100; gy < visibleRollLenMm; gy += 100) {
+        const py = y0 + gy * scale;
+        ctx.beginPath(); ctx.moveTo(x0, py); ctx.lineTo(x0 + viewW, py); ctx.stroke();
+      }
+
+      let usedArea = 0;
+      STATE.layoutItems.forEach((it) => {
+        const px = x0 + it.x * scale;
+        const py = y0 + it.y * scale;
+        const pw = it.w * scale;
+        const ph = it.h * scale;
+        usedArea += it.w * it.h;
+
+        drawArtworkIntoRect(ctx, it.art, it.img, px, py, pw, ph, false);
+
+        // Etiqueta superior con dimensiones reales en mm
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+        ctx.fillRect(px + 2, py + 2, Math.min(pw - 4, 155), 18);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(`${Math.round(it.w)}x${Math.round(it.h)}mm (${it.name.slice(0, 10)})`, px + 6, py + 14);
 
         ctx.save();
-        if (p.selected) {
+        if (it.selected) {
           ctx.strokeStyle = '#22c55e';
           ctx.lineWidth = 2.5;
           ctx.strokeRect(px, py, pw, ph);
+          // Tirador de esquina inferior derecha para redimensionar proporcionalmente con el ratón
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(px + pw - 10, py + ph - 10, 10, 10);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px + pw - 10, py + ph - 10, 10, 10);
         } else {
           ctx.strokeStyle = '#475569';
           ctx.lineWidth = 1.2;
@@ -1610,14 +1750,356 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ctx.restore();
       });
 
-      drawWasatchRulers(ctx, x0, y0, viewW, viewH, rollW_mm, Math.round(viewH / scale));
+      drawWasatchRulers(ctx, x0, y0, viewW, viewH, rollW_mm, visibleRollLenMm);
 
-      const eff = Math.min(98.5, (usedArea / Math.max(1, rollW_mm * (curY + shelfH))) * 100).toFixed(2);
+      const eff = STATE.layoutItems.length > 0
+        ? Math.min(99.2, (usedArea / Math.max(1, rollW_mm * maxItemY)) * 100).toFixed(2)
+        : '0.00';
       document.getElementById('status-nesting-eff').textContent = `Nesting Efficiency: ${eff}%`;
-      document.getElementById('layout-count-badge').textContent = `Images In Layout: ${STATE.layoutItems.length}`;
+      document.getElementById('layout-count-badge').textContent = `Piezas: ${STATE.layoutItems.length}`;
     }
 
-    // Renderizar Doble Tabla QUEUES (Rip Queue & Print Queue estilo Captura 3 de Wasatch)
+    // ============================================================================
+    // INTERACCIÓN CON EL RATÓN EN LAYOUT: MOVER LIBREMENTE Y REDIMENSIONAR
+    // ============================================================================
+    function bindLayoutMouseEvents() {
+      const canvas = document.getElementById('layout-canvas');
+
+      function getMouseMm(ev) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleCanvasX = canvas.width / rect.width;
+        const scaleCanvasY = canvas.height / rect.height;
+        const cx = (ev.clientX - rect.left) * scaleCanvasX;
+        const cy = (ev.clientY - rect.top) * scaleCanvasY;
+        const { scale, x0, y0 } = getLayoutGeometry();
+        return {
+          mmX: (cx - x0) / scale,
+          mmY: (cy - y0) / scale,
+          scale
+        };
+      }
+
+      canvas.addEventListener('mousedown', (ev) => {
+        const { mmX, mmY, scale } = getMouseMm(ev);
+        const handleRadiusMm = 14 / scale;
+
+        // Buscar de arriba hacia abajo qué pieza hemos clicado
+        let hitItem = null;
+        let hitMode = 'move';
+        for (let i = STATE.layoutItems.length - 1; i >= 0; i--) {
+          const it = STATE.layoutItems[i];
+          // ¿Clic en el tirador de esquina inferior derecha para redimensionar?
+          if (
+            mmX >= it.x + it.w - handleRadiusMm &&
+            mmX <= it.x + it.w + handleRadiusMm &&
+            mmY >= it.y + it.h - handleRadiusMm &&
+            mmY <= it.y + it.h + handleRadiusMm
+          ) {
+            hitItem = it;
+            hitMode = 'resize';
+            break;
+          }
+          // ¿Clic dentro de la imagen para moverla libremente?
+          if (mmX >= it.x && mmX <= it.x + it.w && mmY >= it.y && mmY <= it.y + it.h) {
+            hitItem = it;
+            hitMode = 'move';
+            break;
+          }
+        }
+
+        if (hitItem) {
+          STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
+          STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
+          STATE.dragState = {
+            mode: hitMode,
+            item: hitItem,
+            startMmX: mmX,
+            startMmY: mmY,
+            origX: hitItem.x,
+            origY: hitItem.y,
+            origW: hitItem.w,
+            origH: hitItem.h
+          };
+          syncSelectedLayoutItemInputs(hitItem);
+          renderLayoutCanvas();
+        }
+      });
+
+      window.addEventListener('mousemove', (ev) => {
+        if (!STATE.dragState) return;
+        const { mmX, mmY } = getMouseMm(ev);
+        const ds = STATE.dragState;
+        const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+
+        if (ds.mode === 'move') {
+          const dx = mmX - ds.startMmX;
+          const dy = mmY - ds.startMmY;
+          ds.item.x = Math.max(0, Math.min(rollW_mm - ds.item.w, Math.round(ds.origX + dx)));
+          ds.item.y = Math.max(0, Math.min(MAX_COIL_MM - ds.item.h, Math.round(ds.origY + dy)));
+          if (ds.item.y + ds.item.h + 250 > STATE.extraRollViewMm) {
+            STATE.extraRollViewMm = Math.min(MAX_COIL_MM, ds.item.y + ds.item.h + 500);
+          }
+        } else if (ds.mode === 'resize') {
+          const dw = mmX - ds.startMmX;
+          let newW = Math.max(30, Math.min(rollW_mm - ds.item.x, Math.round(ds.origW + dw)));
+          const ratio = ds.item.aspectRatio || (ds.origW / ds.origH);
+          let newH = STATE.lockAspectRatio ? Math.round(newW / ratio) : Math.max(30, Math.round(ds.origH + (mmY - ds.startMmY)));
+          ds.item.w = newW;
+          ds.item.h = newH;
+        }
+        syncSelectedLayoutItemInputs(ds.item);
+        renderLayoutCanvas();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (STATE.dragState) {
+          STATE.dragState = null;
+          syncPaperAndRender();
+        }
+      });
+    }
+
+    function syncSelectedLayoutItemInputs(item) {
+      if (!item) return;
+      document.getElementById('sel-x-mm').value = Math.round(item.x);
+      document.getElementById('sel-y-mm').value = Math.round(item.y);
+      document.getElementById('sel-w-mm').value = Math.round(item.w);
+      document.getElementById('sel-h-mm').value = Math.round(item.h);
+      document.getElementById('top-w-mm').value = Math.round(item.w);
+      document.getElementById('top-h-mm').value = Math.round(item.h);
+      document.getElementById('job-w-mm').value = Math.round(item.w);
+      document.getElementById('job-h-mm').value = Math.round(item.h);
+      document.getElementById('status-xy-coords').textContent =
+        `X,Y: ${Math.round(item.x)}, ${Math.round(item.y)} mm | Pieza: ${Math.round(item.w)} x ${Math.round(item.h)} mm`;
+    }
+
+    function duplicateSelectedLayoutItem() {
+      const sel = STATE.layoutItems.find((it) => it.selected) || STATE.layoutItems[STATE.layoutItems.length - 1];
+      if (!sel) return;
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      let nextX = sel.x + sel.w + 15;
+      let nextY = sel.y;
+      if (nextX + sel.w > rollW - 10) {
+        nextX = 15;
+        nextY = sel.y + sel.h + 15;
+      }
+      STATE.layoutItems.forEach((x) => (x.selected = false));
+      const copy = {
+        ...sel,
+        id: 'L' + Date.now().toString().slice(-4),
+        x: nextX,
+        y: nextY,
+        selected: true
+      };
+      STATE.layoutItems.push(copy);
+      syncSelectedLayoutItemInputs(copy);
+      renderLayoutCanvas();
+    }
+
+    function deleteSelectedLayoutItem() {
+      const idx = STATE.layoutItems.findIndex((it) => it.selected);
+      if (idx !== -1) {
+        STATE.layoutItems.splice(idx, 1);
+        if (STATE.layoutItems.length > 0) {
+          STATE.layoutItems[0].selected = true;
+          syncSelectedLayoutItemInputs(STATE.layoutItems[0]);
+        }
+        renderLayoutCanvas();
+      }
+    }
+
+    // Smart Nest: Acomoda automáticamente en filas aprovechando todo el ancho del material sin deformar ninguna pieza
+    function actionSmartNest() {
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const margin = 15, gap = 15;
+      let curX = margin, curY = margin, rowH = 0;
+
+      STATE.layoutItems.forEach((it) => {
+        if (it.w > rollW - margin * 2) {
+          const ratio = it.aspectRatio || (it.w / it.h);
+          it.w = rollW - margin * 2;
+          it.h = Math.round(it.w / ratio);
+        }
+        if (curX + it.w > rollW - margin) {
+          curX = margin;
+          curY += rowH + gap;
+          rowH = 0;
+        }
+        it.x = curX;
+        it.y = curY;
+        curX += it.w + gap;
+        if (it.h > rowH) rowH = it.h;
+      });
+
+      switchCenterTab('tab-layout');
+      renderLayoutCanvas();
+    }
+
+    // Añadir trabajo actual al Layout conservando su ancho, alto y proporción exactos
+    function actionAddToLayout() {
+      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 297);
+      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 420);
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+
+      // Buscar posición junto a la última pieza si cabe en la fila actual
+      let nextX = 15, nextY = 15;
+      if (STATE.layoutItems.length > 0) {
+        const last = STATE.layoutItems[STATE.layoutItems.length - 1];
+        if (last.x + last.w + 15 + w <= rollW - 15) {
+          nextX = last.x + last.w + 15;
+          nextY = last.y;
+        } else {
+          const maxBottom = STATE.layoutItems.reduce((m, it) => Math.max(m, it.y + it.h), 15);
+          nextX = 15;
+          nextY = maxBottom + 15;
+        }
+      }
+
+      STATE.layoutItems.forEach((x) => (x.selected = false));
+      const newItem = {
+        id: 'L' + (STATE.layoutItems.length + 1),
+        name: STATE.customImage ? (STATE.customImage._fileName || 'Imagen_Usuario.jpg') : (STATE.activeSampleArt + '.tif'),
+        x: nextX,
+        y: nextY,
+        w,
+        h,
+        aspectRatio: w / h,
+        art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
+        img: STATE.customImage,
+        selected: true
+      };
+      STATE.layoutItems.push(newItem);
+      syncSelectedLayoutItemInputs(newItem);
+      switchCenterTab('tab-layout');
+    }
+
+    function applyRepeatsToLayout() {
+      const rx = Math.max(1, parseInt(document.getElementById('rep-x').value, 10) || 3);
+      const ry = Math.max(1, parseInt(document.getElementById('rep-y').value, 10) || 2);
+      const gx = parseFloat(document.getElementById('rep-gap-x').value) || 10;
+      const gy = parseFloat(document.getElementById('rep-gap-y').value) || 10;
+      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 297);
+      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 420);
+
+      STATE.layoutItems = [];
+      for (let r = 0; r < ry; r++) {
+        for (let c = 0; c < rx; c++) {
+          STATE.layoutItems.push({
+            id: `REP-${r}-${c}`,
+            name: `${STATE.activeSampleArt}_${r + 1}x${c + 1}`,
+            x: 15 + c * (w + gx),
+            y: 15 + r * (h + gy),
+            w,
+            h,
+            aspectRatio: w / h,
+            art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
+            img: STATE.customImage,
+            selected: r === 0 && c === 0
+          });
+        }
+      }
+      switchCenterTab('tab-layout');
+    }
+
+    // Procesar archivos subidos desde el ordenador del usuario sin deformarlos jamás
+    function handleUploadedFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (files.length === 0) return;
+
+      files.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            img._fileName = file.name;
+            const nw = img.naturalWidth || 1000;
+            const nh = img.naturalHeight || 1414;
+            const ratio = nw / nh;
+
+            // Calcular tamaño físico inicial manteniendo SIEMPRE la proporción exacta (nw / nh)
+            const dpiMode = document.getElementById('import-dpi-select').value;
+            let wMm, hMm;
+            if (dpiMode === '300') {
+              wMm = Math.round((nw / 300) * 25.4);
+              hMm = Math.round(wMm / ratio);
+            } else if (dpiMode === '150') {
+              wMm = Math.round((nw / 150) * 25.4);
+              hMm = Math.round(wMm / ratio);
+            } else if (dpiMode === '72') {
+              wMm = Math.round((nw / 72) * 25.4);
+              hMm = Math.round(wMm / ratio);
+            } else {
+              // Auto-Detectar A3 proporcional (si es vertical: ancho 297 mm y alto exacto según ratio; si es horizontal: alto 297 mm y ancho según ratio)
+              if (ratio <= 1.0) {
+                wMm = 297;
+                hMm = Math.round(297 / ratio);
+              } else {
+                hMm = 297;
+                wMm = Math.round(297 * ratio);
+              }
+            }
+
+            STATE.customImage = img;
+            STATE.currentAspectRatio = ratio;
+            STATE.baseJobWidthMm = wMm;
+            STATE.baseJobHeightMm = hMm;
+
+            // Añadir al File Browser lateral
+            STATE.sampleFiles.unshift({
+              id: 'user_' + Date.now() + '_' + idx,
+              name: file.name,
+              size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+              w: wMm,
+              h: hMm,
+              img
+            });
+            renderFileBrowserList();
+
+            document.getElementById('status-file-path').textContent = `C:\\Usuario\\MisArchivos\\${file.name} (${nw}x${nh} px)`;
+
+            // Actualizar las cajas de tamaño y también añadir o actualizar en el Layout sin deformar
+            applyNewJobAndSelectedDimensions(wMm, hMm);
+
+            // Si estamos en la pestaña Layout, añadir la imagen subida directamente con su tamaño real
+            const isLayoutActive = !document.getElementById('tab-layout').classList.contains('hidden');
+            if (isLayoutActive || files.length > 1) {
+              actionAddToLayout();
+            } else {
+              renderJobCanvas();
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderFileBrowserList() {
+      const fb = document.getElementById('file-browser-list');
+      fb.innerHTML = STATE.sampleFiles.map((f, i) => `
+        <div data-fidx="${i}" class="p-1.5 hover:bg-[var(--secondary)] cursor-pointer flex items-center justify-between text-xs">
+          <span class="font-medium truncate">📄 ${f.name}</span>
+          <span class="font-mono text-[var(--primary)] ml-1">${f.w}x${f.h}mm</span>
+        </div>
+      `).join('');
+
+      fb.querySelectorAll('[data-fidx]').forEach((el) => {
+        el.addEventListener('click', () => {
+          const item = STATE.sampleFiles[parseInt(el.getAttribute('data-fidx'), 10)];
+          if (!item) return;
+          STATE.customImage = item.img || null;
+          STATE.activeSampleArt = item.id;
+          STATE.currentAspectRatio = item.w / item.h;
+          STATE.baseJobWidthMm = item.w;
+          STATE.baseJobHeightMm = item.h;
+          applyNewJobAndSelectedDimensions(item.w, item.h);
+        });
+        el.addEventListener('dblclick', () => {
+          actionAddToLayout();
+        });
+      });
+    }
+
     function renderQueuesSplitView() {
       const u1 = document.getElementById('q-chk-u1').checked;
       const u2 = document.getElementById('q-chk-u2').checked;
@@ -1637,7 +2119,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             </td>
             <td class="p-2 font-mono">${r.copies}</td>
             <td class="p-2 font-semibold">${r.name}</td>
-            <td class="p-2 font-mono text-xs text-[var(--muted-foreground)] truncate max-w-[200px]">${r.source}</td>
+            <td class="p-2 font-mono text-xs text-[var(--muted-foreground)]">${r.source}</td>
           </tr>
         `;
       }).join('');
@@ -1656,7 +2138,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       `).join('');
     }
 
-    // Atlas de Color y Tabla CIE Lab / PANTONE
     function renderAtlasCanvas() {
       const canvas = document.getElementById('atlas-canvas');
       const ctx = canvas.getContext('2d');
@@ -1759,28 +2240,30 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         status: 'R',
         copies: 1,
         name: 'VDP_Batch_Seriado_001',
-        source: 'C:\\Produccion\\VDP\\Lote_Variables.vdp',
+        source: 'Lote Datos Variables — ' + (STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624'),
         unit: STATE.activeUnit
       });
       switchCenterTab('tab-queues');
     }
 
-    // Acciones de la Barra de Herramientas Wasatch
     function actionRipCurrentJob() {
-      const jobName = STATE.customImage ? 'Custom_Uploaded_Art' : STATE.activeSampleArt;
+      const w = document.getElementById('job-w-mm').value;
+      const h = document.getElementById('job-h-mm').value;
+      const jobName = STATE.customImage ? (STATE.customImage._fileName || 'Imagen_Usuario') : STATE.activeSampleArt;
+      const printerName = STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
       STATE.ripQueue.unshift({
         id: 'RQ-' + Date.now(),
         status: 'R',
         copies: 1,
-        name: jobName + '_RIP',
-        source: document.getElementById('status-file-path').textContent.trim(),
+        name: `${jobName} (${w}x${h}mm)`,
+        source: `${w} x ${h} mm — ${printerName}`,
         unit: STATE.activeUnit
       });
       STATE.printQueue.unshift({
         id: 'PQ-' + Date.now(),
         copies: 1,
         index: String(6660000 + Math.floor(Math.random() * 9000)),
-        notes: `${jobName} (${STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624'})`,
+        notes: `${jobName} [${w}x${h}mm] (${printerName})`,
         unit: STATE.activeUnit
       });
       renderQueuesSplitView();
@@ -1790,8 +2273,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     function exportPrnFile(jobLabel) {
       const pw = document.getElementById('quick-paper-width').value;
       const ph = document.getElementById('quick-paper-height').value;
+      const jw = document.getElementById('job-w-mm').value;
+      const jh = document.getElementById('job-h-mm').value;
       const unitName = STATE.activeUnit === 'unit2' ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
-      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nWASATCH-SOFTRIP-PRN|UNIT=${unitName}|PAPER_W_MM=${pw}|PAPER_H_MM=${ph}\n`;
+      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nWASATCH-SOFTRIP-PRN|UNIT=${unitName}|PAPER_W_MM=${pw}|PAPER_H_MM=${ph}|JOB_MM=${jw}x${jh}\n`;
       const bytes = new Uint8Array(4096);
       for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 53 + 11) & 0xff;
       const blob = new Blob([header, bytes, '\x0c\x1b@'], { type: 'application/octet-stream' });
@@ -1806,54 +2291,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       actionRipCurrentJob();
     }
 
-    function actionAddToLayout() {
-      const w = parseFloat(document.getElementById('job-w-mm').value) || 480;
-      const h = parseFloat(document.getElementById('job-h-mm').value) || 540;
-      STATE.layoutItems.push({
-        id: 'L' + (STATE.layoutItems.length + 1),
-        name: STATE.activeSampleArt + '.tif',
-        w: Math.min(750, w * 0.55),
-        h: Math.min(750, h * 0.55),
-        art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
-        selected: true
-      });
-      switchCenterTab('tab-layout');
-    }
-
-    function actionSmartNest() {
-      STATE.layoutItems.sort((a, b) => b.h - a.h);
-      switchCenterTab('tab-layout');
-    }
-
-    function clearLayoutItems() {
-      STATE.layoutItems = [];
-      renderLayoutCanvas();
-    }
-
-    function applyRepeatsToLayout() {
-      const rx = Math.max(1, parseInt(document.getElementById('rep-x').value, 10) || 1);
-      const ry = Math.max(1, parseInt(document.getElementById('rep-y').value, 10) || 1);
-      const total = Math.min(24, rx * ry);
-      for (let i = 0; i < total; i++) {
-        STATE.layoutItems.push({
-          id: 'R' + i,
-          name: `${STATE.activeSampleArt}_${i + 1}`,
-          w: 360,
-          h: 420,
-          art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
-          selected: i === 0
-        });
-      }
-      switchCenterTab('tab-layout');
-    }
-
     function actionRotate90() {
-      const wEl = document.getElementById('job-w-mm');
-      const hEl = document.getElementById('job-h-mm');
-      const tmp = wEl.value;
-      wEl.value = hEl.value;
-      hEl.value = tmp;
-      renderJobCanvas();
+      const w = parseFloat(document.getElementById('job-w-mm').value) || 297;
+      const h = parseFloat(document.getElementById('job-h-mm').value) || 420;
+      STATE.currentAspectRatio = 1 / STATE.currentAspectRatio;
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      if (selItem) selItem.aspectRatio = 1 / (selItem.aspectRatio || (w / h));
+      applyNewJobAndSelectedDimensions(h, w);
     }
 
     function actionToggleMirror() {
@@ -1869,7 +2313,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       }
     }
 
-    // Gestión de Ventanas Modales (Setup - Print Unit, Imaging Configuration, Annotation Details)
     function openSetupModal() {
       document.getElementById('modal-setup-unit').classList.add('open');
     }
@@ -1903,7 +2346,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         document.getElementById('ic-mode').value = pf.mode || 'Custom';
         document.getElementById('ic-res').value = pf.res || '720x1440';
         document.getElementById('ic-passes').value = String(pf.passes || 8);
-        document.getElementById('ic-width').value = pf.width_mm || 1370;
+        document.getElementById('ic-width').value = pf.width_mm || 1050;
         document.getElementById('ic-til').value = pf.til || 270;
         document.getElementById('ic-c').value = pf.gains.C ?? 100;
         document.getElementById('ic-m').value = pf.gains.M ?? 98;
@@ -1954,7 +2397,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         mode: document.getElementById('ic-mode').value,
         res: document.getElementById('ic-res').value,
         passes: parseInt(document.getElementById('ic-passes').value, 10) || 8,
-        width_mm: Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1370)),
+        width_mm: Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1050)),
         til: parseInt(document.getElementById('ic-til').value, 10) || 270,
         gains: {
           C: parseInt(document.getElementById('ic-c').value, 10) || 100,
@@ -1979,7 +2422,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       pf.mode = document.getElementById('ic-mode').value;
       pf.res = document.getElementById('ic-res').value;
       pf.passes = parseInt(document.getElementById('ic-passes').value, 10) || 8;
-      pf.width_mm = Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1370));
+      pf.width_mm = Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1050));
       pf.til = parseInt(document.getElementById('ic-til').value, 10) || 270;
       pf.gains = {
         C: parseInt(document.getElementById('ic-c').value, 10) || 100,
@@ -2024,28 +2467,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       closeAnnotationModal();
     }
 
-    // Inicializar eventos al cargar
     document.addEventListener('DOMContentLoaded', () => {
-      // Poblar File Browser
-      const fb = document.getElementById('file-browser-list');
-      fb.innerHTML = STATE.sampleFiles.map((f) => `
-        <div data-art="${f.id}" data-w="${f.w}" data-h="${f.h}" data-name="${f.name}" class="p-1.5 hover:bg-[var(--secondary)] cursor-pointer flex items-center justify-between text-xs">
-          <span class="font-medium truncate">📄 ${f.name}</span>
-          <span class="font-mono text-[var(--muted-foreground)] ml-1">${f.size}</span>
-        </div>
-      `).join('');
-
-      fb.querySelectorAll('[data-art]').forEach((el) => {
-        el.addEventListener('click', () => {
-          STATE.customImage = null;
-          STATE.activeSampleArt = el.getAttribute('data-art');
-          document.getElementById('job-w-mm').value = el.getAttribute('data-w');
-          document.getElementById('job-h-mm').value = el.getAttribute('data-h');
-          document.getElementById('status-file-path').textContent =
-            'C:\\Produccion\\GranFormato\\' + el.getAttribute('data-name');
-          switchCenterTab('tab-job');
-        });
-      });
+      renderFileBrowserList();
+      bindLayoutMouseEvents();
 
       // Pestañas verticales izquierdas
       document.querySelectorAll('.v-tab-btn').forEach((btn) => {
@@ -2057,14 +2481,37 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         });
       });
 
-      // Pestañas centrales (Job | Layout | Queues | Atlas | VDP)
+      // Pestañas centrales
       document.querySelectorAll('#center-tabs-bar .ws-tab-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           switchCenterTab(btn.getAttribute('data-ctab'));
         });
       });
 
-      // Selector de Unidad (Unit 1: Mutoh VJ-1624 / Unit 2: Mimaki UJV100-160)
+      // Entradas de medida manual (Ancho y Alto sincronizados con proporción fija)
+      ['top-w-mm', 'job-w-mm', 'sel-w-mm'].forEach((id) => {
+        document.getElementById(id).addEventListener('change', (ev) => {
+          setManualSizeFromWidth(parseFloat(ev.target.value));
+        });
+      });
+
+      ['top-h-mm', 'job-h-mm', 'sel-h-mm'].forEach((id) => {
+        document.getElementById(id).addEventListener('change', (ev) => {
+          setManualSizeFromHeight(parseFloat(ev.target.value));
+        });
+      });
+
+      // Coordenadas X, Y manuales para la pieza seleccionada en Layout
+      ['sel-x-mm', 'sel-y-mm'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          const sel = STATE.layoutItems.find((it) => it.selected);
+          if (!sel) return;
+          sel.x = Math.max(0, parseFloat(document.getElementById('sel-x-mm').value) || 0);
+          sel.y = Math.max(0, parseFloat(document.getElementById('sel-y-mm').value) || 0);
+          renderLayoutCanvas();
+        });
+      });
+
       document.getElementById('unit-selector').addEventListener('change', (ev) => {
         STATE.activeUnit = ev.target.value;
         const isU2 = STATE.activeUnit === 'unit2';
@@ -2086,7 +2533,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       });
 
       [
-        'toolbar-channel-view', 'job-w-mm', 'job-h-mm', 'chk-tile-active',
+        'toolbar-channel-view', 'chk-tile-active',
         'tile-cols', 'tile-rows', 'tile-overlap-mm', 'chk-trace-active', 'trace-color',
         'unit-til-slider', 'u-c-slider', 'u-m-slider', 'u-y-slider', 'u-k-slider', 'u-w-slider'
       ].forEach((id) => {
@@ -2099,21 +2546,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         });
       });
 
-      // Subir archivo propio
       document.getElementById('file-input-open').addEventListener('change', (ev) => {
-        const file = ev.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            STATE.customImage = img;
-            document.getElementById('status-file-path').textContent = 'C:\\Usuario\\MisArchivos\\' + file.name;
-            switchCenterTab('tab-job');
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        handleUploadedFiles(ev.target.files);
       });
 
       populateProfileSelectors();
