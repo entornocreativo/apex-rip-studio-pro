@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ApexRIP SoftRIP Edition v3.2 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ApexRIP SoftRIP Edition v3.4 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.min.js"></script>
   <style>
     :root {
       --background: #0b1120;
@@ -292,7 +294,7 @@
     <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
     <span id="top-toast-msg" class="ml-4 px-2 py-0.5 rounded bg-sky-900/60 border border-sky-500/40 text-sky-200 font-mono text-xs hidden"></span>
     <span class="ml-auto font-mono text-xs text-slate-400">
-      ApexRIP SoftRIP v3.3 • Impresión Directa en Red TCP/IP (Puerto 9100) • Mutoh &amp; Mimaki
+      ApexRIP SoftRIP v3.4 • PDF Nativo 1:1 + Impresión Red TCP/IP (9100) • Mutoh &amp; Mimaki
     </span>
   </div>
 
@@ -302,7 +304,7 @@
       <button class="ws-tool-btn" onclick="openRealPcFolderDialog()" title="Seleccionar una carpeta real de tu computadora para listar sus imágenes">
         📁 Carpeta PC
       </button>
-      <button class="ws-tool-btn" onclick="openRealPcFilesDialog()" title="Cargar uno o varios archivos de tu PC manteniendo su proporción original">
+      <button class="ws-tool-btn" onclick="openRealPcFilesDialog()" title="Cargar uno o varios archivos de tu PC manteniendo su medida y proporción real">
         📂 Abrir Archivo(s)
       </button>
 
@@ -324,16 +326,17 @@
       <!-- Control Directo de Medida Manual en la Barra Superior (Sin Deformar) -->
       <div class="flex items-center gap-1 bg-[#0b1120] border border-slate-600 rounded px-2 py-0.5">
         <span class="text-slate-300 font-semibold">Medida:</span>
-        <input id="top-w-mm" type="number" min="10" max="1625" step="1" value="297" title="Ancho de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-slate-900 border border-sky-500 font-mono font-bold text-xs text-white" />
+        <input id="top-w-mm" type="number" min="10" max="1625" step="1" value="500" title="Ancho de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-slate-900 border border-sky-500 font-mono font-bold text-xs text-white" />
         <button id="btn-lock-ratio" onclick="toggleAspectRatioLock()" title="Bloquear/Desbloquear proporción original (evita deformación)" class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-bold text-xs cursor-pointer">
           🔗 Proporción Fija
         </button>
-        <input id="top-h-mm" type="number" min="10" max="50000" step="1" value="420" title="Alto de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-slate-900 border border-sky-500 font-mono font-bold text-xs text-white" />
+        <input id="top-h-mm" type="number" min="10" max="50000" step="1" value="500" title="Alto de la imagen en mm" class="w-16 px-1.5 py-0.5 rounded bg-slate-900 border border-sky-500 font-mono font-bold text-xs text-white" />
         <span class="font-mono text-xs text-slate-400">mm</span>
-        <button onclick="applyPaperSizePreset(210, 297)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar a formato A4 manteniendo proporción">A4</button>
-        <button onclick="applyPaperSizePreset(297, 420)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar a formato A3 (297mm) manteniendo proporción">A3</button>
-        <button onclick="applyPaperSizePreset(420, 594)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar a formato A2 manteniendo proporción">A2</button>
-        <button onclick="applyPaperSizePreset(594, 841)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar a formato A1 manteniendo proporción">A1</button>
+        <button onclick="restoreOriginalFileSize()" class="px-1.5 py-0.5 rounded bg-emerald-700 text-white font-mono font-bold text-xs cursor-pointer hover:bg-emerald-600" title="Restaurar la medida física original exacta del archivo (1:1)">1:1 Original</button>
+        <button onclick="applyPaperSizePreset(210, 297)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar manualmente a formato A4 manteniendo proporción">A4</button>
+        <button onclick="applyPaperSizePreset(297, 420)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar manualmente a formato A3 manteniendo proporción">A3</button>
+        <button onclick="applyPaperSizePreset(420, 594)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar manualmente a formato A2 manteniendo proporción">A2</button>
+        <button onclick="applyPaperSizePreset(594, 841)" class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer hover:bg-slate-600" title="Ajustar manualmente a formato A1 manteniendo proporción">A1</button>
       </div>
 
       <button class="ws-tool-btn" onclick="actionRotate90()" title="Rotar 90° (Intercambiar Ancho y Alto)">
@@ -440,7 +443,7 @@
               <button onclick="openRealPcFolderDialog()" class="py-2 px-2 rounded border border-sky-500 bg-sky-950/70 hover:bg-sky-900 text-sky-200 font-bold text-xs cursor-pointer flex items-center justify-center gap-1" title="Abre una carpeta completa de tu computadora (Ej: Descargas, Escritorio, Producción)">
                 📁 Abrir Carpeta PC
               </button>
-              <button onclick="openRealPcFilesDialog()" class="py-2 px-2 rounded border border-emerald-500 bg-emerald-950/70 hover:bg-emerald-900 text-emerald-200 font-bold text-xs cursor-pointer flex items-center justify-center gap-1" title="Selecciona uno o varios archivos de imagen desde tu PC">
+              <button onclick="openRealPcFilesDialog()" class="py-2 px-2 rounded border border-emerald-500 bg-emerald-950/70 hover:bg-emerald-900 text-emerald-200 font-bold text-xs cursor-pointer flex items-center justify-center gap-1" title="Selecciona uno o varios archivos (PDF, JPG, PNG, TIFF, AI, SVG) desde tu PC">
                 🖼️ + Abrir Archivos
               </button>
             </div>
@@ -468,13 +471,13 @@
             </div>
 
             <div class="pt-1">
-              <label class="block text-slate-400 text-xs mb-0.5">Resolución Base al Importar Archivos (DPI):</label>
-              <select id="import-dpi-select" class="w-full px-2 py-1 rounded bg-[#0b1120] border border-slate-700 text-xs text-white">
-                <option value="auto_a3">Auto-Detectar Formato Estándar (A3 / Proporcional)</option>
-                <option value="300">300 DPI (Tamaño Real de Píxeles a 300 PPP)</option>
-                <option value="150">150 DPI (Tamaño Real Gran Formato a 150 PPP)</option>
-                <option value="100">100 DPI (Tamaño Real Gran Formato a 100 PPP)</option>
-                <option value="72">72 DPI (Escala 1:1 a 72 PPP)</option>
+              <label class="block text-slate-400 text-xs mb-0.5">Modo de Medida Física al Cargar Archivos:</label>
+              <select id="import-dpi-select" class="w-full px-2 py-1 rounded bg-[#0b1120] border border-emerald-500/80 text-xs text-white font-semibold">
+                <option value="real_meta" selected>Tamaño Real 1:1 del Archivo (PDF / DPI Embebido)</option>
+                <option value="150">Calcular desde Píxeles a 150 DPI (Gran Formato)</option>
+                <option value="300">Calcular desde Píxeles a 300 DPI (Alta Resolución)</option>
+                <option value="100">Calcular desde Píxeles a 100 DPI (Lona / Cartelería)</option>
+                <option value="72">Calcular desde Píxeles a 72 DPI (Escala Pantalla)</option>
               </select>
             </div>
           </div>
@@ -483,17 +486,21 @@
           <div id="vpane-size" class="v-pane hidden space-y-2.5">
             <div class="font-bold text-xs border-b border-slate-700 pb-1">Dimensiones y Escala Manual (Sin Deformar)</div>
             <div class="p-2 rounded bg-[#0b1120] border border-slate-700 font-mono text-xs space-y-1">
-              <div class="text-slate-400">Proporción Original Detectada:</div>
-              <div id="lbl-orig-aspect" class="font-bold text-sky-400">297 x 420 mm (Ratio 0.707)</div>
+              <div class="text-slate-400">Medida y Proporción Detectada del Archivo:</div>
+              <div id="lbl-orig-aspect" class="font-bold text-sky-400">500 x 500 mm (Ratio 1.000)</div>
             </div>
+
+            <button onclick="restoreOriginalFileSize()" class="w-full py-1.5 px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs cursor-pointer flex items-center justify-center gap-1">
+              🔄 Restaurar Medida Original del Archivo (1:1)
+            </button>
 
             <div>
               <label class="block text-slate-400 mb-0.5">Ancho de Impresión (mm)</label>
-              <input id="job-w-mm" type="number" min="10" max="1625" step="1" value="297" class="w-full px-2 py-1.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-white" />
+              <input id="job-w-mm" type="number" min="10" max="1625" step="1" value="500" class="w-full px-2 py-1.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-white" />
             </div>
             <div>
               <label class="block text-slate-400 mb-0.5">Alto / Largo Impresión (mm, máx 50,000)</label>
-              <input id="job-h-mm" type="number" min="10" max="50000" step="1" value="420" class="w-full px-2 py-1.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-white" />
+              <input id="job-h-mm" type="number" min="10" max="50000" step="1" value="500" class="w-full px-2 py-1.5 rounded bg-[#0b1120] border border-sky-500 font-mono font-bold text-white" />
             </div>
 
             <label class="flex items-center gap-1.5 font-bold text-sky-400 cursor-pointer">
@@ -512,14 +519,14 @@
             </div>
 
             <div class="space-y-1 pt-1">
-              <span class="block text-slate-400 text-xs">Formatos Estándar (Ajuste Proporcional):</span>
+              <span class="block text-slate-400 text-xs">Escalado Manual a Formato (Opcional):</span>
               <div class="grid grid-cols-3 gap-1">
-                <button onclick="applyPaperSizePreset(210, 297)" class="py-1 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer">A4 (21cm)</button>
-                <button onclick="applyPaperSizePreset(297, 420)" class="py-1 rounded bg-sky-600 text-white font-mono font-bold text-xs cursor-pointer">A3 (29.7cm)</button>
-                <button onclick="applyPaperSizePreset(420, 594)" class="py-1 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer">A2 (42cm)</button>
-                <button onclick="applyPaperSizePreset(594, 841)" class="py-1 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer">A1 (59.4cm)</button>
-                <button onclick="applyPaperSizePreset(841, 1189)" class="py-1 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer">A0 (84.1cm)</button>
-                <button onclick="fitJobToMaterialWidth()" class="py-1 rounded bg-slate-700 text-white font-mono text-xs cursor-pointer">Ancho Rollo</button>
+                <button onclick="applyPaperSizePreset(210, 297)" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">A4 (21cm)</button>
+                <button onclick="applyPaperSizePreset(297, 420)" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">A3 (29.7cm)</button>
+                <button onclick="applyPaperSizePreset(420, 594)" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">A2 (42cm)</button>
+                <button onclick="applyPaperSizePreset(594, 841)" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">A1 (59.4cm)</button>
+                <button onclick="applyPaperSizePreset(841, 1189)" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">A0 (84.1cm)</button>
+                <button onclick="fitJobToMaterialWidth()" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-mono text-xs cursor-pointer">Ancho Rollo</button>
               </div>
             </div>
           </div>
@@ -1312,14 +1319,22 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       }
     } catch (e) {}
 
+    const PDF_OR_AI_EXT_REGEX = /\.(pdf|ai)$/i;
+    const TIFF_EXT_REGEX = /\.tiff?$/i;
+
+    if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
     const STATE = {
       activeUnit: 'unit1',
       activeProfileId: storedProfiles[0].id,
       activeChannel: 'composite',
       lockAspectRatio: true,
-      currentAspectRatio: 297 / 420,
-      baseJobWidthMm: 297,
-      baseJobHeightMm: 420,
+      currentAspectRatio: 1.0,
+      baseJobWidthMm: 500,
+      baseJobHeightMm: 500,
       jobZoom: 1.0,
       layoutZoom: 1.0,
       extraRollViewMm: 1400,
@@ -1328,7 +1343,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       activeSampleArt: 'empty_placeholder',
       profiles: storedProfiles,
       // Explorador de archivos real de la PC (sin archivos falsos pre-cargados)
-      pcFiles: [], // { id, name, path, sizeStr, w, h, pxW, pxH, img, fileRef, isDir, dirHandle }
+      pcFiles: [], // { id, name, path, sizeStr, w, h, origW, origH, pxW, pxH, img, fileRef, isDir, dirHandle, dpiInfo }
       dirStack: [], // Pila de DirectoryHandles para navegar carpetas y subcarpetas reales del PC
       activeDirHandle: null,
       activeFolderName: '',
@@ -1355,7 +1370,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         el.classList.add('hidden');
-      }, 3200);
+      }, 3600);
     }
 
     function formatFileSize(bytes) {
@@ -1374,7 +1389,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     // EXPLORADOR DE ARCHIVOS REAL DE LA COMPUTADORA (File System Access API + Fallback)
     // ============================================================================
     async function openRealPcFolderDialog() {
-      // 1. Intentar File System Access API nativa de Edge / Chrome (permite navegar carpetas reales)
       if (typeof window.showDirectoryPicker === 'function') {
         try {
           const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
@@ -1383,10 +1397,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           return;
         } catch (err) {
           if (err && err.name === 'AbortError') return;
-          // Si está en iframe con restricción o no disponible, usar input webkitdirectory
         }
       }
-      // 2. Fallback universal para seleccionar carpeta completa del PC
       const folderIn = document.getElementById('folder-input-open');
       folderIn.value = '';
       folderIn.click();
@@ -1405,7 +1417,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('btn-folder-up').classList.toggle('hidden', STATE.dirStack.length === 0);
       document.getElementById('btn-folder-refresh').classList.remove('hidden');
 
-      const newEntries = [];
       const subDirs = [];
       const filePromises = [];
 
@@ -1438,7 +1449,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       STATE.pcFiles = [...subDirs, ...resolvedFiles];
       renderFileBrowserList();
 
-      // Si hay al menos una imagen en la carpeta, previsualizar la primera automáticamente
       const firstFile = resolvedFiles[0];
       if (firstFile) {
         selectPcFileEntry(firstFile, false);
@@ -1460,76 +1470,614 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       }
     }
 
-    function calculateInitialMmFromPixels(nw, nh) {
-      const ratio = nw / nh;
-      const dpiMode = document.getElementById('import-dpi-select').value;
-      let wMm, hMm;
-      if (dpiMode === '300') {
-        wMm = Math.max(10, Math.round((nw / 300) * 25.4));
-        hMm = Math.max(10, Math.round(wMm / ratio));
-      } else if (dpiMode === '150') {
-        wMm = Math.max(10, Math.round((nw / 150) * 25.4));
-        hMm = Math.max(10, Math.round(wMm / ratio));
-      } else if (dpiMode === '100') {
-        wMm = Math.max(10, Math.round((nw / 100) * 25.4));
-        hMm = Math.max(10, Math.round(wMm / ratio));
-      } else if (dpiMode === '72') {
-        wMm = Math.max(10, Math.round((nw / 72) * 25.4));
-        hMm = Math.max(10, Math.round(wMm / ratio));
-      } else {
-        // Auto-Detectar formato proporcional sobre base A3 (297 mm en lado corto)
-        if (ratio <= 1.0) {
-          wMm = 297;
-          hMm = Math.round(297 / ratio);
-        } else {
-          hMm = 297;
-          wMm = Math.round(297 * ratio);
+    // ============================================================================
+    // MOTOR DE LECTURA DE MEDIDA FÍSICA REAL 1:1 (PDF + DPI EMBEBIDO + TIFF)
+    // NUNCA FUERZA A3 NI NINGUNA MEDIDA PREESTABLECIDA
+    // ============================================================================
+
+    // 1. Detecta si el nombre del archivo indica explícitamente una medida (ej. "Pleno Azul - 50x50cm.pdf", "120x80cm", "500x500mm")
+    function parseDimensionsFromFilename(fileName) {
+      if (!fileName) return null;
+      const base = fileName.replace(/\.[^.]+$/, '');
+      // Buscar patrón con unidad explícita primero: ej. 50x50cm, 50 x 50 cm, 500x500mm, 1.5x2m
+      const explicitRegex = /(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(cm|mm|mts|mt|m)\b/i;
+      const mExp = base.match(explicitRegex);
+      if (mExp) {
+        const v1 = parseFloat(mExp[1].replace(',', '.'));
+        const v2 = parseFloat(mExp[2].replace(',', '.'));
+        const unit = mExp[3].toLowerCase();
+        if (v1 > 0 && v2 > 0) {
+          let factor = 1;
+          if (unit === 'cm') factor = 10;
+          else if (unit === 'm' || unit === 'mt' || unit === 'mts') factor = 1000;
+          return {
+            wMm: Math.max(10, Math.round(v1 * factor)),
+            hMm: Math.max(10, Math.round(v2 * factor)),
+            source: `Nombre (${v1}×${v2}${unit})`
+          };
         }
       }
-      return { wMm, hMm, ratio };
+      // Buscar patrón numérico tipo " - 50x50" sin unidad (excluyendo resoluciones típicas como 720x1440, 600x1200, 1920x1080)
+      const genericRegex = /(?:^|[\s_-])(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)(?:$|[\s_.-])/;
+      const mGen = base.match(genericRegex);
+      if (mGen) {
+        const v1 = parseFloat(mGen[1].replace(',', '.'));
+        const v2 = parseFloat(mGen[2].replace(',', '.'));
+        const isCommonRes =
+          (v1 === 720 && v2 === 1440) ||
+          (v1 === 600 && v2 === 1200) ||
+          (v1 === 1440 && v2 === 1440) ||
+          (v1 >= 1024 && v2 >= 768);
+        if (!isCommonRes && v1 >= 5 && v2 >= 5) {
+          // En gráfica de gran formato, valores entre 5 y 250 sin unidad suelen ser cm (ej. 50x50 -> 500x500 mm)
+          const factor = v1 <= 250 && v2 <= 250 ? 10 : 1;
+          return {
+            wMm: Math.max(10, Math.round(v1 * factor)),
+            hMm: Math.max(10, Math.round(v2 * factor)),
+            source: `Nombre (${v1}×${v2}${factor === 10 ? 'cm' : 'mm'})`
+          };
+        }
+      }
+      return null;
     }
 
-    function createPlaceholderCanvasForNonBrowserFormat(fileName, sizeStr) {
+    // 2. Lee DPI físico real embebido en archivos PNG (chunk pHYs) y JPEG (cabeceras EXIF APP1 y JFIF APP0)
+    function extractImageDpiFromBytes(uint8) {
+      if (!uint8 || uint8.length < 32) return null;
+      try {
+        // Caso A: PNG (Firma 89 50 4E 47 0D 0A 1A 0A) -> buscar chunk pHYs
+        if (uint8[0] === 0x89 && uint8[1] === 0x50 && uint8[2] === 0x4E && uint8[3] === 0x47) {
+          let offset = 8;
+          while (offset + 12 <= uint8.length && offset < 65536) {
+            const len =
+              ((uint8[offset] << 24) |
+                (uint8[offset + 1] << 16) |
+                (uint8[offset + 2] << 8) |
+                uint8[offset + 3]) >>> 0;
+            const type = String.fromCharCode(
+              uint8[offset + 4],
+              uint8[offset + 5],
+              uint8[offset + 6],
+              uint8[offset + 7]
+            );
+            if (type === 'pHYs' && len === 9 && offset + 17 <= uint8.length) {
+              const ppuX =
+                ((uint8[offset + 8] << 24) |
+                  (uint8[offset + 9] << 16) |
+                  (uint8[offset + 10] << 8) |
+                  uint8[offset + 11]) >>> 0;
+              const ppuY =
+                ((uint8[offset + 12] << 24) |
+                  (uint8[offset + 13] << 16) |
+                  (uint8[offset + 14] << 8) |
+                  uint8[offset + 15]) >>> 0;
+              const unit = uint8[offset + 16]; // 1 = metro
+              if (unit === 1 && ppuX > 100 && ppuY > 100) {
+                const dpiX = ppuX * 0.0254;
+                const dpiY = ppuY * 0.0254;
+                return { dpiX, dpiY, source: `${Math.round(dpiX)} DPI (PNG pHYs)` };
+              }
+            }
+            if (type === 'IDAT' || type === 'IEND') break;
+            offset += 12 + len;
+          }
+        }
+
+        // Caso B: JPEG (Firma FF D8) -> revisar EXIF APP1 (prioridad) y JFIF APP0
+        if (uint8[0] === 0xFF && uint8[1] === 0xD8) {
+          let offset = 2;
+          let jfifDpi = null;
+          while (offset + 4 < uint8.length && offset < 131072) {
+            if (uint8[offset] !== 0xFF) break;
+            const marker = uint8[offset + 1];
+            if (marker === 0xDA || marker === 0xD9) break; // SOS o EOI
+            const segLen = (uint8[offset + 2] << 8) | uint8[offset + 3];
+            if (segLen < 2) break;
+
+            // JFIF APP0 (FF E0)
+            if (
+              marker === 0xE0 &&
+              offset + 16 < uint8.length &&
+              uint8[offset + 4] === 0x4A && // J
+              uint8[offset + 5] === 0x46 && // F
+              uint8[offset + 6] === 0x49 && // I
+              uint8[offset + 7] === 0x46    // F
+            ) {
+              const units = uint8[offset + 11]; // 1 = inch, 2 = cm
+              const xDens = (uint8[offset + 12] << 8) | uint8[offset + 13];
+              const yDens = (uint8[offset + 14] << 8) | uint8[offset + 15];
+              if (units === 1 && xDens > 10 && yDens > 10) {
+                jfifDpi = { dpiX: xDens, dpiY: yDens, source: `${Math.round(xDens)} DPI (JFIF)` };
+              } else if (units === 2 && xDens > 4 && yDens > 4) {
+                jfifDpi = { dpiX: xDens * 2.54, dpiY: yDens * 2.54, source: `${Math.round(xDens * 2.54)} DPI (JFIF cm)` };
+              }
+            }
+
+            // EXIF APP1 (FF E1)
+            if (
+              marker === 0xE1 &&
+              offset + 18 < uint8.length &&
+              uint8[offset + 4] === 0x45 && // E
+              uint8[offset + 5] === 0x78 && // x
+              uint8[offset + 6] === 0x69 && // i
+              uint8[offset + 7] === 0x66    // f
+            ) {
+              const tiffStart = offset + 10;
+              const isLE = uint8[tiffStart] === 0x49 && uint8[tiffStart + 1] === 0x49;
+              const readU16 = (pos) =>
+                isLE ? uint8[pos] | (uint8[pos + 1] << 8) : (uint8[pos] << 8) | uint8[pos + 1];
+              const readU32 = (pos) =>
+                isLE
+                  ? (uint8[pos] | (uint8[pos + 1] << 8) | (uint8[pos + 2] << 16) | (uint8[pos + 3] << 24)) >>> 0
+                  : ((uint8[pos] << 24) | (uint8[pos + 1] << 16) | (uint8[pos + 2] << 8) | uint8[pos + 3]) >>> 0;
+
+              const ifdOffset = readU32(tiffStart + 4);
+              const ifdPos = tiffStart + ifdOffset;
+              if (ifdPos + 2 < uint8.length) {
+                const numEntries = readU16(ifdPos);
+                let xRes = 0, yRes = 0, resUnit = 2; // 2 = inch, 3 = cm
+                for (let i = 0; i < numEntries; i++) {
+                  const ePos = ifdPos + 2 + i * 12;
+                  if (ePos + 12 > uint8.length) break;
+                  const tag = readU16(ePos);
+                  if (tag === 0x0128) {
+                    resUnit = readU16(ePos + 8);
+                  } else if (tag === 0x011A || tag === 0x011B) {
+                    const valPos = tiffStart + readU32(ePos + 8);
+                    if (valPos + 8 <= uint8.length) {
+                      const num = readU32(valPos);
+                      const den = readU32(valPos + 4);
+                      if (den > 0) {
+                        if (tag === 0x011A) xRes = num / den;
+                        else yRes = num / den;
+                      }
+                    }
+                  }
+                }
+                if (xRes > 10 && yRes > 10) {
+                  const dpiX = resUnit === 3 ? xRes * 2.54 : xRes;
+                  const dpiY = resUnit === 3 ? yRes * 2.54 : yRes;
+                  return { dpiX, dpiY, source: `${Math.round(dpiX)} DPI (EXIF)` };
+                }
+              }
+            }
+
+            offset += 2 + segLen;
+          }
+          if (jfifDpi) return jfifDpi;
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    // 3. Calcula los milímetros iniciales para una imagen rasterizada sin forzar NUNCA A3
+    function calculateInitialMmFromPixels(nw, nh, embeddedDpiInfo = null, fileName = '') {
+      const ratio = nw / nh;
+      const dpiMode = document.getElementById('import-dpi-select').value;
+
+      // Si el usuario eligió explícitamente un DPI fijo en el selector (150, 300, 100, 72)
+      if (dpiMode === '300' || dpiMode === '150' || dpiMode === '100' || dpiMode === '72') {
+        const forcedDpi = parseFloat(dpiMode);
+        const wMm = Math.max(10, Math.round((nw / forcedDpi) * 25.4));
+        const hMm = Math.max(10, Math.round(wMm / ratio));
+        return { wMm, hMm, ratio, dpiInfo: `${forcedDpi} DPI` };
+      }
+
+      // Modo por defecto: "real_meta" (Tamaño Real 1:1 del Archivo)
+      // Prioridad 1: Si el nombre del archivo especifica la medida explícita (ej. "50x50cm")
+      const nameDims = parseDimensionsFromFilename(fileName);
+      if (nameDims) {
+        const wMm = nameDims.wMm;
+        const hMm = Math.max(10, Math.round(wMm / ratio));
+        return { wMm, hMm, ratio, dpiInfo: nameDims.source };
+      }
+
+      // Prioridad 2: Si el archivo tiene DPI físico embebido en sus metadatos EXIF / JFIF / PNG pHYs
+      if (embeddedDpiInfo && embeddedDpiInfo.dpiX > 10 && embeddedDpiInfo.dpiY > 10) {
+        const wMm = Math.max(10, Math.round((nw / embeddedDpiInfo.dpiX) * 25.4));
+        const hMm = Math.max(10, Math.round((nh / embeddedDpiInfo.dpiY) * 25.4));
+        return { wMm, hMm, ratio: wMm / hMm, dpiInfo: embeddedDpiInfo.source };
+      }
+
+      // Prioridad 3: Si la imagen no trae metadatos DPI ni medida en el nombre, calcular desde sus píxeles reales a 150 DPI (estándar gran formato), manteniendo 100% su proporción real sin llevarlo a A3
+      const wMm = Math.max(10, Math.round((nw / 150) * 25.4));
+      const hMm = Math.max(10, Math.round(wMm / ratio));
+      return { wMm, hMm, ratio, dpiInfo: '150 DPI (Píxeles 1:1)' };
+    }
+
+    // 4. Analizador binario directo de PDF (/TrimBox, /CropBox, /MediaBox, /UserUnit, /Rotate y color dominante)
+    function parsePdfMetadataAndBoxes(uint8, fileName) {
+      let text = '';
+      try {
+        const headLen = Math.min(uint8.length, 300000);
+        const decoder = new TextDecoder('latin1');
+        text = decoder.decode(uint8.subarray(0, headLen));
+        if (uint8.length > headLen) {
+          const tailLen = Math.min(uint8.length - headLen, 150000);
+          text += '\n' + decoder.decode(uint8.subarray(uint8.length - tailLen));
+        }
+      } catch (e) {}
+
+      let userUnit = 1.0;
+      const uuMatch = text.match(/\/UserUnit\s+([0-9.]+)/);
+      if (uuMatch) {
+        const parsedUU = parseFloat(uuMatch[1]);
+        if (parsedUU > 0) userUnit = parsedUU;
+      }
+
+      let rotate = 0;
+      const rotMatch = text.match(/\/Rotate\s+(\d+)/);
+      if (rotMatch) {
+        rotate = parseInt(rotMatch[1], 10) % 360;
+      }
+
+      function parseBoxMm(boxTag) {
+        const regex = new RegExp(`\\/${boxTag}\\s*\\[\\s*([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s*\\]`, 'g');
+        let match;
+        let best = null;
+        while ((match = regex.exec(text)) !== null) {
+          const x0 = parseFloat(match[1]);
+          const y0 = parseFloat(match[2]);
+          const x1 = parseFloat(match[3]);
+          const y1 = parseFloat(match[4]);
+          const ptW = Math.abs(x1 - x0);
+          const ptH = Math.abs(y1 - y0);
+          if (ptW > 5 && ptH > 5) {
+            let wMm = Math.round(ptW * userUnit * (25.4 / 72));
+            let hMm = Math.round(ptH * userUnit * (25.4 / 72));
+            if (rotate === 90 || rotate === 270) {
+              const tmp = wMm; wMm = hMm; hMm = tmp;
+            }
+            best = { wMm: Math.max(10, wMm), hMm: Math.max(10, hMm), boxTag };
+          }
+        }
+        return best;
+      }
+
+      const trimBox = parseBoxMm('TrimBox');
+      const cropBox = parseBoxMm('CropBox');
+      const bleedBox = parseBoxMm('BleedBox');
+      const mediaBox = parseBoxMm('MediaBox');
+      const nameDims = parseDimensionsFromFilename(fileName);
+
+      // En imprenta (Illustrator / Corel / InDesign), el TrimBox es la medida final exacta de corte (ej. 500x500mm)
+      let chosenBox = trimBox || cropBox || mediaBox || bleedBox || nameDims;
+      if (nameDims && mediaBox && !trimBox) {
+        // Si el MediaBox incluye demasía (ej. 510x510mm) pero el nombre dice explícitamente 50x50cm (500x500mm)
+        if (Math.abs(mediaBox.wMm - nameDims.wMm) <= 30 && Math.abs(mediaBox.hMm - nameDims.hMm) <= 30) {
+          chosenBox = nameDims;
+        }
+      }
+
+      // Detectar color de relleno si el nombre o el stream PDF lo indican (para fallback sin conexión)
+      let fallbackFillHex = null;
+      const lowerName = (fileName || '').toLowerCase();
+      if (lowerName.includes('azul') || lowerName.includes('blue')) fallbackFillHex = '#005bbb';
+      else if (lowerName.includes('rojo') || lowerName.includes('red')) fallbackFillHex = '#dc2626';
+      else if (lowerName.includes('verde') || lowerName.includes('green')) fallbackFillHex = '#16a34a';
+      else if (lowerName.includes('amarillo') || lowerName.includes('yellow')) fallbackFillHex = '#eab308';
+      else if (lowerName.includes('magenta')) fallbackFillHex = '#e6007e';
+      else if (lowerName.includes('cian') || lowerName.includes('cyan')) fallbackFillHex = '#009fe3';
+      else if (lowerName.includes('negro') || lowerName.includes('black')) fallbackFillHex = '#111827';
+      else if (lowerName.includes('naranja') || lowerName.includes('orange')) fallbackFillHex = '#ea580c';
+
+      return {
+        userUnit,
+        rotate,
+        trimBox,
+        cropBox,
+        mediaBox,
+        nameDims,
+        chosenBox,
+        fallbackFillHex
+      };
+    }
+
+    function loadImageFromUrl(url, fileName) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          img._fileName = fileName;
+          resolve(img);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    // Genera un lienzo proporcional exacto si un formato propietario (EPS/PSD o PDF sin red) no pudo ser rasterizado por PDF.js
+    function createProportionalVectorPreviewCanvas(fileName, sizeStr, wMm, hMm, fillHex = null) {
+      const ratio = wMm / hMm;
+      const maxPx = 800;
+      const cw = ratio >= 1 ? maxPx : Math.max(120, Math.round(maxPx * ratio));
+      const ch = ratio >= 1 ? Math.max(120, Math.round(maxPx / ratio)) : maxPx;
+
       const c = document.createElement('canvas');
-      c.width = 594;
-      c.height = 840;
+      c.width = cw;
+      c.height = ch;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(24, 24, c.width - 48, c.height - 48);
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 34px monospace';
-      const ext = (fileName.split('.').pop() || 'RAW').toUpperCase();
-      ctx.fillText(`ARCHIVO ${ext} REAL`, 54, 120);
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillText(fileName.slice(0, 32), 54, 180);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '20px monospace';
-      ctx.fillText(`Tamaño: ${sizeStr}`, 54, 230);
-      ctx.fillText('Listo para Ripeo Directo CMYK', 54, 270);
+
+      if (fillHex) {
+        // Si es un pleno o color detectado (ej. "Pleno Azul - 50x50cm.pdf")
+        ctx.fillStyle = fillHex;
+        ctx.fillRect(0, 0, cw, ch);
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = Math.max(4, Math.round(Math.min(cw, ch) * 0.015));
+        ctx.strokeRect(16, 16, cw - 32, ch - 32);
+        const ext = (fileName.split('.').pop() || 'PDF').toUpperCase();
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = `bold ${Math.max(18, Math.round(cw * 0.055))}px monospace`;
+        ctx.fillText(`${ext} VECTORIAL 1:1`, 36, Math.round(ch * 0.28));
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `bold ${Math.max(14, Math.round(cw * 0.042))}px sans-serif`;
+        ctx.fillText(fileName.slice(0, 34), 36, Math.round(ch * 0.42));
+        ctx.fillStyle = '#34d399';
+        ctx.font = `bold ${Math.max(16, Math.round(cw * 0.048))}px monospace`;
+        ctx.fillText(`${wMm} x ${hMm} mm (${(wMm / 10).toFixed(1)} x ${(hMm / 10).toFixed(1)} cm)`, 36, Math.round(ch * 0.58));
+      }
+
       const dataUrl = c.toDataURL('image/png');
       const img = new Image();
       img.src = dataUrl;
       img._fileName = fileName;
-      return img;
+      return { img, dataUrl, cw, ch };
     }
 
-    function buildPcFileEntryFromFile(file, customRelPath) {
-      return new Promise((resolve) => {
-        const sizeStr = formatFileSize(file.size);
-        const displayPath = customRelPath || file.webkitRelativePath || file.name;
+    // 5. Renderizador nativo de archivos PDF (y .AI con flujo PDF) usando PDF.js + cajas físicas /TrimBox y /MediaBox
+    async function renderPdfFileToEntry(file, displayPath, sizeStr) {
+      let arrayBuffer = null;
+      try {
+        arrayBuffer = await file.arrayBuffer();
+      } catch (e) {}
 
-        if (IMAGE_RENDERABLE_REGEX.test(file.name) || (file.type && file.type.startsWith('image/'))) {
+      const uint8 = arrayBuffer ? new Uint8Array(arrayBuffer) : new Uint8Array(0);
+      const pdfMeta = parsePdfMetadataAndBoxes(uint8, file.name);
+
+      // Intentar renderizar la vista previa visual real con Mozilla PDF.js
+      if (window.pdfjsLib && uint8.length > 0) {
+        let pdfDoc = null;
+        try {
+          const preferNoWorker = window.location.protocol === 'file:';
+          pdfDoc = await window.pdfjsLib.getDocument({
+            data: uint8.slice(),
+            disableWorker: preferNoWorker
+          }).promise;
+        } catch (workerErr) {
+          try {
+            pdfDoc = await window.pdfjsLib.getDocument({
+              data: uint8.slice(),
+              disableWorker: true
+            }).promise;
+          } catch (innerErr) {
+            pdfDoc = null;
+          }
+        }
+
+        if (pdfDoc) {
+          try {
+            const page = await pdfDoc.getPage(1);
+            const vp1 = page.getViewport({ scale: 1.0 });
+            const userUnit = page.userUnit || pdfMeta.userUnit || 1.0;
+
+            // Medida física exacta de la página PDF en milímetros (1 pt = 25.4 / 72 mm)
+            let wMm = Math.max(10, Math.round(vp1.width * userUnit * (25.4 / 72)));
+            let hMm = Math.max(10, Math.round(vp1.height * userUnit * (25.4 / 72)));
+
+            // Si el PDF tiene TrimBox (caja de corte final sin demasía) y coincide con la medida del nombre o es ligeramente menor al MediaBox
+            if (pdfMeta.trimBox && pdfMeta.trimBox.wMm > 10 && pdfMeta.trimBox.hMm > 10) {
+              wMm = pdfMeta.trimBox.wMm;
+              hMm = pdfMeta.trimBox.hMm;
+            } else if (pdfMeta.nameDims && Math.abs(wMm - pdfMeta.nameDims.wMm) <= 25 && Math.abs(hMm - pdfMeta.nameDims.hMm) <= 25) {
+              wMm = pdfMeta.nameDims.wMm;
+              hMm = pdfMeta.nameDims.hMm;
+            }
+
+            // Renderizar el contenido real de la página PDF en un canvas de alta nitidez
+            const maxPt = Math.max(vp1.width, vp1.height, 1);
+            const renderScale = Math.min(3.5, Math.max(1.0, 1400 / maxPt));
+            const renderVp = page.getViewport({ scale: renderScale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(renderVp.width));
+            canvas.height = Math.max(1, Math.round(renderVp.height));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
+
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = await loadImageFromUrl(dataUrl, file.name);
+            const eqPxW = Math.round((wMm / 25.4) * 150);
+            const eqPxH = Math.round((hMm / 25.4) * 150);
+
+            return {
+              id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+              name: file.name,
+              path: displayPath,
+              sizeStr,
+              pxW: eqPxW,
+              pxH: eqPxH,
+              w: wMm,
+              h: hMm,
+              origW: wMm,
+              origH: hMm,
+              thumbUrl: dataUrl,
+              img,
+              fileRef: file,
+              isDir: false,
+              isPdf: true,
+              dpiInfo: `PDF 1:1 (${(wMm / 10).toFixed(1)}×${(hMm / 10).toFixed(1)} cm)`
+            };
+          } catch (pageErr) {}
+        }
+      }
+
+      // Fallback si PDF.js no pudo ejecutarse (ej. sin internet): usar la medida real leída del binario PDF o del nombre (NUNCA A3)
+      const box = pdfMeta.chosenBox || { wMm: 500, hMm: 500 };
+      const wMm = box.wMm;
+      const hMm = box.hMm;
+      const { img, dataUrl } = createProportionalVectorPreviewCanvas(
+        file.name,
+        sizeStr,
+        wMm,
+        hMm,
+        pdfMeta.fallbackFillHex
+      );
+      const eqPxW = Math.round((wMm / 25.4) * 150);
+      const eqPxH = Math.round((hMm / 25.4) * 150);
+
+      return {
+        id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name: file.name,
+        path: displayPath,
+        sizeStr,
+        pxW: eqPxW,
+        pxH: eqPxH,
+        w: wMm,
+        h: hMm,
+        origW: wMm,
+        origH: hMm,
+        thumbUrl: dataUrl,
+        img,
+        fileRef: file,
+        isDir: false,
+        isPdf: true,
+        dpiInfo: `PDF 1:1 (${(wMm / 10).toFixed(1)}×${(hMm / 10).toFixed(1)} cm)`
+      };
+    }
+
+    // 6. Renderizador nativo de archivos TIFF (.tif / .tiff) usando UTIF.js + lectura de DPI TIFF
+    async function renderTiffFileToEntry(file, displayPath, sizeStr) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        if (window.UTIF) {
+          const ifds = window.UTIF.decode(arrayBuffer);
+          if (ifds && ifds.length > 0) {
+            const firstPage = ifds[0];
+            window.UTIF.decodeImage(arrayBuffer, firstPage);
+            const rgba = window.UTIF.toRGBA8(firstPage);
+            const nw = firstPage.width || 1000;
+            const nh = firstPage.height || 1000;
+
+            // Extraer DPI de las etiquetas TIFF (282 = XResolution, 283 = YResolution, 296 = ResolutionUnit)
+            let embeddedDpi = null;
+            const xResTag = firstPage['t282'];
+            const yResTag = firstPage['t283'];
+            const unitTag = firstPage['t296'] ? firstPage['t296'][0] : 2;
+            if (xResTag && yResTag) {
+              const parseRat = (v) => (Array.isArray(v) && v.length === 2 && v[1] > 0 ? v[0] / v[1] : Number(v));
+              const rx = parseRat(Array.isArray(xResTag[0]) ? xResTag[0] : xResTag);
+              const ry = parseRat(Array.isArray(yResTag[0]) ? yResTag[0] : yResTag);
+              if (rx > 10 && ry > 10) {
+                const dpiX = unitTag === 3 ? rx * 2.54 : rx;
+                const dpiY = unitTag === 3 ? ry * 2.54 : ry;
+                embeddedDpi = { dpiX, dpiY, source: `${Math.round(dpiX)} DPI (TIFF)` };
+              }
+            }
+
+            // Dibujar RGBA en canvas para previsualización
+            const fullCanvas = document.createElement('canvas');
+            fullCanvas.width = nw;
+            fullCanvas.height = nh;
+            const fCtx = fullCanvas.getContext('2d');
+            const imgData = fCtx.createImageData(nw, nh);
+            imgData.data.set(rgba);
+            fCtx.putImageData(imgData, 0, 0);
+
+            // Escalar a máximo 1400 px para agilidad en memoria
+            const maxDim = Math.max(nw, nh, 1);
+            let outCanvas = fullCanvas;
+            if (maxDim > 1400) {
+              const sc = 1400 / maxDim;
+              outCanvas = document.createElement('canvas');
+              outCanvas.width = Math.max(1, Math.round(nw * sc));
+              outCanvas.height = Math.max(1, Math.round(nh * sc));
+              outCanvas.getContext('2d').drawImage(fullCanvas, 0, 0, outCanvas.width, outCanvas.height);
+            }
+
+            const dataUrl = outCanvas.toDataURL('image/png');
+            const img = await loadImageFromUrl(dataUrl, file.name);
+            const { wMm, hMm, dpiInfo } = calculateInitialMmFromPixels(nw, nh, embeddedDpi, file.name);
+
+            return {
+              id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+              name: file.name,
+              path: displayPath,
+              sizeStr,
+              pxW: nw,
+              pxH: nh,
+              w: wMm,
+              h: hMm,
+              origW: wMm,
+              origH: hMm,
+              thumbUrl: dataUrl,
+              img,
+              fileRef: file,
+              isDir: false,
+              dpiInfo
+            };
+          }
+        }
+      } catch (e) {}
+
+      // Fallback si el TIFF usa compresión CMYK no soportada por UTIF
+      const nameDims = parseDimensionsFromFilename(file.name) || { wMm: 500, hMm: 500, source: 'TIFF 1:1' };
+      const { img, dataUrl } = createProportionalVectorPreviewCanvas(file.name, sizeStr, nameDims.wMm, nameDims.hMm);
+      return {
+        id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name: file.name,
+        path: displayPath,
+        sizeStr,
+        pxW: Math.round((nameDims.wMm / 25.4) * 150),
+        pxH: Math.round((nameDims.hMm / 25.4) * 150),
+        w: nameDims.wMm,
+        h: nameDims.hMm,
+        origW: nameDims.wMm,
+        origH: nameDims.hMm,
+        thumbUrl: dataUrl,
+        img,
+        fileRef: file,
+        isDir: false,
+        dpiInfo: nameDims.source
+      };
+    }
+
+    // 7. Constructor principal de archivos reales del PC (PDF, AI, TIFF, JPG, PNG, SVG, WEBP, BMP, EPS, PSD)
+    async function buildPcFileEntryFromFile(file, customRelPath) {
+      const sizeStr = formatFileSize(file.size);
+      const displayPath = customRelPath || file.webkitRelativePath || file.name;
+
+      // Caso 1: Archivos PDF o Adobe Illustrator (.pdf, .ai)
+      if (PDF_OR_AI_EXT_REGEX.test(file.name) || (file.type && file.type === 'application/pdf')) {
+        return await renderPdfFileToEntry(file, displayPath, sizeStr);
+      }
+
+      // Caso 2: Archivos TIFF (.tif, .tiff)
+      if (TIFF_EXT_REGEX.test(file.name) || (file.type && file.type === 'image/tiff')) {
+        return await renderTiffFileToEntry(file, displayPath, sizeStr);
+      }
+
+      // Caso 3: Imágenes rasterizadas o SVG (.jpg, .jpeg, .png, .webp, .bmp, .gif, .svg)
+      if (IMAGE_RENDERABLE_REGEX.test(file.name) || (file.type && file.type.startsWith('image/'))) {
+        let embeddedDpi = null;
+        try {
+          const headSlice = file.slice(0, 131072);
+          const ab = await headSlice.arrayBuffer();
+          embeddedDpi = extractImageDpiFromBytes(new Uint8Array(ab));
+        } catch (e) {}
+
+        return await new Promise((resolve) => {
           const objectUrl = URL.createObjectURL(file);
           const img = new Image();
           img.onload = () => {
             img._fileName = file.name;
             const nw = img.naturalWidth || 1000;
-            const nh = img.naturalHeight || 1414;
-            const { wMm, hMm } = calculateInitialMmFromPixels(nw, nh);
+            const nh = img.naturalHeight || 1000;
+            const { wMm, hMm, dpiInfo } = calculateInitialMmFromPixels(nw, nh, embeddedDpi, file.name);
             resolve({
               id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
               name: file.name,
@@ -1539,57 +2087,70 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               pxH: nh,
               w: wMm,
               h: hMm,
+              origW: wMm,
+              origH: hMm,
               thumbUrl: objectUrl,
               img,
               fileRef: file,
-              isDir: false
+              isDir: false,
+              dpiInfo
             });
           };
           img.onerror = () => {
-            const fallbackImg = createPlaceholderCanvasForNonBrowserFormat(file.name, sizeStr);
+            const nameDims = parseDimensionsFromFilename(file.name) || { wMm: 500, hMm: 500 };
+            const { img: fbImg, dataUrl } = createProportionalVectorPreviewCanvas(file.name, sizeStr, nameDims.wMm, nameDims.hMm);
             resolve({
               id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
               name: file.name,
               path: displayPath,
               sizeStr,
-              pxW: 2480,
-              pxH: 3508,
-              w: 297,
-              h: 420,
-              thumbUrl: null,
-              img: fallbackImg,
+              pxW: Math.round((nameDims.wMm / 25.4) * 150),
+              pxH: Math.round((nameDims.hMm / 25.4) * 150),
+              w: nameDims.wMm,
+              h: nameDims.hMm,
+              origW: nameDims.wMm,
+              origH: nameDims.hMm,
+              thumbUrl: dataUrl,
+              img: fbImg,
               fileRef: file,
-              isDir: false
+              isDir: false,
+              dpiInfo: '1:1 Original'
             });
           };
           img.src = objectUrl;
-        } else {
-          // Formato profesional de imprenta (.pdf, .tif, .eps, .ai, .psd)
-          const fallbackImg = createPlaceholderCanvasForNonBrowserFormat(file.name, sizeStr);
-          resolve({
-            id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-            name: file.name,
-            path: displayPath,
-            sizeStr,
-            pxW: 2480,
-            pxH: 3508,
-            w: 297,
-            h: 420,
-            thumbUrl: null,
-            img: fallbackImg,
-            fileRef: file,
-            isDir: false
-          });
-        }
-      });
+        });
+      }
+
+      // Caso 4: Otros formatos (.eps, .psd) — usar medida del nombre o 500x500 mm sin forzar A3
+      const nameDims = parseDimensionsFromFilename(file.name) || { wMm: 500, hMm: 500, source: '1:1 Directo' };
+      const { img: fallbackImg, dataUrl } = createProportionalVectorPreviewCanvas(file.name, sizeStr, nameDims.wMm, nameDims.hMm);
+      return {
+        id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name: file.name,
+        path: displayPath,
+        sizeStr,
+        pxW: Math.round((nameDims.wMm / 25.4) * 150),
+        pxH: Math.round((nameDims.hMm / 25.4) * 150),
+        w: nameDims.wMm,
+        h: nameDims.hMm,
+        origW: nameDims.wMm,
+        origH: nameDims.hMm,
+        thumbUrl: dataUrl,
+        img: fallbackImg,
+        fileRef: file,
+        isDir: false,
+        dpiInfo: nameDims.source
+      };
     }
 
     async function handleUploadedFiles(fileList, isFromFolderInput = false) {
-      const rawFiles = Array.from(fileList || []).filter((f) => SUPPORTED_EXT_REGEX.test(f.name) || (f.type && f.type.startsWith('image/')));
+      const rawFiles = Array.from(fileList || []).filter((f) => SUPPORTED_EXT_REGEX.test(f.name) || (f.type && (f.type.startsWith('image/') || f.type === 'application/pdf')));
       if (rawFiles.length === 0) {
         showToast('⚠️ No se encontraron archivos gráficos compatibles en la selección.');
         return;
       }
+
+      showToast(`⏳ Procesando vista previa y medidas reales de ${rawFiles.length} archivo(s)...`);
 
       if (isFromFolderInput && rawFiles[0].webkitRelativePath) {
         const folderName = rawFiles[0].webkitRelativePath.split('/')[0] || 'Carpeta PC';
@@ -1604,7 +2165,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       if (isFromFolderInput) {
         STATE.pcFiles = builtEntries;
       } else {
-        // Añadir arriba de la lista existente sin duplicar por nombre+tamaño
         builtEntries.reverse().forEach((entry) => {
           const existsIdx = STATE.pcFiles.findIndex((x) => !x.isDir && x.name === entry.name && x.sizeStr === entry.sizeStr);
           if (existsIdx !== -1) STATE.pcFiles.splice(existsIdx, 1);
@@ -1619,13 +2179,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         selectPcFileEntry(firstEntry, false);
         const isLayoutActive = !document.getElementById('tab-layout').classList.contains('hidden');
         if (isLayoutActive || (!isFromFolderInput && builtEntries.length >= 1)) {
-          // Si el usuario abrió archivos sueltos o está en Layout, añadirlos directamente al Layout sin deformar
           if (!isFromFolderInput) {
             builtEntries.forEach((ent) => addFileEntryToLayout(ent));
-            showToast(`✅ ${builtEntries.length} archivo(s) cargado(s) a escala 1:1`);
+            showToast(`✅ "${firstEntry.name}" cargado a su medida real: ${firstEntry.w} × ${firstEntry.h} mm (${(firstEntry.w / 10).toFixed(1)}×${(firstEntry.h / 10).toFixed(1)} cm)`);
           }
         } else {
-          showToast(`📁 ${builtEntries.length} archivo(s) listados en el Explorador`);
+          showToast(`📁 ${builtEntries.length} archivo(s) listados con sus medidas reales`);
         }
       }
     }
@@ -1636,29 +2195,41 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       STATE.activeFileName = item.name;
       STATE.activeSampleArt = 'custom';
       STATE.currentAspectRatio = item.w / item.h;
-      STATE.baseJobWidthMm = item.w;
-      STATE.baseJobHeightMm = item.h;
+      STATE.baseJobWidthMm = item.origW || item.w;
+      STATE.baseJobHeightMm = item.origH || item.h;
 
+      const cmStr = `${(item.w / 10).toFixed(1)}×${(item.h / 10).toFixed(1)} cm`;
       document.getElementById('status-file-path').textContent =
-        `PC: ${item.path || item.name} (${item.pxW}x${item.pxH} px • ${item.sizeStr})`;
+        `PC: ${item.path || item.name} (${cmStr} • ${item.dpiInfo || '1:1'} • ${item.sizeStr})`;
 
-      // Actualizar controles de medida sin alterar otras piezas del Layout a menos que el usuario las edite
       document.getElementById('job-w-mm').value = item.w;
       document.getElementById('job-h-mm').value = item.h;
       document.getElementById('top-w-mm').value = item.w;
       document.getElementById('top-h-mm').value = item.h;
       const ratioStr = (item.w / item.h).toFixed(3);
-      document.getElementById('lbl-orig-aspect').textContent = `${item.w} x ${item.h} mm (${item.pxW}x${item.pxH}px • Ratio ${ratioStr})`;
+      document.getElementById('lbl-orig-aspect').textContent =
+        `${item.w} x ${item.h} mm (${cmStr} • ${item.dpiInfo || 'Proporción ' + ratioStr})`;
 
       renderFileBrowserList();
       renderJobCanvas();
       if (switchToJobTab) switchCenterTab('tab-job');
     }
 
+    function restoreOriginalFileSize() {
+      const activeEntry = STATE.pcFiles.find((f) => !f.isDir && f.name === STATE.activeFileName);
+      const selItem = STATE.layoutItems.find((it) => it.selected);
+      const origW = (selItem && selItem.origW) || (activeEntry && activeEntry.origW) || STATE.baseJobWidthMm || 500;
+      const origH = (selItem && selItem.origH) || (activeEntry && activeEntry.origH) || STATE.baseJobHeightMm || 500;
+      STATE.currentAspectRatio = origW / origH;
+      document.getElementById('job-scale-pct').value = 100;
+      applyNewJobAndSelectedDimensions(origW, origH);
+      showToast(`🔄 Medida original restaurada: ${origW} × ${origH} mm (${(origW / 10).toFixed(1)} × ${(origH / 10).toFixed(1)} cm)`);
+    }
+
     function addFileEntryToLayout(item) {
       if (!item || item.isDir) return;
-      const w = Math.round(item.w || 297);
-      const h = Math.round(item.h || 420);
+      const w = Math.round(item.w || 500);
+      const h = Math.round(item.h || 500);
       const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
 
       let nextX = 15, nextY = 15;
@@ -1682,6 +2253,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         y: nextY,
         w,
         h,
+        origW: item.origW || w,
+        origH: item.origH || h,
         aspectRatio: w / h,
         art: 'custom',
         img: item.img,
@@ -3392,6 +3965,22 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       });
       document.getElementById('folder-input-open').addEventListener('change', (ev) => {
         handleUploadedFiles(ev.target.files, true);
+      });
+      document.getElementById('import-dpi-select').addEventListener('change', () => {
+        const activeEntry = STATE.pcFiles.find((f) => !f.isDir && f.name === STATE.activeFileName);
+        if (activeEntry && !activeEntry.isPdf) {
+          const { wMm, hMm, dpiInfo } = calculateInitialMmFromPixels(
+            activeEntry.pxW || 1000,
+            activeEntry.pxH || 1000,
+            null,
+            activeEntry.name
+          );
+          activeEntry.w = wMm;
+          activeEntry.h = hMm;
+          activeEntry.dpiInfo = dpiInfo;
+          applyNewJobAndSelectedDimensions(wMm, hMm);
+          showToast(`📐 Medida recalculada (${dpiInfo}): ${wMm} × ${hMm} mm`);
+        }
       });
 
       populateProfileSelectors();
