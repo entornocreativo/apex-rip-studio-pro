@@ -3,545 +3,2123 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ApexRIP Studio Pro — Software RIP de Gran Formato (Ecosolvente, Sublimación, UV)</title>
-  <meta name="description" content="Software profesional RIP para plotters de gran formato: gestión de color ICC, Atlas de Colores, CIE Lab y PANTONE, colas múltiples, datos variables, panelación y control directo de hardware." />
-  <link rel="stylesheet" href="styles.css" />
+  <title>ApexRIP SoftRIP Edition v3.0 — Mutoh VJ-1624 &amp; Mimaki UJV100-160</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --background: #0d1117;
+      --foreground: #f0f4f8;
+      --card: #151b24;
+      --card-border: #263042;
+      --border: #263042;
+      --primary: #0ea5e9;
+      --primary-foreground: #041019;
+      --secondary: #1e293b;
+      --secondary-foreground: #e2e8f0;
+      --muted-foreground: #94a3b8;
+    }
+
+    * { box-sizing: border-box; user-select: none; }
+    input, select, textarea { user-select: text; }
+
+    /* Estilo Técnico Wasatch SoftRIP Desktop */
+    .ws-window {
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 12px;
+    }
+    .ws-menubar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+    }
+    .ws-menu-item {
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .ws-menu-item:hover {
+      background: var(--secondary);
+      color: var(--primary);
+    }
+    .ws-toolbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 5px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .ws-tool-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      background: var(--background);
+      color: var(--foreground);
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ws-tool-btn:hover {
+      border-color: var(--primary);
+      background: var(--secondary);
+    }
+    .ws-tool-btn.primary-rip {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0369a1;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .ws-tool-btn.primary-print {
+      background: #059669;
+      color: #ffffff;
+      border-color: #047857;
+      font-weight: 700;
+    }
+
+    /* Pestañas verticales laterales estilo Wasatch */
+    .v-tabs-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 4px 3px;
+      width: 28px;
+      flex-shrink: 0;
+    }
+    .v-tab-btn {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: 8px 3px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--background);
+      color: var(--muted-foreground);
+      border-radius: 3px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .v-tab-btn.active {
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border-color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* Pestañas Superiores del Área Central (Job | Layout | Queues | Template) */
+    .ws-tab-btn {
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      background: var(--secondary);
+      color: var(--muted-foreground);
+      border-radius: 5px 5px 0 0;
+      cursor: pointer;
+    }
+    .ws-tab-btn.active {
+      background: var(--card);
+      color: var(--foreground);
+      border-top: 2px solid var(--primary);
+      font-weight: 700;
+    }
+
+    /* Groupbox clásico de diálogo técnico */
+    .ws-groupbox {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px;
+      position: relative;
+      margin-top: 6px;
+      background: var(--background);
+    }
+    .ws-groupbox-title {
+      position: absolute;
+      top: -9px;
+      left: 10px;
+      background: var(--card);
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Filas de estado en Rip Queue (Wasatch Verde = Ripeado, Rosa = Error, Blanco = En Espera) */
+    .rq-row-ripped {
+      background: rgba(16, 185, 129, 0.14);
+    }
+    .rq-row-pending {
+      background: transparent;
+    }
+    .rq-row-error {
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    /* Modales superpuestos */
+    .ws-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 12px;
+    }
+    .ws-modal-backdrop.open {
+      display: flex;
+    }
+    .ws-modal-box {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      max-height: 92vh;
+      overflow-y: auto;
+      color: var(--foreground);
+    }
+    .ws-modal-header {
+      background: var(--secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 12.5px;
+    }
+  </style>
 </head>
-<body>
-  <!-- Cabecera Principal de Estación RIP -->
-  <header class="top-header">
-    <div class="brand-group">
-      <div class="cmyk-mark" aria-hidden="true">
-        <span></span><span></span><span></span><span></span>
-      </div>
-      <div class="brand-title">
-        <h1>ApexRIP Studio Pro v2.4</h1>
-        <p>Motor RIP de Gran Formato • Ecosolvente / Sublimación / UV LED</p>
-      </div>
+<body class="ws-window min-h-screen flex flex-col m-0 p-0">
+
+  <!-- 1. BARRA DE MENÚ SUPERIOR ESTILO WASATCH SOFTRIP -->
+  <div class="ws-menubar">
+    <span class="font-bold text-[var(--primary)] mr-1">W</span>
+    <span class="ws-menu-item" onclick="document.getElementById('file-input-open').click()">File</span>
+    <span class="ws-menu-item" onclick="switchCenterTab('tab-job')">Image</span>
+    <span class="ws-menu-item" onclick="switchCenterTab('tab-atlas')">Color</span>
+    <span class="ws-menu-item" onclick="openSetupModal()">Print</span>
+    <span class="ws-menu-item" onclick="switchCenterTab('tab-vdp')">Variable</span>
+    <span class="ws-menu-item" onclick="openSetupModal()">Page</span>
+    <span class="ws-menu-item" onclick="switchCenterTab('tab-layout')">Layout</span>
+    <span class="ws-menu-item" onclick="openImagingConfigModal()">Template / Inksets</span>
+    <span class="ws-menu-item" onclick="openAnnotationModal()">Tools</span>
+    <span class="ws-menu-item" onclick="switchCenterTab('tab-queues')">Server</span>
+    <span class="ml-auto font-mono text-xs text-[var(--muted-foreground)]">
+      Wasatch-Style SoftRIP Engine v3.0 • Bobina Máx: 50.0 m (50,000 mm)
+    </span>
+  </div>
+
+  <!-- 2. BARRA DE HERRAMIENTAS PRINCIPAL CON ICONOS Y SELECTOR DE PRINT UNIT -->
+  <div class="ws-toolbar">
+    <div class="flex flex-wrap items-center gap-1.5">
+      <button class="ws-tool-btn" onclick="document.getElementById('file-input-open').click()" title="Abrir Archivo (PNG, JPG, TIFF, PDF)">
+        📂 Abrir
+      </button>
+      <input id="file-input-open" type="file" accept="image/*" class="hidden" />
+
+      <button class="ws-tool-btn primary-rip" onclick="actionRipCurrentJob()" title="Ripear Trabajo Actual (Ctrl+R)">
+        RIP
+      </button>
+      <button class="ws-tool-btn primary-print" onclick="actionRipAndPrint()" title="Ripear e Imprimir / Generar .PRN">
+        🖨️ RIP &amp; Print (.PRN)
+      </button>
+      <button class="ws-tool-btn" onclick="actionAddToLayout()" title="Añadir Trabajo a la Mesa de Montaje (Layout)">
+        ➕ Add to Layout
+      </button>
+      <button class="ws-tool-btn" onclick="actionSmartNest()" title="Acomodo Inteligente en el Ancho del Material (Smart Nest)">
+        🧩 Smart Nest
+      </button>
+
+      <span class="h-5 w-px bg-[var(--border)] mx-1"></span>
+
+      <button class="ws-tool-btn" onclick="actionRotate90()" title="Rotar 90°">
+        ↻ 90°
+      </button>
+      <button class="ws-tool-btn" onclick="actionToggleMirror()" title="Espejo Horizontal">
+        ⇄ Mirror
+      </button>
+      <button class="ws-tool-btn" onclick="openAnnotationModal()" title="Configurar Anotación Impresa y Patrón CMYK">
+        📝 Annotation
+      </button>
+
+      <!-- Selector rápido de canal de inspección -->
+      <select id="toolbar-channel-view" class="h-7 px-2 rounded bg-[var(--background)] border border-[var(--border)] text-xs font-semibold">
+        <option value="composite">Vista: Compuesto CMYK</option>
+        <option value="C">Canal: Cian (C)</option>
+        <option value="M">Canal: Magenta (M)</option>
+        <option value="Y">Canal: Amarillo (Y)</option>
+        <option value="K">Canal: Negro (K)</option>
+        <option value="W">Canal: Blanco UV (W)</option>
+      </select>
     </div>
 
-    <nav class="main-nav" aria-label="Módulos del sistema RIP">
-      <button id="tab-btn-rip" class="nav-tab active" data-tab="view-rip">
-        1. Estación de Ripeo &amp; Canales
+    <!-- Selector Derecho de Unidad de Impresión (Print Unit) + Botón Engranaje Setup -->
+    <div class="flex items-center gap-1.5">
+      <label class="text-xs font-semibold text-[var(--muted-foreground)]">Print Unit:</label>
+      <select id="unit-selector" class="h-7 px-2.5 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold text-xs min-w-[310px]">
+        <option value="unit1">Unit 1: Mutoh VJ-1624 (CMYK, 720x1440, Rollo 1370mm)</option>
+        <option value="unit2">Unit 2: Mimaki UJV100-160 (CMYKW, 600x1200, Rollo 1520mm)</option>
+      </select>
+      <button class="ws-tool-btn" onclick="openSetupModal()" title="Setup - Print Unit (Ancho Material, Bobina 50m, Márgenes, Marcas, Corte)">
+        ⚙️ Setup Unit
       </button>
-      <button id="tab-btn-atlas" class="nav-tab" data-tab="view-atlas">
-        2. Atlas de Color &amp; PANTONE / Lab
+      <button class="ws-tool-btn" onclick="openImagingConfigModal()" title="Imaging Configuration / Crear y Editar Perfiles de Material">
+        🎨 Perfiles Material
       </button>
-      <button id="tab-btn-layout" class="nav-tab" data-tab="view-layout">
-        3. Composición (Nesting) &amp; Panelación
-      </button>
-      <button id="tab-btn-vdp" class="nav-tab" data-tab="view-vdp">
-        4. Datos Variables (VDP)
-      </button>
-      <button id="tab-btn-queues" class="nav-tab" data-tab="view-queues">
-        5. Cola Maestra &amp; Spooler
-      </button>
-    </nav>
-
-    <div class="header-actions">
-      <span id="engine-status-pill" class="status-pill">● MOTOR PYTHON ICC ACTIVO</span>
-      <label for="file-upload-input" class="btn" style="cursor:pointer;">
-        Cargar Arte (PNG/TIFF/JPG)
-      </label>
-      <input id="file-upload-input" type="file" accept="image/*" style="display:none;" />
     </div>
-  </header>
+  </div>
 
-  <!-- Cuerpo Principal de 3 Columnas -->
-  <main class="workspace">
-    <!-- Barra Izquierda: Colas de Impresión Múltiples y Trabajos Activos -->
-    <aside class="sidebar-left">
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Colas de Trabajo Activas</span>
-        </div>
-        <div id="queues-container" class="queue-list"></div>
+  <!-- 3. ÁREA DE TRABAJO CENTRAL DIVIDIDA (PANEL IZQUIERDO CON PESTAÑAS VERTICALES + ESCENARIO CENTRAL) -->
+  <div class="flex-1 flex min-h-0 overflow-hidden">
+
+    <!-- PANEL IZQUIERDO ESTILO WASATCH (Queue Processing Active + Pestañas Verticales) -->
+    <div class="w-80 bg-[var(--card)] border-r border-[var(--border)] flex flex-col flex-shrink-0">
+      <!-- Casilla Queue Processing Active + Ancho Rápido -->
+      <div class="p-2 border-b border-[var(--border)] flex items-center justify-between bg-[var(--secondary)]">
+        <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+          <input id="chk-queue-active" type="checkbox" checked />
+          <span>Queue Processing Active</span>
+        </label>
+        <span id="left-unit-badge" class="font-mono text-xs text-[var(--primary)] font-bold">Mutoh VJ-1624</span>
       </div>
 
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Trabajos en Cola Seleccionada</span>
+      <!-- Barra rápida siempre visible para escribir el Ancho del Material y ver la Bobina de 50m -->
+      <div class="p-2.5 border-b border-[var(--border)] bg-[var(--background)] space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-xs text-[var(--primary)]">ANCHO DEL MATERIAL Y BOBINA (50M)</span>
+          <button onclick="openSetupModal()" class="text-xs underline text-[var(--muted-foreground)] cursor-pointer">Márgenes...</button>
         </div>
-        <div id="queue-jobs-container"></div>
-      </div>
-
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Artes de Prueba Preinstalados</span>
-        </div>
-        <div class="form-row">
-          <label for="preset-artwork-select">Seleccionar Gráfico de Prueba</label>
-          <select id="preset-artwork-select">
-            <option value="motorsport_wrap">Gráfica Vehicular &amp; Carta Control CMYK</option>
-            <option value="sublimation_jersey">Textil Sublimación Full Print (HDK)</option>
-          </select>
-        </div>
-        <button id="btn-run-rip-left" class="btn btn-primary btn-block">
-          Procesar / Ripear Trabajo Ahora
-        </button>
-      </div>
-    </aside>
-
-    <!-- Escenario Central Dinámico según Pestaña -->
-    <section class="center-stage">
-      <!-- VISTA 1: ESTACIÓN DE RIPEO Y SEPARACIÓN DE CANALES -->
-      <div id="view-rip" class="tab-view active">
-        <div class="stage-toolbar">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <strong>Inspección de Separación de Canales:</strong>
-            <div class="channel-pills">
-              <button class="ch-btn active" data-ch="composite">Compuesto CMYK + Marcas</button>
-              <button class="ch-btn" data-ch="C">Cian (C)</button>
-              <button class="ch-btn" data-ch="M">Magenta (M)</button>
-              <button class="ch-btn" data-ch="Y">Amarillo (Y)</button>
-              <button class="ch-btn" data-ch="K">Negro (K)</button>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Ancho Material (mm)</label>
+            <div class="flex gap-1">
+              <input id="quick-paper-width" type="number" min="200" max="1625" step="1" value="1370" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold text-xs" />
+              <button onclick="setMaximumPaperWidth()" title="Set Maximum Width (1625mm Mutoh / 1620mm Mimaki)" class="px-1.5 py-1 rounded bg-[var(--secondary)] border border-[var(--border)] font-mono text-xs cursor-pointer">Máx</button>
             </div>
           </div>
-          <div style="display:flex; gap:8px;">
-            <button id="btn-rip-main" class="btn btn-primary">Actualizar Ripeo</button>
-            <button id="btn-send-printer-top" class="btn btn-success">Enviar a Plotter / Generar .PRN</button>
+          <div>
+            <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Largo Bobina (mm, 50m)</label>
+            <div class="flex gap-1">
+              <input id="quick-paper-height" type="number" min="500" max="50000" step="100" value="50000" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono font-bold text-xs" />
+              <button onclick="setMaximumPaperHeight()" title="Set Maximum Height (50,000 mm = 50 Metros)" class="px-1.5 py-1 rounded bg-[var(--secondary)] border border-[var(--border)] font-mono text-xs cursor-pointer">50m</button>
+            </div>
           </div>
         </div>
-
-        <div class="preview-viewport">
-          <img id="rip-preview-img" src="" alt="Previsualización de imagen ripeada con marcas de corte y barra de color" />
-        </div>
-
-        <div class="metrics-strip">
-          <div class="metric-box">
-            <div class="metric-label">Área de Impresión</div>
-            <div id="metric-area" class="metric-value">1.008 m²</div>
+        <!-- Selector directo de Perfil de Material (Imaging Configuration) -->
+        <div>
+          <div class="flex justify-between items-center mb-0.5">
+            <label class="text-[var(--muted-foreground)] text-xs">Perfil de Material (Imaging Config):</label>
+            <button onclick="openImagingConfigModal()" class="text-xs font-bold text-[var(--primary)] cursor-pointer">+ Crear / Editar</button>
           </div>
-          <div class="metric-box">
-            <div class="metric-label">Consumo Tinta Total</div>
-            <div id="metric-ink-total" class="metric-value" style="color:var(--accent-hover);">5.12 mL</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-label">Límite Tinta Pico (TIL)</div>
-            <div id="metric-peak-til" class="metric-value">248.0%</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-label">Modo Cabezal / Pasadas</div>
-            <div id="metric-head-mode" class="metric-value" style="font-size:13px;">8 Pasadas Bidir</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-label">Tiempo de Ripeo</div>
-            <div id="metric-rip-ms" class="metric-value" style="color:#34d399;">42 ms</div>
-          </div>
+          <select id="quick-profile-select" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-semibold text-xs"></select>
         </div>
       </div>
 
-      <!-- VISTA 2: GENERADOR DE ATLAS DE COLORES E IMPORTADOR CIE LAB / PANTONE -->
-      <div id="view-atlas" class="tab-view">
-        <div class="two-col-layout">
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Generador de Atlas de Colores (Muestrario en Sustrato)</span>
+      <!-- Cuerpo con Pestañas Verticales Izquierdas (File Browser | Size & Crop | Tile | Repeats | Trace | Unit Options) -->
+      <div class="flex-1 flex min-h-0 overflow-hidden">
+        <div class="v-tabs-bar">
+          <button data-vtab="vpane-files" class="v-tab-btn active">File Browser</button>
+          <button data-vtab="vpane-size" class="v-tab-btn">Size</button>
+          <button data-vtab="vpane-tile" class="v-tab-btn">Tile</button>
+          <button data-vtab="vpane-repeats" class="v-tab-btn">Repeats</button>
+          <button data-vtab="vpane-trace" class="v-tab-btn">Trace</button>
+          <button data-vtab="vpane-unit" class="v-tab-btn">Unit Options</button>
+        </div>
+
+        <div class="flex-1 p-2.5 overflow-y-auto space-y-2.5">
+          <!-- VPANE 1: FILE BROWSER (como en capturas 1, 2 y 3 de Wasatch) -->
+          <div id="vpane-files" class="v-pane space-y-2">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Explorador de Archivos (Doble clic para cargar)</div>
+            <div class="border border-[var(--border)] rounded bg-[var(--background)] p-1.5 font-mono text-xs space-y-1">
+              <div>📁 Desktop</div>
+              <div class="pl-3">📂 Trabajos_Mutoh_1624</div>
+              <div class="pl-3">📂 Trabajos_Mimaki_UJV100</div>
+              <div class="pl-3 text-[var(--primary)] font-bold">📂 Cola_Produccion_Activa</div>
             </div>
-            <p style="color:var(--text-muted); font-size:12px; margin-bottom:12px;">
-              Imprime una matriz de variaciones alrededor de un color objetivo directamente en tu vinilo, lona o papel de sublimación para elegir el tono exacto con precisión visual.
-            </p>
-            <div class="form-grid-2">
-              <div class="form-row">
-                <label for="atlas-base-hex">Color Objetivo (Hex)</label>
-                <input id="atlas-base-hex" type="text" value="#E1251B" />
+
+            <div class="border border-[var(--border)] rounded bg-[var(--background)] divide-y divide-[var(--border)]" id="file-browser-list"></div>
+
+            <button onclick="document.getElementById('file-input-open').click()" class="w-full py-1.5 px-2 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold text-xs cursor-pointer">
+              + Examinar Archivo de tu PC...
+            </button>
+
+            <div class="pt-1">
+              <label class="block text-[var(--muted-foreground)] text-xs mb-0.5">Filtro de Formatos:</label>
+              <select class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] text-xs">
+                <option>All Formats (.ps, .prn, .pdf, .eps, .tif, .jpg, .png)</option>
+                <option>TIFF / PSD CMYK (.tif, .psd)</option>
+                <option>Vector PostScript / PDF (.pdf, .eps, .ps)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- VPANE 2: SIZE (Escalado en mm y % para el trabajo activo) -->
+          <div id="vpane-size" class="v-pane hidden space-y-2.5">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Dimensiones y Escala del Trabajo (Size)</div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Ancho de Impresión (mm)</label>
+              <input id="job-w-mm" type="number" min="10" max="1625" value="1200" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Alto / Largo Impresión (mm, máx 50,000)</label>
+              <input id="job-h-mm" type="number" min="10" max="50000" value="840" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Escala X (%)</label>
+                <input id="job-scale-x" type="number" step="0.1" value="100.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
-              <div class="form-row">
-                <label for="atlas-grid-size">Tamaño de Matriz</label>
-                <select id="atlas-grid-size">
-                  <option value="5">5 x 5 (25 Muestras)</option>
-                  <option value="7">7 x 7 (49 Muestras)</option>
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="atlas-step-pct">Paso de Variación (%)</label>
-                <input id="atlas-step-pct" type="number" min="1" max="15" step="0.5" value="4.0" />
-              </div>
-              <div class="form-row">
-                <label for="atlas-variation-mode">Ejes de Variación</label>
-                <select id="atlas-variation-mode">
-                  <option value="C_vs_M">Cian vs. Magenta (C / M)</option>
-                  <option value="Y_vs_K">Amarillo vs. Negro (Y / K)</option>
-                  <option value="C_M_vs_Y">Cian vs. Amarillo (C / Y)</option>
-                </select>
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Escala Y (%)</label>
+                <input id="job-scale-y" type="number" step="0.1" value="100.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
             </div>
-            <button id="btn-generate-atlas" class="btn btn-primary btn-block">
-              Generar Atlas de Color Listo para Imprimir
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input id="chk-lock-aspect" type="checkbox" checked />
+              <span>Mantener Proporción (Aspect Ratio)</span>
+            </label>
+            <button onclick="fitJobToMaterialWidth()" class="w-full py-1.5 px-2 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
+              Ajustar al Ancho del Material Actual
             </button>
           </div>
 
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Importación CIE L*a*b* y PANTONE® Color Manager</span>
-            </div>
-            <p style="color:var(--text-muted); font-size:12px; margin-bottom:12px;">
-              Integra colores directos desde coordenadas CIE L*a*b* (D50/D65) y calcula automáticamente la receta CMYK para el perfil ICC activo y su desviación ΔE₀₀.
-            </p>
-            <div class="form-grid-2">
-              <div class="form-row">
-                <label for="spot-code-input">Código PANTONE / Spot</label>
-                <input id="spot-code-input" type="text" value="PANTONE 2995 C" />
-              </div>
-              <div class="form-row">
-                <label for="spot-name-input">Descripción</label>
-                <input id="spot-name-input" type="text" value="Azul Corporativo Claro" />
-              </div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+          <!-- VPANE 3: TILE (Panelación estilo Wasatch) -->
+          <div id="vpane-tile" class="v-pane hidden space-y-2.5">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Panelación de Gran Formato (Tile)</div>
+            <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+              <input id="chk-tile-active" type="checkbox" />
+              <span>Activar Panelación (Tiling) en Vista Job</span>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
               <div>
-                <label for="spot-l-input">CIE L* (0..100)</label>
-                <input id="spot-l-input" type="number" step="0.1" value="59.0" />
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Columnas (Ancho)</label>
+                <input id="tile-cols" type="number" min="1" max="20" value="3" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
               <div>
-                <label for="spot-a-input">CIE a* (-128..127)</label>
-                <input id="spot-a-input" type="number" step="0.1" value="-26.5" />
-              </div>
-              <div>
-                <label for="spot-b-input">CIE b* (-128..127)</label>
-                <input id="spot-b-input" type="number" step="0.1" value="-49.0" />
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Filas (Largo 50m)</label>
+                <input id="tile-rows" type="number" min="1" max="20" value="1" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
               </div>
             </div>
-            <button id="btn-import-spot" class="btn btn-primary btn-block">
-              Importar a Biblioteca Spot &amp; Calcular Receta CMYK
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Solapamiento / Overlap (mm)</label>
+              <input id="tile-overlap-mm" type="number" min="0" max="100" value="15" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input id="chk-tile-flip" type="checkbox" checked />
+              <span>Alternar Giro 180° en Paneles Pares</span>
+            </label>
+            <div id="tile-info-box" class="p-2 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs text-[var(--primary)]">
+              3 paneles con 15 mm de solapamiento.
+            </div>
+          </div>
+
+          <!-- VPANE 4: REPEATS (Repeticiones X / Y en el rollo) -->
+          <div id="vpane-repeats" class="v-pane hidden space-y-2.5">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Repeticiones / Step &amp; Repeat</div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Repeticiones X</label>
+                <input id="rep-x" type="number" min="1" max="50" value="1" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Repeticiones Y</label>
+                <input id="rep-y" type="number" min="1" max="200" value="1" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Espacio X (mm)</label>
+                <input id="rep-gap-x" type="number" min="0" max="200" value="10" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="block text-[var(--muted-foreground)] mb-0.5">Espacio Y (mm)</label>
+                <input id="rep-gap-y" type="number" min="0" max="200" value="10" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+              </div>
+            </div>
+            <button onclick="applyRepeatsToLayout()" class="w-full py-1.5 px-2 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
+              Enviar Repeticiones al Layout
             </button>
+          </div>
+
+          <!-- VPANE 5: TRACE (Contorno de Corte como el escarabajo de la captura 2) -->
+          <div id="vpane-trace" class="v-pane hidden space-y-2.5">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Trazado de Corte (Trace / Cut Path)</div>
+            <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+              <input id="chk-trace-active" type="checkbox" checked />
+              <span>Mostrar Trazado de Corte (CutContour)</span>
+            </label>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Desplazamiento / Sangrado (Bleed mm)</label>
+              <input id="trace-bleed" type="number" step="0.5" value="2.0" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Color de Línea de Corte en Pantalla</label>
+              <select id="trace-color" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="#fff200">Amarillo Intenso (Estilo Wasatch)</option>
+                <option value="#ec008c">Magenta CutContour</option>
+                <option value="#00aeef">Cian Técnico</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- VPANE 6: UNIT OPTIONS (Calibración rápida CMYKW, Pasadas, Temperaturas Mutoh / UV Mimaki) -->
+          <div id="vpane-unit" class="v-pane hidden space-y-2">
+            <div class="font-bold text-xs border-b border-[var(--border)] pb-1">Opciones de Unidad y Calibración</div>
+            <div>
+              <div class="flex justify-between">
+                <span>Límite Tinta Total (TIL)</span>
+                <span id="unit-til-lbl" class="font-mono font-bold">270%</span>
+              </div>
+              <input id="unit-til-slider" type="range" min="160" max="340" step="5" value="270" class="w-full" />
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between"><span style="color:#00aeef">Cian (C)</span><span id="u-c-lbl" class="font-mono">100%</span></div>
+              <input id="u-c-slider" type="range" min="50" max="140" value="100" class="w-full" />
+              <div class="flex justify-between"><span style="color:#ec008c">Magenta (M)</span><span id="u-m-lbl" class="font-mono">98%</span></div>
+              <input id="u-m-slider" type="range" min="50" max="140" value="98" class="w-full" />
+              <div class="flex justify-between"><span style="color:#eab308">Amarillo (Y)</span><span id="u-y-lbl" class="font-mono">100%</span></div>
+              <input id="u-y-slider" type="range" min="50" max="140" value="100" class="w-full" />
+              <div class="flex justify-between"><span>Negro (K)</span><span id="u-k-lbl" class="font-mono">102%</span></div>
+              <input id="u-k-slider" type="range" min="50" max="140" value="102" class="w-full" />
+              <div class="flex justify-between"><span class="text-[var(--primary)]">Blanco UV (W - Mimaki)</span><span id="u-w-lbl" class="font-mono">0%</span></div>
+              <input id="u-w-slider" type="range" min="0" max="150" value="0" class="w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESCENARIO CENTRAL CON LAS PESTAÑAS ESTILO WASATCH: Job | Layout | Queues | Color Atlas | Variable Data -->
+    <div class="flex-1 flex flex-col min-w-0 bg-[var(--background)]">
+      <!-- Barra de Pestañas Centrales -->
+      <div class="px-3 pt-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-end justify-between">
+        <div class="flex gap-1" id="center-tabs-bar">
+          <button data-ctab="tab-job" class="ws-tab-btn active">Job</button>
+          <button data-ctab="tab-layout" class="ws-tab-btn">Layout</button>
+          <button data-ctab="tab-queues" class="ws-tab-btn">Queues</button>
+          <button data-ctab="tab-atlas" class="ws-tab-btn">Color Atlas &amp; PANTONE</button>
+          <button data-ctab="tab-vdp" class="ws-tab-btn">Variable Data (VDP)</button>
+        </div>
+        <div class="pb-1.5 font-mono text-xs text-[var(--muted-foreground)] flex items-center gap-3">
+          <span id="top-paper-summary">Material: 1370 mm x 50,000 mm (50.0 m)</span>
+          <span id="top-ink-summary" class="text-[var(--primary)] font-bold">Tinta: 5.42 mL</span>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA 1: JOB (Con Reglas Graduadas Superiores/Laterales, Trazado, Panelación y Anotación) -->
+      <div id="tab-job" class="center-pane flex-1 flex flex-col p-3 overflow-auto">
+        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded flex items-center justify-center p-3 overflow-auto">
+          <canvas id="job-canvas" width="760" height="490" class="max-w-full h-auto shadow-lg rounded"></canvas>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA 2: LAYOUT (Mesa de Montaje y Nesting con Reglas Graduadas estilo Captura 1) -->
+      <div id="tab-layout" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2 overflow-auto">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <label class="font-semibold">Name:</label>
+            <input id="layout-name-input" type="text" value="Layout_Produccion_01" class="px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
+            <label class="font-semibold">Copies To Print:</label>
+            <input id="layout-copies-input" type="number" min="1" max="500" value="1" class="w-16 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs" />
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="actionSmartNest()" class="ws-tool-btn">🧩 Re-Nest (Optimizar Rollo)</button>
+            <button onclick="clearLayoutItems()" class="ws-tool-btn">🗑️ Limpiar Layout</button>
+            <span id="layout-count-badge" class="font-bold font-mono text-xs px-2 py-1 rounded bg-[var(--secondary)]">Images In Layout: 6</span>
           </div>
         </div>
 
-        <div class="two-col-layout">
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Previsualización de Hoja de Atlas de Color</span>
+        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded flex items-center justify-center p-3 overflow-auto">
+          <canvas id="layout-canvas" width="780" height="450" class="max-w-full h-auto shadow-lg rounded cursor-pointer"></canvas>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA 3: QUEUES (Doble Tabla Exacta a Captura 3: Rip Queue a la izquierda y Print Queue a la derecha) -->
+      <div id="tab-queues" class="center-pane hidden flex-1 flex flex-col p-3 space-y-2.5 overflow-auto">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <span class="font-bold">Print Unit:</span>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input id="q-chk-u1" type="checkbox" checked onchange="renderQueuesSplitView()" />
+              <span>1 (Mutoh VJ-1624)</span>
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input id="q-chk-u2" type="checkbox" checked onchange="renderQueuesSplitView()" />
+              <span>2 (Mimaki UJV100-160)</span>
+            </label>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="font-bold">Orientation:</span>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="q-orient" checked />
+              <span>Horizontal</span>
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="q-orient" />
+              <span>Vertical</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Doble Cola Dividida: Rip Queue (Izquierda) y Print Queue (Derecha) -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
+          <!-- RIP QUEUE -->
+          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col overflow-hidden">
+            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between">
+              <span id="rip-queue-title" class="font-bold">Rip Queue (5)</span>
+              <div class="flex gap-1">
+                <button onclick="actionRipCurrentJob()" class="ws-tool-btn primary-rip" style="height:24px;">RIP</button>
+                <button onclick="deleteSelectedRipQueue()" class="ws-tool-btn" style="height:24px;">✕ Eliminar</button>
+              </div>
             </div>
-            <div class="preview-viewport" style="min-height:330px;">
-              <img id="atlas-preview-img" src="" alt="Hoja generada del Atlas de Color con códigos CMYK" />
+            <div class="flex-1 overflow-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                  <tr>
+                    <th class="p-2">RIP</th>
+                    <th class="p-2">Copies</th>
+                    <th class="p-2">Job Name</th>
+                    <th class="p-2">Source file / Material</th>
+                  </tr>
+                </thead>
+                <tbody id="rip-queue-tbody" class="divide-y divide-[var(--border)]"></tbody>
+              </table>
             </div>
           </div>
 
-          <div class="card-panel" style="max-height:420px; overflow-y:auto;">
-            <div class="section-header">
-              <span class="section-title">Biblioteca Activa PANTONE® / CIE Lab (Clic para usar en Atlas)</span>
+          <!-- PRINT QUEUE -->
+          <div class="bg-[var(--card)] border border-[var(--border)] rounded flex flex-col overflow-hidden">
+            <div class="p-2 bg-[var(--secondary)] border-b border-[var(--border)] flex items-center justify-between">
+              <span id="print-queue-title" class="font-bold">Print Queue (4)</span>
+              <div class="flex gap-1">
+                <button onclick="actionRipAndPrint()" class="ws-tool-btn primary-print" style="height:24px;">🖨️ Exportar .PRN</button>
+              </div>
             </div>
-            <table class="data-table">
-              <thead>
+            <div class="flex-1 overflow-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                  <tr>
+                    <th class="p-2">Copies</th>
+                    <th class="p-2">Index</th>
+                    <th class="p-2">Notes / Perfil</th>
+                    <th class="p-2">Acción (.PRN)</th>
+                  </tr>
+                </thead>
+                <tbody id="print-queue-tbody" class="divide-y divide-[var(--border)]"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA 4: COLOR ATLAS & PANTONE -->
+      <div id="tab-atlas" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 overflow-auto">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded p-3 flex flex-wrap items-end justify-between gap-2">
+          <div class="flex flex-wrap gap-2 items-end">
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Color Base (Hex)</label>
+              <input id="atlas-hex" type="text" value="#E1251B" class="w-28 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Matriz</label>
+              <select id="atlas-grid" class="px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+                <option value="5">5 x 5 Parches</option>
+                <option value="7">7 x 7 Parches</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[var(--muted-foreground)] mb-0.5">Paso (%)</label>
+              <input id="atlas-step" type="number" value="4" min="1" max="15" class="w-16 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+            </div>
+            <button onclick="renderAtlasCanvas()" class="ws-tool-btn primary-rip">Generar Atlas</button>
+          </div>
+          <div class="flex gap-1.5 items-end">
+            <input id="spot-code-in" type="text" placeholder="PANTONE 300 C" value="PANTONE 300 C" class="w-32 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]" />
+            <input id="spot-l-in" type="number" value="44" class="w-14 px-1.5 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" title="CIE L*" />
+            <input id="spot-a-in" type="number" value="-3.5" class="w-14 px-1.5 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" title="CIE a*" />
+            <input id="spot-b-in" type="number" value="-58" class="w-14 px-1.5 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" title="CIE b*" />
+            <button onclick="addCustomSpotColor()" class="ws-tool-btn">+ Importar CIE Lab</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
+          <div class="lg:col-span-7 bg-[var(--card)] border border-[var(--border)] rounded p-2 flex items-center justify-center">
+            <canvas id="atlas-canvas" width="540" height="360" class="max-w-full h-auto rounded"></canvas>
+          </div>
+          <div class="lg:col-span-5 bg-[var(--card)] border border-[var(--border)] rounded overflow-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-[var(--secondary)] text-[var(--muted-foreground)]">
                 <tr>
-                  <th>Color / Código</th>
-                  <th>CIE Lab</th>
-                  <th>Receta CMYK</th>
-                  <th>ΔE₀₀</th>
+                  <th class="p-2">Color PANTONE / Spot</th>
+                  <th class="p-2">Lab</th>
+                  <th class="p-2">CMYK</th>
                 </tr>
               </thead>
-              <tbody id="spot-table-body"></tbody>
+              <tbody id="spot-tbody" class="divide-y divide-[var(--border)]"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- VISTA 3: COMPOSICIÓN (NESTING) Y PANELACIÓN (TILING DE GRAN FORMATO) -->
-      <div id="view-layout" class="tab-view">
-        <div class="two-col-layout">
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Composición Automática en Rollo (Nesting)</span>
-            </div>
-            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
-              Agrupa y gira automáticamente los trabajos de la cola activa para aprovechar al máximo el ancho del rollo y ahorrar metros lineales de sustrato.
-            </p>
-            <div class="form-grid-2">
-              <div class="form-row">
-                <label for="nest-roll-w">Ancho de Rollo (mm)</label>
-                <input id="nest-roll-w" type="number" value="1600" />
-              </div>
-              <div class="form-row">
-                <label for="nest-gap">Separación entre Piezas (mm)</label>
-                <input id="nest-gap" type="number" value="12" />
-              </div>
-            </div>
-            <button id="btn-calc-nesting" class="btn btn-primary btn-block" style="margin-bottom:12px;">
-              Optimizar Disposición en Rollo (Auto-Nest)
-            </button>
-            <div id="nesting-summary" style="font-family:var(--font-mono); font-size:12px; margin-bottom:10px; color:var(--accent-hover);"></div>
-            <canvas id="nesting-canvas" width="520" height="300" style="width:100%; background:#090c10; border:1px solid var(--border-subtle); border-radius:5px;"></canvas>
+      <!-- CONTENIDO PESTAÑA 5: VARIABLE DATA (VDP) -->
+      <div id="tab-vdp" class="center-pane hidden flex-1 flex flex-col p-3 space-y-3 overflow-auto">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold">Impresión de Datos Variables (VDP — Registros Seriados + QR + CutContour)</span>
+            <button onclick="sendVdpToQueues()" class="ws-tool-btn primary-rip">Enviar Lote VDP a Rip Queue</button>
           </div>
-
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Panelación de Gran Formato (Tiling con Solapamiento)</span>
-            </div>
-            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
-              Divide murales, vallas o gráficas que superan el ancho del plotter en paneles numerados con solapamiento (overlap) y giro alterno de 180° para igualar el tono entre uniones.
-            </p>
-            <div class="form-grid-2">
-              <div class="form-row">
-                <label for="tile-job-w">Ancho Total Mural (mm)</label>
-                <input id="tile-job-w" type="number" value="4200" />
-              </div>
-              <div class="form-row">
-                <label for="tile-job-h">Alto Total Mural (mm)</label>
-                <input id="tile-job-h" type="number" value="2400" />
-              </div>
-              <div class="form-row">
-                <label for="tile-roll-w">Ancho de Rollo (mm)</label>
-                <input id="tile-roll-w" type="number" value="1600" />
-              </div>
-              <div class="form-row">
-                <label for="tile-overlap">Solapamiento / Overlap (mm)</label>
-                <input id="tile-overlap" type="number" value="18" />
-              </div>
-            </div>
-            <button id="btn-calc-tiling" class="btn btn-primary btn-block" style="margin-bottom:12px;">
-              Calcular Paneles y Solapamientos
-            </button>
-            <div id="tiling-summary" style="font-family:var(--font-mono); font-size:12px; margin-bottom:10px; color:#34d399;"></div>
-            <canvas id="tiling-canvas" width="520" height="300" style="width:100%; background:#090c10; border:1px solid var(--border-subtle); border-radius:5px;"></canvas>
-          </div>
+          <textarea id="vdp-records-in" rows="4" class="w-full p-2 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-xs">SER-2026-001 | UNIDAD MUTOH VJ-1624 | BOBINA 50M #01
+SER-2026-002 | UNIDAD MIMAKI UJV100-160 | BOBINA 50M #01
+SER-2026-003 | CONTROL DE CALIDAD ISO | LOTE A-12
+SER-2026-004 | LOGÍSTICA GRAN FORMATO | LOTE A-12
+SER-2026-005 | ETIQUETADO INDUSTRIAL UV | LOTE B-08
+SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
+        </div>
+        <div class="flex-1 bg-[var(--card)] border border-[var(--border)] rounded p-2 flex items-center justify-center">
+          <canvas id="vdp-canvas" width="660" height="330" class="max-w-full h-auto rounded"></canvas>
         </div>
       </div>
 
-      <!-- VISTA 4: IMPRESIÓN DE DATOS VARIABLES (VDP) -->
-      <div id="view-vdp" class="tab-view">
-        <div class="two-col-layout">
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Generador de Lotes de Datos Variables (VDP)</span>
+      <!-- BARRA DE ESTADO INFERIOR ESTILO WASATCH SOFTRIP -->
+      <div class="h-7 bg-[var(--card)] border-t border-[var(--border)] px-3 flex items-center justify-between font-mono text-xs text-[var(--muted-foreground)]">
+        <div class="flex items-center gap-4">
+          <span id="status-nesting-eff" class="font-bold text-[var(--foreground)]">Nesting Efficiency: 78.40%</span>
+          <span id="status-xy-coords">X,Y: 120.0, 85.0 mm</span>
+        </div>
+        <div id="status-file-path" class="truncate max-w-md">
+          C:\Produccion\GranFormato\Grafica_Vehicular_Mutoh1624.tif
+        </div>
+        <div id="status-coil-meter" class="text-[var(--primary)] font-bold">
+          Bobina: 49.16 m libres de 50.00 m
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL 1: SETUP - PRINT UNIT (IDÉNTICO A LA CAPTURA 4 DE WASATCH SOFTRIP)   -->
+  <!-- ========================================================================== -->
+  <div id="modal-setup-unit" class="ws-modal-backdrop">
+    <div class="ws-modal-box w-full max-w-4xl">
+      <div class="ws-modal-header">
+        <span id="setup-modal-title">Setup - Print Unit 1 (Mutoh ValueJet VJ-1624)</span>
+        <button onclick="closeSetupModal()" class="px-2 py-0.5 rounded bg-red-600 text-white font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-4 space-y-4">
+        <!-- Fila Superior: Printer Model, Imaging Configuration, Physical Connection + Botones OK/Cancel/Edit/Download -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div class="md:col-span-9 space-y-2">
+            <div class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3 font-semibold">Printer Model</label>
+              <select id="setup-printer-model" class="col-span-9 px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-semibold" onchange="onSetupPrinterChange()">
+                <option value="mutoh_vj_1624">Mutoh ValueJet VJ-1624 (CMYK, 720x1440 dpi, Máx 1625mm)</option>
+                <option value="mimaki_ujv100_160">Mimaki UJV100-160 (CMYKW + Barniz UV LED, 600x1200 dpi, Máx 1620mm)</option>
+              </select>
             </div>
-            <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">
-              Introduce registros seriados en formato <code>CODIGO | ETIQUETA | LOTE</code> (uno por línea) para generar automáticamente una plancha impuesta con códigos QR/DataMatrix, contornos de corte (CutContour) e inyectarla en la cola de ripeo.
-            </p>
-            <div class="form-row">
-              <label for="vdp-textarea">Registros Variables (CSV / Tubería)</label>
-              <textarea id="vdp-textarea" rows="7" style="font-family:var(--font-mono);">SER-2026-001 | UNIDAD LOGÍSTICA NORTE | LOTE A-10
-SER-2026-002 | UNIDAD LOGÍSTICA SUR | LOTE A-10
-SER-2026-003 | PLANTA ENSAMBLAJE 04 | LOTE B-22
-SER-2026-004 | CONTROL DE CALIDAD ISO | LOTE B-22
-SER-2026-005 | FLOTA TRANSPORTE PESADO | LOTE C-09
-SER-2026-006 | EXPORTACIÓN MARÍTIMA | LOTE C-09</textarea>
+
+            <div class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3 font-semibold">Imaging Configuration</label>
+              <select id="setup-imaging-config" class="col-span-6 px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-semibold"></select>
+              <div class="col-span-3 flex gap-1">
+                <button onclick="openImagingConfigModal()" class="flex-1 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Edit / New...</button>
+                <button onclick="downloadActiveProfileJson()" class="flex-1 py-1 px-2 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-bold cursor-pointer">Download</button>
+              </div>
             </div>
-            <button id="btn-generate-vdp" class="btn btn-primary btn-block">
-              Generar Plancha VDP e Insertar en Cola Activa
-            </button>
+
+            <div class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3 font-semibold">Physical Connection</label>
+              <select id="setup-phys-conn" class="col-span-6 px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono">
+                <option value="TCP/IP:192.168.1.201:9100 Mutoh VJ-1624">TCP/IP:192.168.1.201:9100 Mutoh VJ-1624</option>
+                <option value="TCP/IP:192.168.1.202:9100 Mimaki UJV100-160">TCP/IP:192.168.1.202:9100 Mimaki UJV100-160</option>
+                <option value="USB001: Directo Local USB">USB001: Directo Local USB</option>
+                <option value="FILE: Salida Directa .PRN">FILE: Salida Directa .PRN</option>
+              </select>
+              <div class="col-span-3">
+                <button onclick="actionRipAndPrint()" class="w-full py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Test Spool .PRN</button>
+              </div>
+            </div>
           </div>
 
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Previsualización de Plancha Seriada VDP</span>
+          <div class="md:col-span-3 flex flex-col gap-1.5">
+            <button onclick="saveAndCloseSetupModal()" class="w-full py-1.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">OK (Aplicar)</button>
+            <button onclick="closeSetupModal()" class="w-full py-1.5 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Fila Central: Print Margins (Ancho Material y Alto 50 Metros) + Scale Adjustments (percent) -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <!-- Print Margins Groupbox -->
+          <div class="md:col-span-7 ws-groupbox space-y-2">
+            <span class="ws-groupbox-title">Print Margins (en milímetros — Bobina máx. 50,000 mm / 50 m)</span>
+
+            <div class="grid grid-cols-12 items-center gap-2 pt-1">
+              <label class="col-span-3">Paper Width (mm)</label>
+              <input id="setup-paper-w" type="number" min="200" max="1625" step="1" value="1370" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--primary)] font-mono font-bold" />
+              <button onclick="setMaximumPaperWidth()" class="col-span-4 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Maximum Width</button>
+              <label class="col-span-2 flex items-center gap-1 cursor-pointer">
+                <input id="setup-w-center" type="checkbox" />
+                <span>Center</span>
+              </label>
             </div>
-            <div class="preview-viewport" style="min-height:320px;">
-              <img id="vdp-preview-img" src="" alt="Previsualización de lote de impresión de datos variables" />
+
+            <div class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3">Paper Height (mm)</label>
+              <input id="setup-paper-h" type="number" min="500" max="50000" step="100" value="50000" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono font-bold" />
+              <button onclick="setMaximumPaperHeight()" class="col-span-4 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Maximum Height (50m)</button>
+              <label class="col-span-2 flex items-center gap-1 cursor-pointer">
+                <input id="setup-h-center" type="checkbox" />
+                <span>Center</span>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-12 items-center gap-2">
+              <label class="col-span-3">Left Margin (mm)</label>
+              <input id="setup-margin-l" type="number" min="0" max="100" step="0.5" value="10.0" class="col-span-3 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              <button onclick="setMarginsToZero()" class="col-span-6 py-1 px-2 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Set Margins to Zero</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-1">
+              <div>
+                <label class="block text-[var(--muted-foreground)]">Right Margin (mm)</label>
+                <input id="setup-margin-r" type="number" min="0" max="100" step="0.5" value="10.0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="block text-[var(--muted-foreground)]">Top Margin (mm)</label>
+                <input id="setup-margin-t" type="number" min="0" max="100" step="0.5" value="5.0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="block text-[var(--muted-foreground)]">Bottom Margin (mm)</label>
+                <input id="setup-margin-b" type="number" min="0" max="100" step="0.5" value="5.0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Scale Adjustments (percent) Groupbox -->
+          <div class="md:col-span-5 ws-groupbox space-y-2.5">
+            <span class="ws-groupbox-title">Scale Adjustments (percent)</span>
+            <label class="flex items-center gap-2 pt-1 cursor-pointer">
+              <input id="setup-scale-active" type="checkbox" />
+              <span>Active (Compensación de Avance/Material)</span>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[var(--muted-foreground)]">Width (%)</label>
+                <input id="setup-scale-w" type="number" step="0.01" value="100.00" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="block text-[var(--muted-foreground)]">Height (%)</label>
+                <input id="setup-scale-h" type="number" step="0.01" value="100.00" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+            </div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input id="setup-mirror" type="checkbox" />
+              <span>Mirror (Espejo Horizontal)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input id="setup-rot180" type="checkbox" />
+              <span>Rotation 180°</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Fila Inferior: Marks + Cutting Options -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div class="md:col-span-5 ws-groupbox space-y-2">
+            <span class="ws-groupbox-title">Marks</span>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-crop-marks" type="checkbox" checked /><span>Crop Marks</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-full-len" type="checkbox" /><span>Full Length</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-reg-marks" type="checkbox" checked /><span>Register Marks</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-marks-center" type="checkbox" /><span>Center</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-hairlines" type="checkbox" /><span>Hairlines</span></label>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+              <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+                <input id="setup-annotate" type="checkbox" checked />
+                <span>Annotate Prints</span>
+              </label>
+              <button onclick="openAnnotationModal()" class="py-1 px-2.5 rounded border border-[var(--primary)] bg-[var(--secondary)] text-[var(--primary)] font-semibold cursor-pointer">
+                Annotation Details...
+              </button>
+            </div>
+          </div>
+
+          <div class="md:col-span-7 ws-groupbox space-y-2">
+            <span class="ws-groupbox-title">Cutting Options</span>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-cut-paths" type="checkbox" checked /><span>Process Cutting Paths</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-outline-jobs" type="checkbox" /><span>Outline Jobs</span></label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[var(--muted-foreground)]">Bleed (mm):</label>
+                <input id="setup-cut-bleed" type="number" step="0.5" value="2.0" class="w-24 ml-1 px-2 py-0.5 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+              <div>
+                <label class="text-[var(--muted-foreground)]">Radius (mm):</label>
+                <input id="setup-cut-radius" type="number" step="0.5" value="0.0" class="w-24 ml-1 px-2 py-0.5 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <label class="flex items-center gap-1.5 cursor-pointer"><input id="setup-cut-reg" type="checkbox" checked /><span>Cutting Registration Marks (OPOS / DAS)</span></label>
+              <select class="px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs">
+                <option>Cutting Unit: Mimaki / Summa / Graphtec</option>
+                <option>Cutting Unit: none</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- VISTA 5: COLA MAESTRA Y SPOOLER DIRECTO TCP/USB/.PRN -->
-      <div id="view-queues" class="tab-view">
-        <div class="two-col-layout">
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Envío Directo al Plotter (Red TCP/IP 9100 • USB • Archivo .PRN)</span>
-            </div>
-            <div class="form-grid-2">
-              <div class="form-row">
-                <label for="spool-mode-select">Modo de Salida de Hardware</label>
-                <select id="spool-mode-select">
-                  <option value="spool_file">Generar Archivo Nativo .PRN (ESC/P2 / RTL)</option>
-                  <option value="tcp_raw">Red TCP/IP Directo (Socket Raw Puerto 9100)</option>
-                  <option value="usb_direct">Puerto USB Directo (/dev/usb/lp0)</option>
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="spool-host-input">IP del Plotter : Puerto</label>
-                <input id="spool-host-input" type="text" value="192.168.1.200:9100" />
-              </div>
-            </div>
-            <button id="btn-execute-spool" class="btn btn-success btn-block" style="margin-bottom:12px;">
-              Ejecutar Ripeo Final y Enviar a Dispositivo / Guardar en Cola Maestra
-            </button>
-            <div id="spool-result-box" style="padding:10px; border-radius:5px; background:var(--bg-input); border:1px solid var(--border-subtle); font-family:var(--font-mono); font-size:11.5px; color:#34d399;">
-              Listo para transmitir datos binarios ESC/P2 / RTL al plotter.
-            </div>
-          </div>
-
-          <div class="card-panel">
-            <div class="section-header">
-              <span class="section-title">Puertos y Interfaces Detectados en la Estación</span>
-            </div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Tipo Interfaz</th>
-                  <th>URI / Destino</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody id="devices-table-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card-panel">
-          <div class="section-header">
-            <span class="section-title">Cola Maestra (Trabajos Ripeados Almacenados Listos para Reimpresión Inmediata)</span>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID Maestro</th>
-                <th>Trabajo</th>
-                <th>Plotter Destino</th>
-                <th>Perfil ICC de Sustrato</th>
-                <th>Configuración Cabezal</th>
-                <th>Tinta</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody id="master-queue-body"></tbody>
-          </table>
-        </div>
+  <!-- ========================================================================== -->
+  <!-- MODAL 2: IMAGING CONFIGURATION & INKSET PROPERTIES (CAPTURA 5 DE WASATCH)  -->
+  <!-- ========================================================================== -->
+  <div id="modal-imaging-config" class="ws-modal-backdrop">
+    <div class="ws-modal-box w-full max-w-2xl">
+      <div class="ws-modal-header">
+        <span>Imaging Configuration &amp; Material Inkset Properties (Mutoh VJ-1624 / Mimaki UJV100-160)</span>
+        <button onclick="closeImagingConfigModal()" class="px-2 py-0.5 rounded bg-red-600 text-white font-bold cursor-pointer">✕</button>
       </div>
-    </section>
 
-    <!-- Barra Derecha: Control de Hardware, Perfiles ICC y Calibración por Canal -->
-    <aside class="sidebar-right">
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Dispositivo y Control de Cabezal</span>
-        </div>
-        <div class="form-row">
-          <label for="printer-select">Marca y Modelo de Plotter</label>
-          <select id="printer-select"></select>
-        </div>
-        <div class="form-grid-2">
-          <div class="form-row">
-            <label for="resolution-select">Resolución (DPI)</label>
-            <select id="resolution-select">
-              <option value="720">720 x 720 DPI</option>
-              <option value="1440" selected>720 x 1440 DPI</option>
-              <option value="1200">1200 x 1200 DPI</option>
+      <div class="p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Nombre del Perfil de Material (Inkset Name)</label>
+            <input id="ic-name" type="text" value="Mutoh VJ-1624 — Vinilo Polimérico 137cm" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--primary)] font-semibold" />
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Impresora Destino</label>
+            <select id="ic-printer" class="w-full px-2 py-1.5 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="mutoh_vj_1624">Mutoh ValueJet VJ-1624 (Ecosolvente)</option>
+              <option value="mimaki_ujv100_160">Mimaki UJV100-160 (UV LED + Blanco)</option>
             </select>
           </div>
-          <div class="form-row">
-            <label for="passes-select">Pasadas (Passes)</label>
-            <select id="passes-select">
-              <option value="4">4 Pasadas (Rápido)</option>
-              <option value="6">6 Pasadas (Producción)</option>
-              <option value="8" selected>8 Pasadas (Calidad)</option>
-              <option value="12">12 Pasadas (Alta Densidad)</option>
-              <option value="16">16 Pasadas (Backlit/UV)</option>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Print Mode</label>
+            <select id="ic-mode" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)]">
+              <option value="Custom">Custom</option>
+              <option value="High Quality">High Quality</option>
+              <option value="Production">Production</option>
+              <option value="Backlit High Density">Backlit High Density</option>
             </select>
           </div>
-        </div>
-        <div class="form-grid-2">
-          <div class="form-row">
-            <label for="head-dir-select">Dirección de Impresión</label>
-            <select id="head-dir-select">
-              <option value="bidirectional">Bidireccional (Velocidad)</option>
-              <option value="unidirectional">Unidireccional (Alta Precisión)</option>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Resolution</label>
+            <select id="ic-res" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono">
+              <option value="720x1440">720 x 1440</option>
+              <option value="720x720">720 x 720</option>
+              <option value="600x1200">600 x 1200 (Mimaki)</option>
+              <option value="1200x1200">1200 x 1200 (Mimaki)</option>
             </select>
           </div>
-          <div class="form-row">
-            <label for="halftone-select">Algoritmo de Tramado</label>
-            <select id="halftone-select">
-              <option value="bayer_fm">Difusión FM / Variable Dot</option>
-              <option value="am_rosette">Roseta AM (C15° M75° Y0° K45°)</option>
-              <option value="contone">Tono Continuo 8-bit</option>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Passes</label>
+            <select id="ic-passes" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono">
+              <option value="4">4 pass</option>
+              <option value="6">6 pass</option>
+              <option value="8" selected>8 pass</option>
+              <option value="12">12 pass</option>
+              <option value="16">16 pass</option>
             </select>
           </div>
-        </div>
-        <div class="form-grid-2">
-          <div class="form-row">
-            <label for="job-w-input">Ancho Trabajo (mm)</label>
-            <input id="job-w-input" type="number" value="1200" />
-          </div>
-          <div class="form-row">
-            <label for="job-h-input">Alto Trabajo (mm)</label>
-            <input id="job-h-input" type="number" value="840" />
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">Ancho Material (mm)</label>
+            <input id="ic-width" type="number" min="200" max="1625" value="1370" class="w-full px-2 py-1 rounded bg-[var(--background)] border border-[var(--primary)] font-mono font-bold" />
           </div>
         </div>
 
-        <label class="checkbox-row">
-          <input id="chk-autocut" type="checkbox" checked />
-          <span>Autocorte de Hoja al finalizar (Sheet Cut)</span>
-        </label>
-        <label class="checkbox-row">
-          <input id="chk-printline" type="checkbox" checked />
-          <span>Línea de Corte Perimetral (Printline CutContour)</span>
-        </label>
-        <label class="checkbox-row">
-          <input id="chk-cropmarks" type="checkbox" checked />
-          <span>Marcas Ópticas de Registro (OPOS / ARMS)</span>
-        </label>
-        <label class="checkbox-row">
-          <input id="chk-colorbar" type="checkbox" checked />
-          <span>Barra Lateral de Control de Inyectores CMYK</span>
-        </label>
-        <label class="checkbox-row">
-          <input id="chk-mirror" type="checkbox" />
-          <span>Modo Espejo Horizontal (Sublimación / Transfer)</span>
-        </label>
-      </div>
+        <!-- Extra Ink (Blanco / Barniz UV para Mimaki) + Curvas CMYKW + TIL -->
+        <div class="ws-groupbox space-y-2">
+          <span class="ws-groupbox-title">Inkset Calibration &amp; Extra Ink (White / Varnish UV)</span>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div class="flex items-center gap-3">
+              <span class="font-semibold">Extra Ink (Blanco/Barniz UV):</span>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="ic-extraink" value="not_set" /><span>Not Set</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="ic-extraink" value="yes" checked /><span>Yes</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="ic-extraink" value="no" /><span>No</span></label>
+            </div>
+            <div>
+              <label class="font-semibold">Total Ink Limit (TIL %):</label>
+              <input id="ic-til" type="number" min="160" max="340" value="270" class="w-20 ml-1 px-2 py-0.5 rounded bg-[var(--card)] border border-[var(--border)] font-mono font-bold" />
+            </div>
+          </div>
 
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Perfil ICC y Calibración por Canal</span>
-        </div>
-        <div class="form-row">
-          <label for="profile-select">Perfil ICC de Sustrato</label>
-          <select id="profile-select"></select>
-        </div>
-        <div class="form-row">
-          <label for="til-input">Límite de Tinta Total (TIL %): <span id="til-val-lbl">280%</span></label>
-          <input id="til-input" type="range" min="180" max="340" step="5" value="280" />
+          <div class="grid grid-cols-5 gap-2 pt-1">
+            <div>
+              <label class="block text-xs" style="color:#00aeef">Cian C (%)</label>
+              <input id="ic-c" type="number" value="100" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs" style="color:#ec008c">Magenta M (%)</label>
+              <input id="ic-m" type="number" value="98" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs" style="color:#eab308">Amarillo Y (%)</label>
+              <input id="ic-y" type="number" value="100" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs">Negro K (%)</label>
+              <input id="ic-k" type="number" value="102" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs text-[var(--primary)]">Blanco W (%)</label>
+              <input id="ic-w" type="number" value="0" class="w-full px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] font-mono" />
+            </div>
+          </div>
         </div>
 
-        <div class="form-row">
-          <label>Ganancia / Linealización Cian (C): <span id="gain-c-lbl">100%</span></label>
-          <input id="gain-c-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
-        </div>
-        <div class="form-row">
-          <label>Ganancia / Linealización Magenta (M): <span id="gain-m-lbl">100%</span></label>
-          <input id="gain-m-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
-        </div>
-        <div class="form-row">
-          <label>Ganancia / Linealización Amarillo (Y): <span id="gain-y-lbl">100%</span></label>
-          <input id="gain-y-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
-        </div>
-        <div class="form-row">
-          <label>Ganancia / Densidad Negro (K): <span id="gain-k-lbl">100%</span></label>
-          <input id="gain-k-input" type="range" min="0.5" max="1.4" step="0.02" value="1.0" />
-        </div>
-      </div>
-
-      <div class="panel-section">
-        <div class="section-header">
-          <span class="section-title">Cobertura y Consumo por Canal</span>
-        </div>
-        <div class="ink-bars">
-          <div class="ink-bar-row">
-            <strong style="color:var(--cyan-ink);">C</strong>
-            <div class="ink-track"><div id="bar-c" class="ink-fill" style="width:45%; background:var(--cyan-ink);"></div></div>
-            <span id="txt-c">1.40 mL</span>
+        <div class="flex flex-wrap justify-between gap-2 pt-2 border-t border-[var(--border)]">
+          <div class="flex gap-1.5">
+            <button onclick="createNewMaterialInkset()" class="py-1.5 px-3 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">
+              + Create Inkset (Guardar Nuevo Perfil)
+            </button>
+            <button onclick="updateCurrentMaterialInkset()" class="py-1.5 px-3 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">
+              Actualizar Perfil Actual
+            </button>
+            <button onclick="deleteCurrentMaterialInkset()" class="py-1.5 px-3 rounded border border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] cursor-pointer">
+              Delete Inkset
+            </button>
           </div>
-          <div class="ink-bar-row">
-            <strong style="color:var(--magenta-ink);">M</strong>
-            <div class="ink-track"><div id="bar-m" class="ink-fill" style="width:38%; background:var(--magenta-ink);"></div></div>
-            <span id="txt-m">1.18 mL</span>
-          </div>
-          <div class="ink-bar-row">
-            <strong style="color:var(--yellow-ink);">Y</strong>
-            <div class="ink-track"><div id="bar-y" class="ink-fill" style="width:42%; background:var(--yellow-ink);"></div></div>
-            <span id="txt-y">1.31 mL</span>
-          </div>
-          <div class="ink-bar-row">
-            <strong style="color:#cbd5e1;">K</strong>
-            <div class="ink-track"><div id="bar-k" class="ink-fill" style="width:52%; background:#94a3b8;"></div></div>
-            <span id="txt-k">1.65 mL</span>
-          </div>
+          <button onclick="closeImagingConfigModal()" class="py-1.5 px-4 rounded border border-[var(--border)] bg-[var(--secondary)] font-bold cursor-pointer">
+            Cerrar
+          </button>
         </div>
       </div>
-    </aside>
-  </main>
+    </div>
+  </div>
 
-  <script src="app.js"></script>
+  <!-- ========================================================================== -->
+  <!-- MODAL 3: ANNOTATION DETAILS (IDÉNTICO A LA CAPTURA 6 DE WASATCH SOFTRIP)   -->
+  <!-- ========================================================================== -->
+  <div id="modal-annotation" class="ws-modal-backdrop">
+    <div class="ws-modal-box w-full max-w-lg">
+      <div class="ws-modal-header">
+        <span>Annotation Details</span>
+        <button onclick="closeAnnotationModal()" class="px-2 py-0.5 rounded bg-red-600 text-white font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="ws-groupbox space-y-1">
+            <span class="ws-groupbox-title">Text Lines Per Inch</span>
+            <label class="flex items-center gap-1.5 pt-1"><input type="radio" name="ann-lpi" value="8" /><span>8 (small type)</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-lpi" value="4" checked /><span>4</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-lpi" value="2" /><span>2</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-lpi" value="1" /><span>1 (large type)</span></label>
+          </div>
+
+          <div class="ws-groupbox space-y-1">
+            <span class="ws-groupbox-title">Typeface</span>
+            <label class="flex items-center gap-1.5 pt-1"><input type="radio" name="ann-font" value="monospace" checked /><span>Courier</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-font" value="sans-serif" /><span>Helvetica</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-font" value="bold sans-serif" /><span>Helvetica Bold</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-font" value="serif" /><span>Times Roman</span></label>
+          </div>
+
+          <div class="ws-groupbox space-y-1">
+            <span class="ws-groupbox-title">Layout</span>
+            <label class="flex items-center gap-1.5 pt-1"><input type="radio" name="ann-layout" value="one" checked /><span>One Line</span></label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="ann-layout" value="sep" /><span>Separate Lines</span></label>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-2">
+          <label class="flex items-center gap-2 cursor-pointer"><input id="ann-jobname" type="checkbox" checked /><span>Job Name</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input id="ann-filename" type="checkbox" /><span>Original File Name</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input id="ann-printer" type="checkbox" checked /><span>Printer (Mutoh VJ-1624 / Mimaki UJV100-160)</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input id="ann-config" type="checkbox" checked /><span>Imaging Configuration (Perfil de Material)</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input id="ann-datetime" type="checkbox" checked /><span>Date/Time</span></label>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer"><input id="ann-comment" type="checkbox" checked /><span>Comment</span></label>
+            <input id="ann-comment-txt" type="text" value="C100,M100,Y100,K100" class="flex-1 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono" />
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer pt-1 font-bold text-[var(--primary)]">
+            <input id="ann-cmyk-pattern" type="checkbox" checked />
+            <span>CMYK Vector Test Pattern (Imprimir bloques de control CMYK al pie)</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+          <button onclick="saveAndCloseAnnotationModal()" class="py-1.5 px-5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-bold cursor-pointer">OK</button>
+          <button onclick="closeAnnotationModal()" class="py-1.5 px-4 rounded border border-[var(--border)] bg-[var(--secondary)] font-semibold cursor-pointer">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // MOTOR WASATCH-STYLE SOFTRIP v3.0 — MUTOH VJ-1624 & MIMAKI UJV100-160 (50M)
+    // ============================================================================
+    const MAX_COIL_MM = 50000; // 50 metros máximo de bobina
+
+    const INITIAL_PROFILES = [
+      {
+        id: 'mutoh_vinyl_1370',
+        name: 'Mutoh_VJ1624_Vinilo_Brillante_137cm',
+        printer: 'mutoh_vj_1624',
+        mode: 'High Quality',
+        res: '720x1440',
+        passes: 8,
+        width_mm: 1370,
+        til: 270,
+        gains: { C: 100, M: 98, Y: 100, K: 102, W: 0 }
+      },
+      {
+        id: 'mutoh_banner_1600',
+        name: 'Mutoh_VJ1624_Lona_Frontlit_13oz_160cm',
+        printer: 'mutoh_vj_1624',
+        mode: 'Production',
+        res: '720x720',
+        passes: 6,
+        width_mm: 1600,
+        til: 250,
+        gains: { C: 103, M: 102, Y: 101, K: 105, W: 0 }
+      },
+      {
+        id: 'mimaki_uv_vinyl_1520',
+        name: 'Mimaki_UJV100_Vinilo_PET_UV_152cm',
+        printer: 'mimaki_ujv100_160',
+        mode: 'High Quality',
+        res: '600x1200',
+        passes: 8,
+        width_mm: 1520,
+        til: 280,
+        gains: { C: 98, M: 97, Y: 100, K: 100, W: 0 }
+      },
+      {
+        id: 'mimaki_uv_backlit_1600',
+        name: 'Mimaki_UJV100_Backlit_Transparente_CMYKW_160cm',
+        printer: 'mimaki_ujv100_160',
+        mode: 'Backlit High Density',
+        res: '600x1200',
+        passes: 12,
+        width_mm: 1600,
+        til: 300,
+        gains: { C: 102, M: 102, Y: 100, K: 104, W: 100 }
+      }
+    ];
+
+    let storedProfiles = INITIAL_PROFILES;
+    try {
+      const raw = localStorage.getItem('wasatch_softrip_profiles_v3');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) storedProfiles = parsed;
+      }
+    } catch (e) {}
+
+    const STATE = {
+      activeUnit: 'unit1',
+      activeProfileId: storedProfiles[0].id,
+      activeChannel: 'composite',
+      rotationDeg: 0,
+      customImage: null,
+      activeSampleArt: 'beetle_stars',
+      profiles: storedProfiles,
+      sampleFiles: [
+        { id: 'beetle_stars', name: 'beetleStars_CutContour.pdf', size: '28.4 MB', w: 920, h: 680 },
+        { id: 'bakery_muffins', name: 'bakery_muffins_lote.tif', size: '44.1 MB', w: 420, h: 520 },
+        { id: 'macaroons_poster', name: 'macaroons_vitrola_137cm.jpg', size: '19.8 MB', w: 480, h: 650 },
+        { id: 'uv_backlit_sign', name: 'mimaki_backlit_white_uv.eps', size: '62.0 MB', w: 1200, h: 840 }
+      ],
+      layoutItems: [
+        { id: 'L1', name: 'strawberries.jpg', w: 310, h: 360, art: 'macaroons_poster', selected: false },
+        { id: 'L2', name: 'macaroons.jpg', w: 420, h: 620, art: 'macaroons_poster', selected: false },
+        { id: 'L3', name: 'muffins_1.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: true },
+        { id: 'L4', name: 'muffins_2.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: false },
+        { id: 'L5', name: 'muffins_3.jpg', w: 410, h: 540, art: 'bakery_muffins', selected: false },
+        { id: 'L6', name: 'beetleStars.pdf', w: 580, h: 480, art: 'beetle_stars', selected: false }
+      ],
+      ripQueue: [
+        { id: 'RQ-1', status: 'R', copies: 1, name: 'beetleStars_000', source: 'C:\\Produccion\\Mutoh1624\\beetleStars.pdf', unit: 'unit1' },
+        { id: 'RQ-2', status: '0', copies: 2, name: 'bakery_muffins_001', source: 'C:\\Produccion\\Mutoh1624\\bakery_muffins.tif', unit: 'unit1' },
+        { id: 'RQ-3', status: 'R', copies: 1, name: 'macaroons_vitrola', source: 'C:\\Produccion\\Mutoh1624\\macaroons.jpg', unit: 'unit1' },
+        { id: 'RQ-4', status: 'R', copies: 1, name: 'mimaki_backlit_uv', source: 'C:\\Produccion\\MimakiUJV100\\backlit_uv.eps', unit: 'unit2' },
+        { id: 'RQ-5', status: 'F', copies: 0, name: 'corrupt_preview_x', source: 'C:\\Temp\\incomplete_file.psd', unit: 'unit2' }
+      ],
+      printQueue: [
+        { id: 'PQ-1', copies: 1, index: '6661000', notes: 'beetleStars_000 (Mutoh VJ-1624)', unit: 'unit1' },
+        { id: 'PQ-2', copies: 1, index: '6662000', notes: 'macaroons_vitrola (Mutoh VJ-1624)', unit: 'unit1' },
+        { id: 'PQ-3', copies: 2, index: '6668000', notes: 'mimaki_backlit_uv (Mimaki UJV100-160)', unit: 'unit2' }
+      ],
+      spots: [
+        { code: 'PANTONE 185 C', L: 49.5, a: 75.2, b: 47.8 },
+        { code: 'PANTONE 286 C', L: 34.2, a: 12.8, b: -64.5 },
+        { code: 'PANTONE 300 C', L: 44.0, a: -3.5, b: -58.0 },
+        { code: 'PANTONE 116 C', L: 83.5, a: 8.5, b: 85.0 },
+        { code: 'PANTONE 354 C', L: 63.8, a: -65.0, b: 42.0 }
+      ]
+    };
+
+    const BAYER8 = [
+      [ 0, 48, 12, 60,  3, 51, 15, 63],
+      [32, 16, 44, 28, 35, 19, 47, 31],
+      [ 8, 56,  4, 52, 11, 59,  7, 55],
+      [40, 24, 36, 20, 43, 27, 39, 23],
+      [ 2, 50, 14, 62,  1, 49, 13, 61],
+      [34, 18, 46, 30, 33, 17, 45, 29],
+      [10, 58,  6, 54,  9, 57,  5, 53],
+      [42, 26, 38, 22, 41, 25, 37, 21]
+    ];
+
+    function saveProfilesToStorage() {
+      try {
+        localStorage.setItem('wasatch_softrip_profiles_v3', JSON.stringify(STATE.profiles));
+      } catch (e) {}
+    }
+
+    // Cambiar pestaña central (Job | Layout | Queues | Atlas | VDP)
+    function switchCenterTab(tabId) {
+      document.querySelectorAll('#center-tabs-bar .ws-tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-ctab') === tabId);
+      });
+      document.querySelectorAll('.center-pane').forEach((p) => {
+        p.classList.toggle('hidden', p.id !== tabId);
+      });
+      if (tabId === 'tab-job') renderJobCanvas();
+      if (tabId === 'tab-layout') renderLayoutCanvas();
+      if (tabId === 'tab-queues') renderQueuesSplitView();
+      if (tabId === 'tab-atlas') renderAtlasCanvas();
+      if (tabId === 'tab-vdp') renderVdpCanvas();
+    }
+
+    // Botones Set Maximum Width y Set Maximum Height (50 metros = 50,000 mm)
+    function setMaximumPaperWidth() {
+      const model = document.getElementById('setup-printer-model').value;
+      const maxW = model === 'mimaki_ujv100_160' ? 1620 : 1625;
+      document.getElementById('quick-paper-width').value = maxW;
+      document.getElementById('setup-paper-w').value = maxW;
+      syncPaperAndRender();
+    }
+
+    function setMaximumPaperHeight() {
+      document.getElementById('quick-paper-height').value = MAX_COIL_MM;
+      document.getElementById('setup-paper-h').value = MAX_COIL_MM;
+      syncPaperAndRender();
+    }
+
+    function setMarginsToZero() {
+      ['setup-margin-l', 'setup-margin-r', 'setup-margin-t', 'setup-margin-b'].forEach((id) => {
+        document.getElementById(id).value = '0.0';
+      });
+      syncPaperAndRender();
+    }
+
+    function fitJobToMaterialWidth() {
+      const pW = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
+      const mL = parseFloat(document.getElementById('setup-margin-l').value) || 0;
+      const mR = parseFloat(document.getElementById('setup-margin-r').value) || 0;
+      const usable = Math.max(100, pW - mL - mR);
+      const oldW = parseFloat(document.getElementById('job-w-mm').value) || 920;
+      const oldH = parseFloat(document.getElementById('job-h-mm').value) || 680;
+      const ratio = usable / oldW;
+      document.getElementById('job-w-mm').value = Math.round(usable);
+      if (document.getElementById('chk-lock-aspect').checked) {
+        document.getElementById('job-h-mm').value = Math.min(MAX_COIL_MM, Math.round(oldH * ratio));
+      }
+      renderJobCanvas();
+    }
+
+    function syncPaperAndRender() {
+      let pw = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
+      let ph = parseFloat(document.getElementById('quick-paper-height').value) || MAX_COIL_MM;
+      pw = Math.max(100, Math.min(1625, pw));
+      ph = Math.max(200, Math.min(MAX_COIL_MM, ph));
+
+      document.getElementById('quick-paper-width').value = pw;
+      document.getElementById('quick-paper-height').value = ph;
+      document.getElementById('setup-paper-w').value = pw;
+      document.getElementById('setup-paper-h').value = ph;
+
+      const jh = parseFloat(document.getElementById('job-h-mm').value) || 680;
+      const remM = Math.max(0, (ph - jh) / 1000).toFixed(2);
+      document.getElementById('top-paper-summary').textContent = `Material: ${pw} mm x ${ph} mm (${(ph / 1000).toFixed(1)} m)`;
+      document.getElementById('status-coil-meter').textContent = `Bobina: ${remM} m libres de ${(ph / 1000).toFixed(2)} m`;
+
+      renderJobCanvas();
+      renderLayoutCanvas();
+    }
+
+    // Dibujo de Reglas Graduadas estilo Wasatch (capturas 1 y 2)
+    function drawWasatchRulers(ctx, x0, y0, wPx, hPx, maxMmX, maxMmY) {
+      ctx.save();
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(x0 - 24, y0 - 22, wPx + 48, 22);
+      ctx.fillRect(x0 - 24, y0 + hPx, wPx + 48, 22);
+      ctx.fillRect(x0 - 24, y0, 24, hPx);
+      ctx.fillRect(x0 + wPx, y0, 24, hPx);
+
+      ctx.strokeStyle = '#64748b';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '10px monospace';
+      ctx.lineWidth = 1;
+
+      // Regla Horizontal Superior e Inferior (en cm / decímetros como Wasatch)
+      const stepMmX = maxMmX > 800 ? 100 : 50;
+      for (let mm = 0; mm <= maxMmX; mm += stepMmX / 5) {
+        const px = x0 + (mm / maxMmX) * wPx;
+        const isMajor = mm % stepMmX === 0;
+        const tickH = isMajor ? 8 : 4;
+        ctx.beginPath();
+        ctx.moveTo(px, y0);
+        ctx.lineTo(px, y0 - tickH);
+        ctx.moveTo(px, y0 + hPx);
+        ctx.lineTo(px, y0 + hPx + tickH);
+        ctx.stroke();
+        if (isMajor) {
+          const cmLbl = Math.round(mm / 10);
+          ctx.fillText(String(cmLbl), px + 2, y0 - 9);
+          ctx.fillText(String(cmLbl), px + 2, y0 + hPx + 17);
+        }
+      }
+
+      // Regla Vertical Izquierda y Derecha
+      const stepMmY = maxMmY > 800 ? 100 : 50;
+      for (let mm = 0; mm <= maxMmY; mm += stepMmY / 5) {
+        const py = y0 + (mm / maxMmY) * hPx;
+        const isMajor = mm % stepMmY === 0;
+        const tickW = isMajor ? 8 : 4;
+        ctx.beginPath();
+        ctx.moveTo(x0, py);
+        ctx.lineTo(x0 - tickW, py);
+        ctx.moveTo(x0 + wPx, py);
+        ctx.lineTo(x0 + wPx + tickW, py);
+        ctx.stroke();
+        if (isMajor) {
+          const cmLbl = Math.round(mm / 10);
+          ctx.fillText(String(cmLbl), x0 - 21, py + 3);
+          ctx.fillText(String(cmLbl), x0 + wPx + 5, py + 3);
+        }
+      }
+
+      ctx.strokeStyle = '#334155';
+      ctx.strokeRect(x0, y0, wPx, hPx);
+      ctx.restore();
+    }
+
+    // Genera un gráfico de arte según el archivo seleccionado en el File Browser (o imagen subida)
+    function drawArtworkIntoRect(ctx, artType, x, y, w, h, withTrace = false) {
+      ctx.save();
+      if (STATE.customImage && artType === 'custom') {
+        ctx.drawImage(STATE.customImage, x, y, w, h);
+      } else if (artType === 'bakery_muffins') {
+        ctx.fillStyle = '#dbeafe';
+        ctx.fillRect(x, y, w, h);
+        const centers = [
+          [0.35, 0.25], [0.68, 0.22],
+          [0.32, 0.58], [0.65, 0.56],
+          [0.48, 0.84]
+        ];
+        centers.forEach(([cx, cy]) => {
+          const rx = x + w * cx, ry = y + h * cy, rad = Math.min(w, h) * 0.16;
+          ctx.fillStyle = '#d97706';
+          ctx.beginPath(); ctx.arc(rx, ry, rad, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fef3c7';
+          ctx.beginPath(); ctx.arc(rx - rad * 0.15, ry - rad * 0.15, rad * 0.72, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath(); ctx.arc(rx + rad * 0.2, ry - rad * 0.1, rad * 0.18, 0, Math.PI * 2); ctx.fill();
+        });
+      } else if (artType === 'macaroons_poster') {
+        const g = ctx.createLinearGradient(x, y, x, y + h);
+        g.addColorStop(0, '#fbcfe8');
+        g.addColorStop(1, '#f472b6');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#ec4899';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.45, y + h * 0.55, w * 0.28, h * 0.16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fce7f3';
+        ctx.fillRect(x + w * 0.18, y + h * 0.52, w * 0.54, h * 0.06);
+      } else if (artType === 'uv_backlit_sign') {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#00aeef';
+        ctx.fillRect(x + 14, y + 14, w - 28, h * 0.28);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('MIMAKI UJV100-160 UV LED + WHITE', x + 24, y + 38);
+      } else {
+        // Default: Escarabajo + Estrellas con trazado amarillo estilo Captura 2 de Wasatch
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, w, h);
+
+        // Círculos retro e ilustración vectorial
+        [[0.25, 0.72, 0.11, '#b91c1c'], [0.42, 0.74, 0.13, '#78350f'], [0.76, 0.70, 0.09, '#311042']].forEach(([cx, cy, r, col]) => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(x + w * cx, y + h * cy, Math.min(w, h) * r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Estrellas superiores derechas
+        const drawStar = (sx, sy, rad, fillCol) => {
+          ctx.fillStyle = fillCol;
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const r = i % 2 === 0 ? rad : rad * 0.45;
+            const a = (i * Math.PI) / 5 - Math.PI / 2;
+            const px = sx + r * Math.cos(a), py = sy + r * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+        };
+        drawStar(x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.17, '#991b1b');
+        drawStar(x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.11, '#4c1d95');
+        drawStar(x + w * 0.56, y + h * 0.36, Math.min(w, h) * 0.12, '#b91c1c');
+
+        // Silueta del Escarabajo (Beetle)
+        ctx.fillStyle = '#3b0764';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.48, y + h * 0.62, w * 0.26, h * 0.14, 0, Math.PI, 0);
+        ctx.ellipse(x + w * 0.48, y + h * 0.64, w * 0.32, h * 0.10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ruedas
+        ctx.fillStyle = '#1e1b4b';
+        ctx.beginPath(); ctx.arc(x + w * 0.36, y + h * 0.72, Math.min(w, h) * 0.08, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + w * 0.64, y + h * 0.69, Math.min(w, h) * 0.07, 0, Math.PI * 2); ctx.fill();
+
+        if (withTrace && document.getElementById('chk-trace-active').checked) {
+          ctx.strokeStyle = document.getElementById('trace-color').value || '#fff200';
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.roundRect(x + w * 0.14, y + h * 0.12, w * 0.72, h * 0.74, 18);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // Renderizar Vista Principal JOB (con separación de canales CMYKW, Panelación Tile, Trazado y Anotación)
+    function renderJobCanvas() {
+      const canvas = document.getElementById('job-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const x0 = 44, y0 = 32;
+      const viewW = canvas.width - 88;
+      const viewH = canvas.height - 78;
+
+      const jobWMm = parseFloat(document.getElementById('job-w-mm').value) || 920;
+      const jobHMm = parseFloat(document.getElementById('job-h-mm').value) || 680;
+
+      // Crear imagen del trabajo procesada por los controles de canal CMYKW
+      const off = document.createElement('canvas');
+      off.width = viewW;
+      off.height = viewH;
+      const oCtx = off.getContext('2d');
+
+      if ( document.getElementById('setup-mirror').checked ) {
+        oCtx.translate(viewW, 0);
+        oCtx.scale(-1, 1);
+      }
+      drawArtworkIntoRect(oCtx, STATE.customImage ? 'custom' : STATE.activeSampleArt, 0, 0, viewW, viewH, true);
+
+      // Aplicar ganancias de canal y separación de canal activo
+      const imgData = oCtx.getImageData(0, 0, viewW, viewH);
+      const d = imgData.data;
+      const gC = parseFloat(document.getElementById('u-c-slider').value) / 100;
+      const gM = parseFloat(document.getElementById('u-m-slider').value) / 100;
+      const gY = parseFloat(document.getElementById('u-y-slider').value) / 100;
+      const gK = parseFloat(document.getElementById('u-k-slider').value) / 100;
+      const gW = parseFloat(document.getElementById('u-w-slider').value) / 100;
+      const til = parseFloat(document.getElementById('unit-til-slider').value) / 100;
+      const chView = document.getElementById('toolbar-channel-view').value;
+
+      let sumInk = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const rf = d[i] / 255, gf = d[i + 1] / 255, bf = d[i + 2] / 255;
+        let k = (1 - Math.max(rf, gf, bf)) * 0.78;
+        const den = Math.max(1e-5, 1 - k);
+        let c = Math.min(1, ((1 - rf - k) / den) * gC);
+        let m = Math.min(1, ((1 - gf - k) / den) * gM);
+        let y = Math.min(1, ((1 - bf - k) / den) * gY);
+        k = Math.min(1, k * gK);
+
+        if (c + m + y + k > til && (c + m + y) > 0) {
+          const sc = Math.max(0, (til - k) / (c + m + y));
+          c *= sc; m *= sc; y *= sc;
+        }
+        sumInk += c + m + y + k;
+
+        if (chView === 'C') {
+          d[i] = Math.round(255 * (1 - c)); d[i + 1] = Math.round(255 - c * 81); d[i + 2] = Math.round(255 - c * 16);
+        } else if (chView === 'M') {
+          d[i] = Math.round(255 - m * 19); d[i + 1] = Math.round(255 * (1 - m)); d[i + 2] = Math.round(255 - m * 115);
+        } else if (chView === 'Y') {
+          d[i] = 255; d[i + 1] = Math.round(255 - y * 13); d[i + 2] = Math.round(255 * (1 - y));
+        } else if (chView === 'K') {
+          const v = Math.round(255 * (1 - k));
+          d[i] = v; d[i + 1] = v; d[i + 2] = v;
+        } else if (chView === 'W') {
+          const lum = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+          const wVal = lum < 0.95 ? Math.min(1, Math.max(0.2, gW)) : 0;
+          d[i] = Math.round(15 + wVal * 225); d[i + 1] = Math.round(23 + wVal * 225); d[i + 2] = Math.round(42 + wVal * 213);
+        } else {
+          d[i] = Math.round(255 * (1 - c) * (1 - k));
+          d[i + 1] = Math.round(255 * (1 - m) * (1 - k));
+          d[i + 2] = Math.round(255 * (1 - y) * (1 - k));
+        }
+      }
+      oCtx.putImageData(imgData, 0, 0);
+
+      ctx.drawImage(off, x0, y0);
+
+      // Si está activa la Panelación (Tile) en la barra izquierda, dibujar divisiones y solapamiento
+      if (document.getElementById('chk-tile-active').checked) {
+        const tCols = Math.max(1, parseInt(document.getElementById('tile-cols').value, 10) || 3);
+        const tRows = Math.max(1, parseInt(document.getElementById('tile-rows').value, 10) || 1);
+        const ovMm = parseFloat(document.getElementById('tile-overlap-mm').value) || 15;
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 2;
+        for (let c = 1; c < tCols; c++) {
+          const tx = x0 + (c / tCols) * viewW;
+          ctx.beginPath(); ctx.moveTo(tx, y0); ctx.lineTo(tx, y0 + viewH); ctx.stroke();
+          ctx.fillStyle = 'rgba(2, 132, 199, 0.18)';
+          ctx.fillRect(tx - 6, y0, 12, viewH);
+        }
+        for (let r = 1; r < tRows; r++) {
+          const ty = y0 + (r / tRows) * viewH;
+          ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(x0 + viewW, ty); ctx.stroke();
+        }
+        document.getElementById('tile-info-box').textContent =
+          `${tCols * tRows} paneles de ~${Math.round(jobWMm / tCols + ovMm)} x ${Math.round(jobHMm / tRows)} mm (Overlap ${ovMm} mm)`;
+      }
+
+      // Dibujar Reglas Graduadas alrededor del lienzo (estilo Wasatch Captura 2)
+      drawWasatchRulers(ctx, x0, y0, viewW, viewH, jobWMm, jobHMm);
+
+      // Si Annotate Prints está activo (Captura 6), imprimir línea de anotación y patrón CMYK al pie
+      if (document.getElementById('setup-annotate').checked) {
+        const ay = y0 + viewH + 24;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '10px monospace';
+        const parts = [];
+        if (document.getElementById('ann-jobname').checked) parts.push('Job: ' + STATE.activeSampleArt);
+        if (document.getElementById('ann-printer').checked) {
+          parts.push(STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624');
+        }
+        if (document.getElementById('ann-config').checked) {
+          const pf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
+          parts.push(pf.name);
+        }
+        if (document.getElementById('ann-comment').checked) {
+          parts.push(document.getElementById('ann-comment-txt').value);
+        }
+        ctx.fillText(parts.join('  |  '), x0, ay + 12);
+
+        if (document.getElementById('ann-cmyk-pattern').checked) {
+          const cols = ['#00aeef', '#ec008c', '#fff200', '#0f172a'];
+          cols.forEach((col, i) => {
+            ctx.fillStyle = col;
+            ctx.fillRect(x0 + viewW - 88 + i * 20, ay + 2, 16, 12);
+            ctx.strokeStyle = '#334155';
+            ctx.strokeRect(x0 + viewW - 88 + i * 20, ay + 2, 16, 12);
+          });
+        }
+      }
+
+      // Calcular tinta total en mL
+      const areaM2 = (jobWMm / 1000) * (jobHMm / 1000);
+      const avgInk = sumInk / (viewW * viewH);
+      const ml = (avgInk * areaM2 * 3.1).toFixed(2);
+      document.getElementById('top-ink-summary').textContent = `Tinta: ${ml} mL`;
+    }
+
+    // Renderizar Vista LAYOUT (Mesa de Montaje con Reglas Graduadas estilo Captura 1 de Wasatch)
+    function renderLayoutCanvas() {
+      const canvas = document.getElementById('layout-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const x0 = 40, y0 = 30;
+      const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1370;
+      const viewW = canvas.width - 68;
+      const scale = viewW / rollW_mm;
+
+      // Posicionar piezas en el rollo (Smart Nesting)
+      let curX = 12, curY = 12, shelfH = 0, usedArea = 0;
+      const placed = [];
+      STATE.layoutItems.forEach((it) => {
+        const w = Math.min(rollW_mm - 24, it.w);
+        const h = it.h;
+        if (curX + w > rollW_mm - 12) {
+          curX = 12;
+          curY += shelfH + 14;
+          shelfH = 0;
+        }
+        placed.push({ ...it, x: curX, y: curY, w, h });
+        curX += w + 14;
+        if (h > shelfH) shelfH = h;
+        usedArea += w * h;
+      });
+
+      const totalLenMm = Math.max(800, curY + shelfH + 24);
+      const viewH = Math.min(canvas.height - 54, Math.max(320, totalLenMm * scale));
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x0, y0, viewW, viewH);
+
+      // Dibujar cada imagen anidada con borde punteado o verde si está seleccionada (como Captura 1)
+      placed.forEach((p) => {
+        const px = x0 + p.x * scale;
+        const py = y0 + p.y * scale;
+        const pw = p.w * scale;
+        const ph = p.h * scale;
+        drawArtworkIntoRect(ctx, p.art, px, py, pw, ph, false);
+
+        ctx.save();
+        if (p.selected) {
+          ctx.strokeStyle = '#22c55e';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(px, py, pw, ph);
+        } else {
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([4, 3]);
+          ctx.strokeRect(px, py, pw, ph);
+        }
+        ctx.restore();
+      });
+
+      drawWasatchRulers(ctx, x0, y0, viewW, viewH, rollW_mm, Math.round(viewH / scale));
+
+      const eff = Math.min(98.5, (usedArea / Math.max(1, rollW_mm * (curY + shelfH))) * 100).toFixed(2);
+      document.getElementById('status-nesting-eff').textContent = `Nesting Efficiency: ${eff}%`;
+      document.getElementById('layout-count-badge').textContent = `Images In Layout: ${STATE.layoutItems.length}`;
+    }
+
+    // Renderizar Doble Tabla QUEUES (Rip Queue & Print Queue estilo Captura 3 de Wasatch)
+    function renderQueuesSplitView() {
+      const u1 = document.getElementById('q-chk-u1').checked;
+      const u2 = document.getElementById('q-chk-u2').checked;
+
+      const rqFiltered = STATE.ripQueue.filter((r) => (r.unit === 'unit1' && u1) || (r.unit === 'unit2' && u2));
+      const pqFiltered = STATE.printQueue.filter((p) => (p.unit === 'unit1' && u1) || (p.unit === 'unit2' && u2));
+
+      document.getElementById('rip-queue-title').textContent = `Rip Queue (${rqFiltered.length})`;
+      document.getElementById('print-queue-title').textContent = `Print Queue (${pqFiltered.length})`;
+
+      document.getElementById('rip-queue-tbody').innerHTML = rqFiltered.map((r) => {
+        const rowClass = r.status === 'R' ? 'rq-row-ripped' : (r.status === 'F' ? 'rq-row-error' : 'rq-row-pending');
+        return `
+          <tr class="${rowClass}">
+            <td class="p-2 font-mono font-bold">
+              <span class="inline-block px-1.5 py-0.5 rounded border border-[var(--border)] mr-1">${r.status}</span>
+            </td>
+            <td class="p-2 font-mono">${r.copies}</td>
+            <td class="p-2 font-semibold">${r.name}</td>
+            <td class="p-2 font-mono text-xs text-[var(--muted-foreground)] truncate max-w-[200px]">${r.source}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('print-queue-tbody').innerHTML = pqFiltered.map((p) => `
+        <tr class="rq-row-ripped">
+          <td class="p-2 font-mono font-bold">${p.copies}</td>
+          <td class="p-2 font-mono text-[var(--primary)]">${p.index}</td>
+          <td class="p-2 font-semibold">${p.notes}</td>
+          <td class="p-2">
+            <button onclick="exportPrnFile('${p.notes}')" class="px-2 py-0.5 rounded bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer">
+              .PRN
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Atlas de Color y Tabla CIE Lab / PANTONE
+    function renderAtlasCanvas() {
+      const canvas = document.getElementById('atlas-canvas');
+      const ctx = canvas.getContext('2d');
+      const hex = (document.getElementById('atlas-hex').value || '#E1251B').replace('#', '');
+      const n = parseInt(document.getElementById('atlas-grid').value, 10) || 5;
+      const step = parseFloat(document.getElementById('atlas-step').value) || 4;
+
+      const r0 = parseInt(hex.substring(0, 2) || 'E1', 16) || 225;
+      const g0 = parseInt(hex.substring(2, 4) || '25', 16) || 37;
+      const b0 = parseInt(hex.substring(4, 6) || '1B', 16) || 27;
+
+      const rf = r0 / 255, gf = g0 / 255, bf = b0 / 255;
+      const k0 = (1 - Math.max(rf, gf, bf)) * 80;
+      const den = Math.max(1e-5, 1 - k0 / 100);
+      const c0 = ((1 - rf - k0 / 100) / den) * 100;
+      const m0 = ((1 - gf - k0 / 100) / den) * 100;
+      const y0 = ((1 - bf - k0 / 100) / den) * 100;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`WASATCH-STYLE COLOR ATLAS — BASE #${hex.toUpperCase()}`, 20, 20);
+
+      const pw = Math.floor((canvas.width - 40) / n);
+      const ph = Math.floor((canvas.height - 40) / n);
+      const mid = Math.floor(n / 2);
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const C = Math.max(0, Math.min(100, c0 + (c - mid) * step));
+          const M = Math.max(0, Math.min(100, m0 + (r - mid) * step));
+          const Y = Math.max(0, Math.min(100, y0));
+          const K = Math.max(0, Math.min(100, k0));
+          const pr = Math.round(255 * (1 - C / 100) * (1 - K / 100));
+          const pg = Math.round(255 * (1 - M / 100) * (1 - K / 100));
+          const pb = Math.round(255 * (1 - Y / 100) * (1 - K / 100));
+
+          const x = 20 + c * pw, y = 28 + r * ph;
+          ctx.fillStyle = `rgb(${pr},${pg},${pb})`;
+          ctx.fillRect(x + 3, y + 3, pw - 6, ph - 20);
+          ctx.strokeStyle = r === mid && c === mid ? '#0f172a' : '#cbd5e1';
+          ctx.strokeRect(x + 3, y + 3, pw - 6, ph - 20);
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '9px monospace';
+          ctx.fillText(`${String.fromCharCode(65 + r)}${c + 1} C${Math.round(C)}M${Math.round(M)}`, x + 4, y + ph - 6);
+        }
+      }
+
+      document.getElementById('spot-tbody').innerHTML = STATE.spots.map((s) => `
+        <tr class="hover:bg-[var(--secondary)] cursor-pointer">
+          <td class="p-2 font-bold">${s.code}</td>
+          <td class="p-2 font-mono">${s.L}, ${s.a}, ${s.b}</td>
+          <td class="p-2 font-mono text-[var(--primary)]">Spot Ready</td>
+        </tr>
+      `).join('');
+    }
+
+    function addCustomSpotColor() {
+      const code = document.getElementById('spot-code-in').value || 'CUSTOM SPOT';
+      const L = parseFloat(document.getElementById('spot-l-in').value) || 50;
+      const a = parseFloat(document.getElementById('spot-a-in').value) || 0;
+      const b = parseFloat(document.getElementById('spot-b-in').value) || 0;
+      STATE.spots.unshift({ code, L, a, b });
+      renderAtlasCanvas();
+    }
+
+    function renderVdpCanvas() {
+      const canvas = document.getElementById('vdp-canvas');
+      const ctx = canvas.getContext('2d');
+      const lines = document.getElementById('vdp-records-in').value.trim().split('\n').filter(Boolean);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      lines.slice(0, 6).forEach((line, idx) => {
+        const parts = line.split('|').map((s) => s.trim());
+        const r = Math.floor(idx / 3), c = idx % 3;
+        const x = 16 + c * 212, y = 16 + r * 150;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, 200, 136);
+        ctx.strokeStyle = '#ec008c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, 200, 136);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x + 4, y + 4, 192, 24);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText(parts[0] || `SER-0${idx + 1}`, x + 10, y + 20);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText((parts[1] || 'PIEZA').substring(0, 22), x + 10, y + 52);
+        ctx.font = '10px monospace';
+        ctx.fillText(parts[2] || 'BOBINA 50M', x + 10, y + 74);
+      });
+    }
+
+    function sendVdpToQueues() {
+      STATE.ripQueue.unshift({
+        id: 'RQ-' + Date.now(),
+        status: 'R',
+        copies: 1,
+        name: 'VDP_Batch_Seriado_001',
+        source: 'C:\\Produccion\\VDP\\Lote_Variables.vdp',
+        unit: STATE.activeUnit
+      });
+      switchCenterTab('tab-queues');
+    }
+
+    // Acciones de la Barra de Herramientas Wasatch
+    function actionRipCurrentJob() {
+      const jobName = STATE.customImage ? 'Custom_Uploaded_Art' : STATE.activeSampleArt;
+      STATE.ripQueue.unshift({
+        id: 'RQ-' + Date.now(),
+        status: 'R',
+        copies: 1,
+        name: jobName + '_RIP',
+        source: document.getElementById('status-file-path').textContent.trim(),
+        unit: STATE.activeUnit
+      });
+      STATE.printQueue.unshift({
+        id: 'PQ-' + Date.now(),
+        copies: 1,
+        index: String(6660000 + Math.floor(Math.random() * 9000)),
+        notes: `${jobName} (${STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624'})`,
+        unit: STATE.activeUnit
+      });
+      renderQueuesSplitView();
+      switchCenterTab('tab-queues');
+    }
+
+    function exportPrnFile(jobLabel) {
+      const pw = document.getElementById('quick-paper-width').value;
+      const ph = document.getElementById('quick-paper-height').value;
+      const unitName = STATE.activeUnit === 'unit2' ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
+      const header = `\x1b@\x1b(R\x08\x00\x00REMOTE1\nWASATCH-SOFTRIP-PRN|UNIT=${unitName}|PAPER_W_MM=${pw}|PAPER_H_MM=${ph}\n`;
+      const bytes = new Uint8Array(4096);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 53 + 11) & 0xff;
+      const blob = new Blob([header, bytes, '\x0c\x1b@'], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`;
+      a.click();
+    }
+
+    function actionRipAndPrint() {
+      exportPrnFile(STATE.activeSampleArt);
+      actionRipCurrentJob();
+    }
+
+    function actionAddToLayout() {
+      const w = parseFloat(document.getElementById('job-w-mm').value) || 480;
+      const h = parseFloat(document.getElementById('job-h-mm').value) || 540;
+      STATE.layoutItems.push({
+        id: 'L' + (STATE.layoutItems.length + 1),
+        name: STATE.activeSampleArt + '.tif',
+        w: Math.min(750, w * 0.55),
+        h: Math.min(750, h * 0.55),
+        art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
+        selected: true
+      });
+      switchCenterTab('tab-layout');
+    }
+
+    function actionSmartNest() {
+      STATE.layoutItems.sort((a, b) => b.h - a.h);
+      switchCenterTab('tab-layout');
+    }
+
+    function clearLayoutItems() {
+      STATE.layoutItems = [];
+      renderLayoutCanvas();
+    }
+
+    function applyRepeatsToLayout() {
+      const rx = Math.max(1, parseInt(document.getElementById('rep-x').value, 10) || 1);
+      const ry = Math.max(1, parseInt(document.getElementById('rep-y').value, 10) || 1);
+      const total = Math.min(24, rx * ry);
+      for (let i = 0; i < total; i++) {
+        STATE.layoutItems.push({
+          id: 'R' + i,
+          name: `${STATE.activeSampleArt}_${i + 1}`,
+          w: 360,
+          h: 420,
+          art: STATE.customImage ? 'custom' : STATE.activeSampleArt,
+          selected: i === 0
+        });
+      }
+      switchCenterTab('tab-layout');
+    }
+
+    function actionRotate90() {
+      const wEl = document.getElementById('job-w-mm');
+      const hEl = document.getElementById('job-h-mm');
+      const tmp = wEl.value;
+      wEl.value = hEl.value;
+      hEl.value = tmp;
+      renderJobCanvas();
+    }
+
+    function actionToggleMirror() {
+      const m = document.getElementById('setup-mirror');
+      m.checked = !m.checked;
+      renderJobCanvas();
+    }
+
+    function deleteSelectedRipQueue() {
+      if (STATE.ripQueue.length > 0) {
+        STATE.ripQueue.shift();
+        renderQueuesSplitView();
+      }
+    }
+
+    // Gestión de Ventanas Modales (Setup - Print Unit, Imaging Configuration, Annotation Details)
+    function openSetupModal() {
+      document.getElementById('modal-setup-unit').classList.add('open');
+    }
+    function closeSetupModal() {
+      document.getElementById('modal-setup-unit').classList.remove('open');
+    }
+    function saveAndCloseSetupModal() {
+      document.getElementById('quick-paper-width').value = document.getElementById('setup-paper-w').value;
+      document.getElementById('quick-paper-height').value = document.getElementById('setup-paper-h').value;
+      syncPaperAndRender();
+      closeSetupModal();
+    }
+
+    function onSetupPrinterChange() {
+      const model = document.getElementById('setup-printer-model').value;
+      STATE.activeUnit = model === 'mimaki_ujv100_160' ? 'unit2' : 'unit1';
+      document.getElementById('unit-selector').value = STATE.activeUnit;
+      document.getElementById('left-unit-badge').textContent =
+        STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+      document.getElementById('setup-modal-title').textContent =
+        STATE.activeUnit === 'unit2'
+          ? 'Setup - Print Unit 2 (Mimaki UJV100-160)'
+          : 'Setup - Print Unit 1 (Mutoh ValueJet VJ-1624)';
+    }
+
+    function openImagingConfigModal() {
+      const pf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
+      if (pf) {
+        document.getElementById('ic-name').value = pf.name;
+        document.getElementById('ic-printer').value = pf.printer;
+        document.getElementById('ic-mode').value = pf.mode || 'Custom';
+        document.getElementById('ic-res').value = pf.res || '720x1440';
+        document.getElementById('ic-passes').value = String(pf.passes || 8);
+        document.getElementById('ic-width').value = pf.width_mm || 1370;
+        document.getElementById('ic-til').value = pf.til || 270;
+        document.getElementById('ic-c').value = pf.gains.C ?? 100;
+        document.getElementById('ic-m').value = pf.gains.M ?? 98;
+        document.getElementById('ic-y').value = pf.gains.Y ?? 100;
+        document.getElementById('ic-k').value = pf.gains.K ?? 102;
+        document.getElementById('ic-w').value = pf.gains.W ?? 0;
+      }
+      document.getElementById('modal-imaging-config').classList.add('open');
+    }
+    function closeImagingConfigModal() {
+      document.getElementById('modal-imaging-config').classList.remove('open');
+    }
+
+    function populateProfileSelectors() {
+      const html = STATE.profiles
+        .map((p) => `<option value="${p.id}">${p.name} (${p.width_mm}mm, ${p.res})</option>`)
+        .join('');
+      document.getElementById('quick-profile-select').innerHTML = html;
+      document.getElementById('setup-imaging-config').innerHTML = html;
+      document.getElementById('quick-profile-select').value = STATE.activeProfileId;
+      document.getElementById('setup-imaging-config').value = STATE.activeProfileId;
+    }
+
+    function applySelectedProfile(profId) {
+      const pf = STATE.profiles.find((p) => p.id === profId);
+      if (!pf) return;
+      STATE.activeProfileId = pf.id;
+      document.getElementById('quick-profile-select').value = pf.id;
+      document.getElementById('setup-imaging-config').value = pf.id;
+      document.getElementById('quick-paper-width').value = pf.width_mm;
+      document.getElementById('setup-paper-w').value = pf.width_mm;
+      document.getElementById('unit-til-slider').value = pf.til;
+      document.getElementById('unit-til-lbl').textContent = `${pf.til}%`;
+
+      ['c', 'm', 'y', 'k', 'w'].forEach((ch) => {
+        const v = pf.gains[ch.toUpperCase()] ?? 100;
+        document.getElementById(`u-${ch}-slider`).value = v;
+        document.getElementById(`u-${ch}-lbl`).textContent = `${v}%`;
+      });
+      syncPaperAndRender();
+    }
+
+    function createNewMaterialInkset() {
+      const newProf = {
+        id: 'inkset_' + Date.now(),
+        name: document.getElementById('ic-name').value.trim() || 'Nuevo_Material_Personalizado',
+        printer: document.getElementById('ic-printer').value,
+        mode: document.getElementById('ic-mode').value,
+        res: document.getElementById('ic-res').value,
+        passes: parseInt(document.getElementById('ic-passes').value, 10) || 8,
+        width_mm: Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1370)),
+        til: parseInt(document.getElementById('ic-til').value, 10) || 270,
+        gains: {
+          C: parseInt(document.getElementById('ic-c').value, 10) || 100,
+          M: parseInt(document.getElementById('ic-m').value, 10) || 98,
+          Y: parseInt(document.getElementById('ic-y').value, 10) || 100,
+          K: parseInt(document.getElementById('ic-k').value, 10) || 102,
+          W: parseInt(document.getElementById('ic-w').value, 10) || 0
+        }
+      };
+      STATE.profiles.unshift(newProf);
+      saveProfilesToStorage();
+      populateProfileSelectors();
+      applySelectedProfile(newProf.id);
+      closeImagingConfigModal();
+    }
+
+    function updateCurrentMaterialInkset() {
+      const pf = STATE.profiles.find((p) => p.id === STATE.activeProfileId);
+      if (!pf) return createNewMaterialInkset();
+      pf.name = document.getElementById('ic-name').value.trim() || pf.name;
+      pf.printer = document.getElementById('ic-printer').value;
+      pf.mode = document.getElementById('ic-mode').value;
+      pf.res = document.getElementById('ic-res').value;
+      pf.passes = parseInt(document.getElementById('ic-passes').value, 10) || 8;
+      pf.width_mm = Math.max(200, Math.min(1625, parseFloat(document.getElementById('ic-width').value) || 1370));
+      pf.til = parseInt(document.getElementById('ic-til').value, 10) || 270;
+      pf.gains = {
+        C: parseInt(document.getElementById('ic-c').value, 10) || 100,
+        M: parseInt(document.getElementById('ic-m').value, 10) || 98,
+        Y: parseInt(document.getElementById('ic-y').value, 10) || 100,
+        K: parseInt(document.getElementById('ic-k').value, 10) || 102,
+        W: parseInt(document.getElementById('ic-w').value, 10) || 0
+      };
+      saveProfilesToStorage();
+      populateProfileSelectors();
+      applySelectedProfile(pf.id);
+      closeImagingConfigModal();
+    }
+
+    function deleteCurrentMaterialInkset() {
+      if (STATE.profiles.length <= 1) return;
+      STATE.profiles = STATE.profiles.filter((p) => p.id !== STATE.activeProfileId);
+      STATE.activeProfileId = STATE.profiles[0].id;
+      saveProfilesToStorage();
+      populateProfileSelectors();
+      applySelectedProfile(STATE.activeProfileId);
+      closeImagingConfigModal();
+    }
+
+    function downloadActiveProfileJson() {
+      const pf = STATE.profiles.find((p) => p.id === STATE.activeProfileId) || STATE.profiles[0];
+      const blob = new Blob([JSON.stringify(pf, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${pf.name}.json`;
+      a.click();
+    }
+
+    function openAnnotationModal() {
+      document.getElementById('modal-annotation').classList.add('open');
+    }
+    function closeAnnotationModal() {
+      document.getElementById('modal-annotation').classList.remove('open');
+    }
+    function saveAndCloseAnnotationModal() {
+      renderJobCanvas();
+      closeAnnotationModal();
+    }
+
+    // Inicializar eventos al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      // Poblar File Browser
+      const fb = document.getElementById('file-browser-list');
+      fb.innerHTML = STATE.sampleFiles.map((f) => `
+        <div data-art="${f.id}" data-w="${f.w}" data-h="${f.h}" data-name="${f.name}" class="p-1.5 hover:bg-[var(--secondary)] cursor-pointer flex items-center justify-between text-xs">
+          <span class="font-medium truncate">📄 ${f.name}</span>
+          <span class="font-mono text-[var(--muted-foreground)] ml-1">${f.size}</span>
+        </div>
+      `).join('');
+
+      fb.querySelectorAll('[data-art]').forEach((el) => {
+        el.addEventListener('click', () => {
+          STATE.customImage = null;
+          STATE.activeSampleArt = el.getAttribute('data-art');
+          document.getElementById('job-w-mm').value = el.getAttribute('data-w');
+          document.getElementById('job-h-mm').value = el.getAttribute('data-h');
+          document.getElementById('status-file-path').textContent =
+            'C:\\Produccion\\GranFormato\\' + el.getAttribute('data-name');
+          switchCenterTab('tab-job');
+        });
+      });
+
+      // Pestañas verticales izquierdas
+      document.querySelectorAll('.v-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.v-tab-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = btn.getAttribute('data-vtab');
+          document.querySelectorAll('.v-pane').forEach((p) => p.classList.toggle('hidden', p.id !== target));
+        });
+      });
+
+      // Pestañas centrales (Job | Layout | Queues | Atlas | VDP)
+      document.querySelectorAll('#center-tabs-bar .ws-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          switchCenterTab(btn.getAttribute('data-ctab'));
+        });
+      });
+
+      // Selector de Unidad (Unit 1: Mutoh VJ-1624 / Unit 2: Mimaki UJV100-160)
+      document.getElementById('unit-selector').addEventListener('change', (ev) => {
+        STATE.activeUnit = ev.target.value;
+        const isU2 = STATE.activeUnit === 'unit2';
+        document.getElementById('setup-printer-model').value = isU2 ? 'mimaki_ujv100_160' : 'mutoh_vj_1624';
+        document.getElementById('left-unit-badge').textContent = isU2 ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+        const matchProf = STATE.profiles.find((p) => p.printer === (isU2 ? 'mimaki_ujv100_160' : 'mutoh_vj_1624'));
+        if (matchProf) applySelectedProfile(matchProf.id);
+      });
+
+      document.getElementById('quick-profile-select').addEventListener('change', (ev) => {
+        applySelectedProfile(ev.target.value);
+      });
+      document.getElementById('setup-imaging-config').addEventListener('change', (ev) => {
+        applySelectedProfile(ev.target.value);
+      });
+
+      ['quick-paper-width', 'quick-paper-height'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', syncPaperAndRender);
+      });
+
+      [
+        'toolbar-channel-view', 'job-w-mm', 'job-h-mm', 'chk-tile-active',
+        'tile-cols', 'tile-rows', 'tile-overlap-mm', 'chk-trace-active', 'trace-color',
+        'unit-til-slider', 'u-c-slider', 'u-m-slider', 'u-y-slider', 'u-k-slider', 'u-w-slider'
+      ].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          document.getElementById('unit-til-lbl').textContent = `${document.getElementById('unit-til-slider').value}%`;
+          ['c', 'm', 'y', 'k', 'w'].forEach((ch) => {
+            document.getElementById(`u-${ch}-lbl`).textContent = `${document.getElementById(`u-${ch}-slider`).value}%`;
+          });
+          renderJobCanvas();
+        });
+      });
+
+      // Subir archivo propio
+      document.getElementById('file-input-open').addEventListener('change', (ev) => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            STATE.customImage = img;
+            document.getElementById('status-file-path').textContent = 'C:\\Usuario\\MisArchivos\\' + file.name;
+            switchCenterTab('tab-job');
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      populateProfileSelectors();
+      applySelectedProfile(STATE.activeProfileId);
+      renderQueuesSplitView();
+    });
+  </script>
 </body>
 </html>
