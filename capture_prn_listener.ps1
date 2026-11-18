@@ -53,6 +53,18 @@ Write-Host "====================================================================
 Write-Host "Esperando conexion en $LocalIp`:$Port ... (Ctrl+C para salir)" -ForegroundColor Green
 Write-Host ""
 
+# Intentar abrir el puerto en el Firewall de Windows de esta PC (PC 3)
+try {
+    $RuleName = "ApexRIP_PRN_Capture_$Port"
+    $null = & netsh advfirewall firewall delete rule name="$RuleName" 2>$null
+    $fwOut = & netsh advfirewall firewall add rule name="$RuleName" dir=in action=allow protocol=TCP localport=$Port profile=any 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] Regla de Firewall abierta en PC 3 para el puerto TCP $Port" -ForegroundColor Green
+    } else {
+        Write-Host "[AVISO] Ejecuta CAPTURAR_PRN_TEST.bat con Clic Derecho -> 'Ejecutar como administrador' en tu PC 3 para abrir el Firewall automaticamente." -ForegroundColor Yellow
+    }
+} catch {}
+
 $Listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, $Port)
 try {
     $Listener.Start()
