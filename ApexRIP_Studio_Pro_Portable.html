@@ -6481,24 +6481,41 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         xMap[x] = Math.min(srcW - 1, Math.floor((x * srcW) / w720)) * 4;
       }
 
-      const BAYER8 = [
-        [  0, 48, 12, 60,  3, 51, 15, 63 ],
-        [ 32, 16, 44, 28, 35, 19, 47, 31 ],
-        [  8, 56,  4, 52, 11, 59,  7, 55 ],
-        [ 40, 24, 36, 20, 43, 27, 39, 23 ],
-        [  2, 50, 14, 62,  1, 49, 13, 61 ],
-        [ 34, 18, 46, 30, 33, 17, 45, 29 ],
-        [ 10, 58,  6, 54,  9, 57,  5, 53 ],
-        [ 42, 26, 38, 22, 41, 25, 37, 21 ]
-      ];
+      // Curvas de linealización y ganancia de punto medidas directamente del perfil real Wasatch
+      // "720 x 720 VL 4 Pas MICRO Y LONA" (escala 0..765 donde 255=gota chica 1, 510=mediana 2, 765=grande 3)
+      const cLut = new Int32Array(256);
+      const mLut = new Int32Array(256);
+      const yLut = new Int32Array(256);
+      const kLut = new Int32Array(256);
+      const gcrLut = new Int32Array(256);
+      for (let i = 0; i < 256; i++) {
+        const u = i / 255.0;
+        cLut[i] = Math.round(Math.pow(u, 1.42) * 575);
+        mLut[i] = Math.round(Math.pow(u, 1.38) * 600);
+        yLut[i] = Math.round(Math.pow(u, 1.48) * 570);
+        kLut[i] = Math.round(Math.pow(u, 1.45) * 640);
+        // GCR de arranque tardío (Late-Start GCR): mantiene pieles, luces y rojos limpios sin ensuciarlos con K
+        gcrLut[i] = Math.round(Math.pow(u, 2.10) * 0.84 * 255);
+      }
+
+      // Buffers de difusión de error Floyd-Steinberg multinivel (2 bits: 0, 1, 2, 3) en serpentina
+      let errK0 = new Int32Array(w720 + 2);
+      let errK1 = new Int32Array(w720 + 2);
+      let errC0 = new Int32Array(w720 + 2);
+      let errC1 = new Int32Array(w720 + 2);
+      let errM0 = new Int32Array(w720 + 2);
+      let errM1 = new Int32Array(w720 + 2);
+      let errY0 = new Int32Array(w720 + 2);
+      let errY1 = new Int32Array(w720 + 2);
 
       const kRow = new Uint8Array(planeBytes);
       const cRow = new Uint8Array(planeBytes);
       const mRow = new Uint8Array(planeBytes);
       const yRow = new Uint8Array(planeBytes);
       const rleScratch = new Uint8Array(planeBytes * 2 + 16);
-      const numPixelBytes = w720 >> 2;
       const batchRows = Math.max(24, Math.min(180, Math.floor(h720 / 22)));
+
+      appendRipProgressLog(`Calibración activa: Curva VL 4 Pas Micro y Lona + Late-Start GCR + Floyd-Steinberg 2-Bit Serpentina`, 'text-emerald-300');
 
       for (let y = 0; y < h720; y++) {
         if (RIP_PROGRESS_STATE.cancelled) {
@@ -6506,47 +6523,110 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         }
         const srcY = Math.min(srcH - 1, Math.floor((y * srcH) / h720));
         const rowOffset = srcY * srcW * 4;
-        const bRow = BAYER8[y & 7];
 
         kRow.fill(0);
         cRow.fill(0);
         mRow.fill(0);
         yRow.fill(0);
+        errK1.fill(0);
+        errC1.fill(0);
+        errM1.fill(0);
+        errY1.fill(0);
 
-        for (let bx = 0; bx < numPixelBytes; bx++) {
-          let kb = 0, cb = 0, mb = 0, yb = 0;
-          const baseX = bx << 2;
-          for (let p = 0; p < 4; p++) {
-            const x = baseX + p;
-            const idx = rowOffset + xMap[x];
-            const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
-            if (r >= 253 && g >= 253 && b >= 253) continue;
+        const serp = (y & 1) === 1;
+        const xStart = serp ? (w720 - 1) : 0;
+        const xEnd = serp ? -1 : w720;
+        const xStep = serp ? -1 : 1;
 
-            const maxRgb = r > g ? (r > b ? r : b) : (g > b ? g : b);
-            const kRaw = 255 - maxRgb;
-            const kVal = (kRaw * 204) >> 8;
-            const denom = Math.max(1, 255 - kVal);
-            const cVal = Math.max(0, Math.min(255, Math.floor(((255 - r - kVal) * 255) / denom)));
-            const mVal = Math.max(0, Math.min(255, Math.floor(((255 - g - kVal) * 255) / denom)));
-            const yVal = Math.max(0, Math.min(255, Math.floor(((255 - b - kVal) * 255) / denom)));
+        for (let x = xStart; x !== xEnd; x += xStep) {
+          const idx = rowOffset + xMap[x];
+          const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
+          const xi = x + 1;
 
-            const dither = bRow[x & 7] - 31;
-            const kv = kVal <= 2 ? 0 : Math.max(0, Math.min(3, ((kVal * 3 + dither * 2) / 255) | 0));
-            const cv = cVal <= 2 ? 0 : Math.max(0, Math.min(3, ((cVal * 3 + dither * 2) / 255) | 0));
-            const mv = mVal <= 2 ? 0 : Math.max(0, Math.min(3, ((mVal * 3 + dither * 2) / 255) | 0));
-            const yv = yVal <= 2 ? 0 : Math.max(0, Math.min(3, ((yVal * 3 + dither * 2) / 255) | 0));
-
-            const shift = 6 - (p << 1);
-            kb |= (kv << shift);
-            cb |= (cv << shift);
-            mb |= (mv << shift);
-            yb |= (yv << shift);
+          if (r >= 254 && g >= 254 && b >= 254) {
+            errK0[xi] = 0;
+            errC0[xi] = 0;
+            errM0[xi] = 0;
+            errY0[xi] = 0;
+            continue;
           }
-          kRow[bx] = kb;
-          cRow[bx] = cb;
-          mRow[bx] = mb;
-          yRow[bx] = yb;
+
+          const maxRgb = r > g ? (r > b ? r : b) : (g > b ? g : b);
+          const kRaw = 255 - maxRgb;
+          const kVal = gcrLut[kRaw];
+          const kSub = (kVal * 220) >> 8;
+          const denom = Math.max(1, 255 - kSub);
+
+          let cVal = Math.max(0, Math.min(255, (((255 - r - kSub) * 255) / denom) | 0));
+          let mVal = Math.max(0, Math.min(255, (((255 - g - kSub) * 255) / denom) | 0));
+          let yVal = Math.max(0, Math.min(255, (((255 - b - kSub) * 255) / denom) | 0));
+
+          // Corrección selectiva de calidez en tonos piel/cálidos para evitar exceso de amarillo sobre magenta
+          if (mVal > cVal && yVal > cVal) {
+            const warmth = ((mVal - cVal) * (yVal - cVal)) >> 8;
+            yVal = Math.max(0, yVal - ((warmth * 26) >> 8));
+          }
+
+          // Límite de tinta total (TIL 270%) antes de linealización
+          const cmySum = cVal + mVal + yVal;
+          const maxCmy = 688 - kVal;
+          if (cmySum > maxCmy && cmySum > 0) {
+            cVal = ((cVal * maxCmy) / cmySum) | 0;
+            mVal = ((mVal * maxCmy) / cmySum) | 0;
+            yVal = ((yVal * maxCmy) / cmySum) | 0;
+          }
+
+          const tk = Math.max(0, Math.min(765, kLut[kVal] + (errK0[xi] >> 4)));
+          const tc = Math.max(0, Math.min(765, cLut[cVal] + (errC0[xi] >> 4)));
+          const tm = Math.max(0, Math.min(765, mLut[mVal] + (errM0[xi] >> 4)));
+          const ty = Math.max(0, Math.min(765, yLut[yVal] + (errY0[xi] >> 4)));
+
+          const kv = ((tk + 127) / 255) | 0;
+          const cv = ((tc + 127) / 255) | 0;
+          const mv = ((tm + 127) / 255) | 0;
+          const yv = ((ty + 127) / 255) | 0;
+
+          const ek = tk - kv * 255;
+          const ec = tc - cv * 255;
+          const em = tm - mv * 255;
+          const ey = ty - yv * 255;
+
+          const xFwd = xi + xStep;
+          const xBack = xi - xStep;
+
+          errK0[xFwd] += ek * 7;
+          errK1[xBack] += ek * 3;
+          errK1[xi] += ek * 5;
+          errK1[xFwd] += ek;
+
+          errC0[xFwd] += ec * 7;
+          errC1[xBack] += ec * 3;
+          errC1[xi] += ec * 5;
+          errC1[xFwd] += ec;
+
+          errM0[xFwd] += em * 7;
+          errM1[xBack] += em * 3;
+          errM1[xi] += em * 5;
+          errM1[xFwd] += em;
+
+          errY0[xFwd] += ey * 7;
+          errY1[xBack] += ey * 3;
+          errY1[xi] += ey * 5;
+          errY1[xFwd] += ey;
+
+          const bx = x >> 2;
+          const shift = 6 - ((x & 3) << 1);
+          if (kv) kRow[bx] |= (kv << shift);
+          if (cv) cRow[bx] |= (cv << shift);
+          if (mv) mRow[bx] |= (mv << shift);
+          if (yv) yRow[bx] |= (yv << shift);
         }
+
+        // Rotar buffers de error de fila actual y fila siguiente
+        let tmp = errK0; errK0 = errK1; errK1 = tmp;
+        tmp = errC0; errC0 = errC1; errC1 = tmp;
+        tmp = errM0; errM0 = errM1; errM1 = tmp;
+        tmp = errY0; errY0 = errY1; errY1 = tmp;
 
         const planes = [kRow, cRow, mRow, yRow];
         for (let pIdx = 0; pIdx < 4; pIdx++) {
@@ -6561,7 +6641,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           if (onProgress) {
             onProgress(
               ripPct,
-              `Ripeando línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()} (720×720 DPI • Planos [K, C, M, Y] 2-Bit RLE)...`,
+              `Ripeando línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()} (720×720 DPI • Planos [K, C, M, Y] 2-Bit FS)...`,
               totalLength
             );
           }

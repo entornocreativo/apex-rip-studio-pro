@@ -189,15 +189,16 @@ def rip_image_pipeline(
     if abs(gamma - 1.0) > 0.01:
         rgb_comp = np.power(np.clip(rgb_comp, 0.0, 1.0), gamma)
 
-    # Separación GCR a CMYK (0.0 .. 1.0)
+    # Separación Late-Start GCR a CMYK (0.0 .. 1.0) para conservar pieles y rojos limpios
     k_raw = 1.0 - np.max(rgb_comp, axis=2)
-    gcr_factor = 0.85 if "Fuerte" in prof["black_generation"] else (0.65 if "UCR" in prof["black_generation"] else 0.78)
-    k_chan = k_raw * gcr_factor
-    denom = np.maximum(1e-5, 1.0 - k_chan)
+    gcr_factor = 0.88 if "Fuerte" in prof["black_generation"] else (0.68 if "UCR" in prof["black_generation"] else 0.84)
+    k_chan = np.power(np.clip(k_raw, 0.0, 1.0), 2.10) * gcr_factor
+    k_sub = k_chan * 0.86
+    denom = np.maximum(1e-5, 1.0 - k_sub)
 
-    c_chan = np.clip((1.0 - rgb_comp[:, :, 0] - k_chan) / denom, 0.0, 1.0)
-    m_chan = np.clip((1.0 - rgb_comp[:, :, 1] - k_chan) / denom, 0.0, 1.0)
-    y_chan = np.clip((1.0 - rgb_comp[:, :, 2] - k_chan) / denom, 0.0, 1.0)
+    c_chan = np.clip((1.0 - rgb_comp[:, :, 0] - k_sub) / denom, 0.0, 1.0)
+    m_chan = np.clip((1.0 - rgb_comp[:, :, 1] - k_sub) / denom, 0.0, 1.0)
+    y_chan = np.clip((1.0 - rgb_comp[:, :, 2] - k_sub) / denom, 0.0, 1.0)
     k_chan = np.clip(k_chan, 0.0, 1.0)
 
     # Aplicar ganancias/curvas por canal individual
@@ -429,13 +430,13 @@ def build_mutoh_vj1624_prn_stream(
     m_norm = resize_ch(m_chan)
     y_norm = resize_ch(y_chan)
 
-    # Cuantización multinivel de 2 bits (0..3) con matriz Bayer 8x8 para gota variable VL
+    # Cuantización multinivel de 2 bits (0..3) sin zona muerta en altas luces, calibrada a curva Wasatch VL 4 Pas
     tiled_bayer = np.tile(BAYER_8X8, (h_720 // 8 + 1, w_720 // 8 + 1))[:h_720, :w_720]
 
-    def quantize_2bit_plane(norm_arr: np.ndarray) -> np.ndarray:
-        # Escala a niveles 0..3 con dither Bayer (calibrado a curva VL 4 Pas Micro y Lona)
-        scaled = np.clip(norm_arr * 2.35 + (tiled_bayer - 0.5) * 0.85, 0.0, 3.0)
-        dots = np.rint(scaled).astype(np.uint8)
+    def quantize_2bit_plane(norm_arr: np.ndarray, gamma: float, max_level: float) -> np.ndarray:
+        linearized = np.power(np.clip(norm_arr, 0.0, 1.0), gamma) * max_level
+        dots = np.clip(np.floor(linearized + tiled_bayer), 0.0, 3.0).astype(np.uint8)
+        dots = np.where(norm_arr <= 0.005, 0, dots).astype(np.uint8)
         # Empaquetar 4 píxeles de 2 bits por byte (bits 7..6, 5..4, 3..2, 1..0)
         p0 = dots[:, 0::4] << 6
         p1 = dots[:, 1::4] << 4
@@ -447,10 +448,10 @@ def build_mutoh_vj1624_prn_stream(
             packed = np.hstack([packed, pad])
         return packed
 
-    k_packed = quantize_2bit_plane(k_norm)
-    c_packed = quantize_2bit_plane(c_norm)
-    m_packed = quantize_2bit_plane(m_norm)
-    y_packed = quantize_2bit_plane(y_norm)
+    k_packed = quantize_2bit_plane(k_norm, gamma=1.45, max_level=2.51)
+    c_packed = quantize_2bit_plane(c_norm, gamma=1.42, max_level=2.25)
+    m_packed = quantize_2bit_plane(m_norm, gamma=1.38, max_level=2.35)
+    y_packed = quantize_2bit_plane(y_norm, gamma=1.48, max_level=2.24)
 
     for y_idx in range(h_720):
         for p_idx, pl_arr in enumerate((k_packed, c_packed, m_packed, y_packed)):
