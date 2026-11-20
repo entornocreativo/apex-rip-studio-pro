@@ -1373,6 +1373,110 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
   </div>
 
   <!-- ========================================================================== -->
+  <!-- MODAL 4: MONITOR POP-UP EN VIVO DE CARGA RIP Y PORCENTAJE DE IMPRESIÓN     -->
+  <!-- ========================================================================== -->
+  <div id="modal-rip-print-progress" class="ws-modal-backdrop" onclick="if(event.target===this && !RIP_PROGRESS_STATE.running) closeRipProgressModal()">
+    <div class="ws-modal-box w-full max-w-2xl">
+      <div class="ws-modal-header">
+        <div class="flex items-center gap-2">
+          <span id="rp-header-icon" class="inline-block animate-spin">⚙️</span>
+          <span id="rp-modal-title">Monitor en Vivo: Procesamiento RIP e Impresión Directa</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="rp-status-badge" class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-sky-900 border border-sky-400 text-sky-200">
+            CARGANDO RIP...
+          </span>
+          <button onclick="closeRipProgressModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer" title="Cerrar ventana">✕</button>
+        </div>
+      </div>
+
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <!-- Resumen del Trabajo Activo -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-[#0f172a] p-3 rounded border border-slate-700 text-xs">
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Trabajo / Archivo</div>
+            <div id="rp-job-name" class="font-bold text-white truncate mt-0.5">Trabajo_RIP</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Plotter Destino</div>
+            <div id="rp-printer-name" class="font-bold text-sky-300 truncate mt-0.5">Mutoh VJ-1624 (192.168.1.240:9100)</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Medida Física 1:1</div>
+            <div id="rp-dimensions" class="font-mono font-bold text-emerald-300 mt-0.5">50 × 50 mm (720 DPI)</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Motor / Protocolo</div>
+            <div id="rp-protocol" class="font-mono font-bold text-amber-300 truncate mt-0.5">Mutoh_PM / MH-RTL 2-Bit</div>
+          </div>
+        </div>
+
+        <!-- BARRA 1: CARGA Y PROCESAMIENTO DE DATOS DEL RIP -->
+        <div class="bg-[#0f172a] p-3.5 rounded border border-sky-800/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-sky-900/90 border border-sky-500 text-sky-200 font-mono text-[10px] font-bold">FASE 1 • RIP</span>
+              <span class="font-bold text-xs text-sky-200">Carga de Datos del RIP (Separación CMYK + Tramado 2-Bit + RLE)</span>
+            </div>
+            <span id="rp-rip-pct" class="font-mono text-base font-extrabold text-sky-300">0%</span>
+          </div>
+          <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700 p-0.5">
+            <div id="rp-rip-bar" class="h-full rounded-full transition-all duration-75" style="width: 0%; background: linear-gradient(90deg, #0284c7, #38bdf8, #22d3ee);"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span id="rp-rip-stage">Preparando lienzo 1:1 en milímetros...</span>
+            <span id="rp-rip-bytes" class="text-sky-300 font-bold">0.0 KB compilados</span>
+          </div>
+        </div>
+
+        <!-- BARRA 2: PORCENTAJE QUE VA IMPRIMIENDO / TRANSMITIENDO AL PLOTTER -->
+        <div class="bg-[#0f172a] p-3.5 rounded border border-emerald-800/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-900/90 border border-emerald-500 text-emerald-200 font-mono text-[10px] font-bold">FASE 2 • PLOTTER</span>
+              <span class="font-bold text-xs text-emerald-200">Porcentaje Imprimiendo / Envío de Pasadas al Plotter</span>
+            </div>
+            <span id="rp-print-pct" class="font-mono text-base font-extrabold text-emerald-300">0%</span>
+          </div>
+          <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700 p-0.5">
+            <div id="rp-print-bar" class="h-full rounded-full transition-all duration-100" style="width: 0%; background: linear-gradient(90deg, #059669, #10b981, #34d399);"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span id="rp-print-stage">En espera de finalización del RIP...</span>
+            <span id="rp-print-mm" class="text-emerald-300 font-bold">0.0 / 0.0 mm (0%)</span>
+          </div>
+        </div>
+
+        <!-- Consola Técnica en Vivo -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>📡 Registro de Telemetría RIP / TCP en Tiempo Real</span>
+            <span id="rp-elapsed-time" class="font-mono text-slate-300">Tiempo: 0.0 s</span>
+          </div>
+          <div id="rp-live-log" class="h-28 overflow-y-auto bg-[#090e17] border border-slate-700 rounded p-2.5 font-mono text-[11px] text-slate-300 space-y-1">
+            <div class="text-slate-400">Listo para iniciar procesamiento...</div>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-700">
+          <div class="flex items-center gap-2">
+            <button id="rp-btn-cancel" onclick="cancelActiveRipPrintJob()" class="py-1.5 px-3.5 rounded bg-red-700 hover:bg-red-600 text-white font-bold text-xs cursor-pointer">
+              ⏹ Detener / Cancelar
+            </button>
+            <button id="rp-btn-download-backup" onclick="downloadLastCompiledJobFile()" class="hidden py-1.5 px-3.5 rounded border border-sky-500 bg-sky-900/80 hover:bg-sky-800 text-sky-100 font-bold text-xs cursor-pointer">
+              💾 Guardar Copia del Archivo
+            </button>
+          </div>
+          <button id="rp-btn-close" onclick="closeRipProgressModal()" class="py-1.5 px-5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold text-xs cursor-pointer">
+            Cerrar Ventana
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
   <!-- MENÚ CONTEXTUAL AL HACER CLIC DERECHO SOBRE UN ARCHIVO / PIEZA             -->
   <!-- ========================================================================== -->
   <div id="layout-context-menu" class="ws-ctx-menu" role="menu">
@@ -4844,29 +4948,38 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       switchCenterTab('tab-queues');
     }
 
-    function actionRipCurrentJob() {
+    function enqueueRipAndPrintJobEntries() {
       const w = document.getElementById('job-w-mm').value;
       const h = document.getElementById('job-h-mm').value;
       const jobName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
       const printerName = STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
-      STATE.ripQueue.unshift({
+      const rqItem = {
         id: 'RQ-' + Date.now(),
         status: 'R',
         copies: 1,
         name: `${jobName} (${w}x${h}mm)`,
         source: `${w} x ${h} mm — ${printerName}`,
         unit: STATE.activeUnit
-      });
-      STATE.printQueue.unshift({
+      };
+      const pqItem = {
         id: 'PQ-' + Date.now(),
         copies: 1,
         index: String(6660000 + Math.floor(Math.random() * 9000)),
         notes: `${jobName} [${w}x${h}mm] (${printerName})`,
         unit: STATE.activeUnit
-      });
+      };
+      STATE.ripQueue.unshift(rqItem);
+      STATE.printQueue.unshift(pqItem);
       renderQueuesSplitView();
-      switchCenterTab('tab-queues');
-      showToast(`✅ Trabajo "${jobName}" ripeado en cola`);
+      return { rqItem, pqItem, jobName, w, h, printerName };
+    }
+
+    function actionRipCurrentJob(silentEnqueue = false) {
+      if (silentEnqueue) {
+        return enqueueRipAndPrintJobEntries();
+      }
+      // Si el usuario pulsa directamente el botón "RIP", abrimos la modal de carga de datos del RIP en vivo
+      actionRipAndPrint({ ripOnly: true });
     }
 
     // ============================================================================
@@ -5402,10 +5515,163 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       return arr;
     }
 
-    // Generador Nativo 100% Real Mutoh ValueJet VJ-1624 (Mutoh_PM / MH-RTL 720x720 DPI 4-Pass VL i2 Wave)
-    function buildMutohVj1624NativePrnBytes(jobLabel) {
-      // Renderizar composición 1:1 en mm exactos
-      const { canvas, widthMm, heightMm } = renderExact1to1PrintCanvas(360);
+    // ============================================================================
+    // CONTROLADOR DE LA MODAL POP-UP EN VIVO (CARGA RIP + % DE IMPRESIÓN)
+    // ============================================================================
+    const RIP_PROGRESS_STATE = {
+      running: false,
+      cancelled: false,
+      startTime: 0,
+      timerId: null,
+      activeXhr: null,
+      lastCompiled: null
+    };
+
+    function formatKbOrMb(byteLen) {
+      if (byteLen >= 1024 * 1024) return `${(byteLen / (1024 * 1024)).toFixed(2)} MB`;
+      return `${(byteLen / 1024).toFixed(1)} KB`;
+    }
+
+    function appendRipProgressLog(msg, colorClass = 'text-slate-300') {
+      const logBox = document.getElementById('rp-live-log');
+      if (!logBox) return;
+      const now = new Date();
+      const ts = now.toTimeString().slice(0, 8);
+      const line = document.createElement('div');
+      line.className = colorClass;
+      line.textContent = `[${ts}] ${msg}`;
+      logBox.appendChild(line);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function updateRipProgressUI(pct, stageText, bytesCount) {
+      const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+      const pctEl = document.getElementById('rp-rip-pct');
+      const barEl = document.getElementById('rp-rip-bar');
+      const stageEl = document.getElementById('rp-rip-stage');
+      const bytesEl = document.getElementById('rp-rip-bytes');
+      if (pctEl) pctEl.textContent = `${clamped}%`;
+      if (barEl) barEl.style.width = `${clamped}%`;
+      if (stageEl && stageText) stageEl.textContent = stageText;
+      if (bytesEl && typeof bytesCount === 'number') {
+        bytesEl.textContent = `${formatKbOrMb(bytesCount)} compilados`;
+      }
+    }
+
+    function updatePrintProgressUI(pct, stageText, currentMm, totalMm) {
+      const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+      const pctEl = document.getElementById('rp-print-pct');
+      const barEl = document.getElementById('rp-print-bar');
+      const stageEl = document.getElementById('rp-print-stage');
+      const mmEl = document.getElementById('rp-print-mm');
+      if (pctEl) pctEl.textContent = `${clamped}%`;
+      if (barEl) barEl.style.width = `${clamped}%`;
+      if (stageEl && stageText) stageEl.textContent = stageText;
+      if (mmEl && typeof totalMm === 'number') {
+        const cur = Math.min(totalMm, Math.max(0, currentMm || (totalMm * clamped) / 100));
+        mmEl.textContent = `${cur.toFixed(1)} / ${totalMm.toFixed(1)} mm (${clamped}%)`;
+      }
+    }
+
+    function setRipModalStatusBadge(text, mode = 'rip') {
+      const badge = document.getElementById('rp-status-badge');
+      const icon = document.getElementById('rp-header-icon');
+      if (!badge) return;
+      badge.textContent = text;
+      if (mode === 'rip') {
+        badge.className = 'px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-sky-900 border border-sky-400 text-sky-200';
+        if (icon) { icon.textContent = '⚙️'; icon.className = 'inline-block animate-spin'; }
+      } else if (mode === 'print') {
+        badge.className = 'px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-900 border border-emerald-400 text-emerald-200';
+        if (icon) { icon.textContent = '🖨️'; icon.className = 'inline-block animate-pulse'; }
+      } else if (mode === 'done') {
+        badge.className = 'px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-700 border border-emerald-300 text-white';
+        if (icon) { icon.textContent = '✅'; icon.className = 'inline-block'; }
+      } else if (mode === 'warn') {
+        badge.className = 'px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-800 border border-amber-400 text-amber-100';
+        if (icon) { icon.textContent = '⚠️'; icon.className = 'inline-block'; }
+      }
+    }
+
+    function openRipProgressModal(jobLabel, printerDesc, dimDesc, protocolDesc) {
+      RIP_PROGRESS_STATE.running = true;
+      RIP_PROGRESS_STATE.cancelled = false;
+      RIP_PROGRESS_STATE.startTime = performance.now();
+      if (RIP_PROGRESS_STATE.timerId) clearInterval(RIP_PROGRESS_STATE.timerId);
+
+      document.getElementById('rp-job-name').textContent = jobLabel || 'Trabajo_RIP';
+      document.getElementById('rp-printer-name').textContent = printerDesc || 'Mutoh VJ-1624 (192.168.1.240:9100)';
+      document.getElementById('rp-dimensions').textContent = dimDesc || 'Calculando...';
+      document.getElementById('rp-protocol').textContent = protocolDesc || 'Mutoh_PM / MH-RTL 2-Bit';
+
+      const logBox = document.getElementById('rp-live-log');
+      if (logBox) logBox.innerHTML = '';
+
+      updateRipProgressUI(0, 'Iniciando motor de rasterizado 1:1...', 0);
+      updatePrintProgressUI(0, 'Esperando finalización del RIP...', 0, 0);
+      setRipModalStatusBadge('CARGANDO DATOS RIP...', 'rip');
+
+      const btnCancel = document.getElementById('rp-btn-cancel');
+      const btnBackup = document.getElementById('rp-btn-download-backup');
+      if (btnCancel) btnCancel.classList.remove('hidden');
+      if (btnBackup) btnBackup.classList.add('hidden');
+
+      RIP_PROGRESS_STATE.timerId = setInterval(() => {
+        if (!RIP_PROGRESS_STATE.running) return;
+        const sec = ((performance.now() - RIP_PROGRESS_STATE.startTime) / 1000).toFixed(1);
+        const el = document.getElementById('rp-elapsed-time');
+        if (el) el.textContent = `Tiempo: ${sec} s`;
+      }, 100);
+
+      document.getElementById('modal-rip-print-progress').classList.add('open');
+    }
+
+    function finishRipProgressModal(statusText, badgeMode = 'done') {
+      RIP_PROGRESS_STATE.running = false;
+      if (RIP_PROGRESS_STATE.timerId) {
+        clearInterval(RIP_PROGRESS_STATE.timerId);
+        RIP_PROGRESS_STATE.timerId = null;
+      }
+      setRipModalStatusBadge(statusText, badgeMode);
+      const btnCancel = document.getElementById('rp-btn-cancel');
+      const btnBackup = document.getElementById('rp-btn-download-backup');
+      if (btnCancel) btnCancel.classList.add('hidden');
+      if (btnBackup && RIP_PROGRESS_STATE.lastCompiled) {
+        btnBackup.classList.remove('hidden');
+      }
+    }
+
+    function closeRipProgressModal() {
+      if (RIP_PROGRESS_STATE.running) {
+        cancelActiveRipPrintJob();
+      }
+      document.getElementById('modal-rip-print-progress').classList.remove('open');
+    }
+
+    function cancelActiveRipPrintJob() {
+      RIP_PROGRESS_STATE.cancelled = true;
+      if (RIP_PROGRESS_STATE.activeXhr) {
+        try { RIP_PROGRESS_STATE.activeXhr.abort(); } catch (e) {}
+        RIP_PROGRESS_STATE.activeXhr = null;
+      }
+      appendRipProgressLog('⏹ Proceso detenido por el usuario.', 'text-amber-400 font-bold');
+      finishRipProgressModal('DETENIDO', 'warn');
+      showToast('⏹ Proceso de RIP / Impresión detenido');
+    }
+
+    function downloadLastCompiledJobFile() {
+      const item = RIP_PROGRESS_STATE.lastCompiled;
+      if (!item) return;
+      downloadBytesAsFile(item.bytes, item.filename, item.mimeType);
+      showToast(`💾 Archivo guardado: ${item.filename}`);
+    }
+
+    // Generador Nativo Asíncrono (No bloquea UI y actualiza la barra de carga RIP línea por línea)
+    async function buildMutohVj1624NativePrnBytesAsync(jobLabel, onProgress) {
+      if (onProgress) onProgress(3, 'Rasterizando composición 1:1 en milímetros (copias, paneles y marcas)...', 0);
+      await new Promise((r) => setTimeout(r, 15));
+
+      const { canvas, widthMm, heightMm, itemCount } = renderExact1to1PrintCanvas(360);
       const srcW = canvas.width;
       const srcH = canvas.height;
       const srcCtx = canvas.getContext('2d');
@@ -5414,7 +5680,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       // Dimensiones físicas exactas a 720x720 DPI (*PQ5;*IP2,2;) múltiplo de 4 píxeles
       const w720 = Math.max(4, Math.round((widthMm * 720.0 / 25.4) / 4) * 4);
       const h720 = Math.max(4, Math.round(heightMm * 720.0 / 25.4));
-      const planeBytes = Math.ceil(w720 / 8) * 2; // Ej: 1420 px -> 178 * 2 = 356 bytes por plano
+      const planeBytes = Math.ceil(w720 / 8) * 2; // Ej: 1420 px -> 356 bytes por plano
+
+      const dimEl = document.getElementById('rp-dimensions');
+      if (dimEl) {
+        dimEl.textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${w720}×${h720} px)`;
+      }
 
       const fh = 40, phHeater = 40, dh = 50, wf = 3;
       const headerStr =
@@ -5429,6 +5700,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       };
 
       pushChunk(asciiToBytes(headerStr));
+      appendRipProgressLog(`Cabecera Mutoh_PM preparada: *ID250 *PQ5 *IP2,2 (720×720 DPI) *WF${wf} *CV2 *FH${fh}/*PH${phHeater}/*DH${dh}°C`, 'text-sky-300');
+      appendRipProgressLog(`Geometría raster: ${w720}×${h720} px (${planeBytes} bytes/plano × 4 planos [K, C, M, Y])`, 'text-slate-300');
 
       const xMap = new Int32Array(w720);
       for (let x = 0; x < w720; x++) {
@@ -5452,8 +5725,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const yRow = new Uint8Array(planeBytes);
       const rleScratch = new Uint8Array(planeBytes * 2 + 16);
       const numPixelBytes = w720 >> 2;
+      const batchRows = Math.max(24, Math.min(180, Math.floor(h720 / 22)));
 
       for (let y = 0; y < h720; y++) {
+        if (RIP_PROGRESS_STATE.cancelled) {
+          throw new Error('CANCELLED');
+        }
         const srcY = Math.min(srcH - 1, Math.floor((y * srcH) / h720));
         const rowOffset = srcY * srcW * 4;
         const bRow = BAYER8[y & 7];
@@ -5472,16 +5749,15 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
             if (r >= 253 && g >= 253 && b >= 253) continue;
 
-            // Separación GCR CMYK + cuantización 2-bit Variable Dot (00, 01, 10, 11)
             const maxRgb = r > g ? (r > b ? r : b) : (g > b ? g : b);
             const kRaw = 255 - maxRgb;
-            const kVal = (kRaw * 204) >> 8; // GCR 80%
+            const kVal = (kRaw * 204) >> 8;
             const denom = Math.max(1, 255 - kVal);
             const cVal = Math.max(0, Math.min(255, Math.floor(((255 - r - kVal) * 255) / denom)));
             const mVal = Math.max(0, Math.min(255, Math.floor(((255 - g - kVal) * 255) / denom)));
             const yVal = Math.max(0, Math.min(255, Math.floor(((255 - b - kVal) * 255) / denom)));
 
-            const dither = bRow[x & 7] - 31; // -31..+32
+            const dither = bRow[x & 7] - 31;
             const kv = kVal <= 2 ? 0 : Math.max(0, Math.min(3, ((kVal * 3 + dither * 2) / 255) | 0));
             const cv = cVal <= 2 ? 0 : Math.max(0, Math.min(3, ((cVal * 3 + dither * 2) / 255) | 0));
             const mv = mVal <= 2 ? 0 : Math.max(0, Math.min(3, ((mVal * 3 + dither * 2) / 255) | 0));
@@ -5499,7 +5775,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           yRow[bx] = yb;
         }
 
-        // Orden exacto de planos en Mutoh_PM / MH-RTL: Plane 0 = K (V), Plane 1 = C (V), Plane 2 = M (V), Plane 3 = Y (W)
         const planes = [kRow, cRow, mRow, yRow];
         for (let pIdx = 0; pIdx < 4; pIdx++) {
           const rle = encodePackBitsRle(planes[pIdx], rleScratch);
@@ -5507,16 +5782,36 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           pushChunk(cmdPrefix);
           pushChunk(rle);
         }
+
+        if ((y + 1) % batchRows === 0 || y === h720 - 1) {
+          const ripPct = 8 + Math.round(((y + 1) / h720) * 86);
+          if (onProgress) {
+            onProgress(
+              ripPct,
+              `Ripeando línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()} (720×720 DPI • Planos [K, C, M, Y] 2-Bit RLE)...`,
+              totalLength
+            );
+          }
+          await new Promise((r) => setTimeout(r, 8));
+        }
       }
 
-      // Fin de trabajo RTL: \x1b*rC\x1bE
       pushChunk(asciiToBytes('\x1b*rC\x1bE'));
+
+      if (onProgress) {
+        onProgress(97, 'Empaquetando flujo binario final Mutoh_PM / MH-RTL...', totalLength);
+      }
+      await new Promise((r) => setTimeout(r, 10));
 
       const totalBytes = new Uint8Array(totalLength);
       let offset = 0;
       for (let i = 0; i < chunks.length; i++) {
         totalBytes.set(chunks[i], offset);
         offset += chunks[i].length;
+      }
+
+      if (onProgress) {
+        onProgress(100, `✅ RIP completado: ${h720.toLocaleString()} líneas @ 720×720 DPI (${itemCount} pieza/s)`, totalBytes.length);
       }
 
       return {
@@ -5530,184 +5825,307 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       };
     }
 
-    // Compila el stream binario .PRN nativo (Mutoh_PM / MH-RTL para Mutoh VJ-1624)
-    function compileRealPrnBytesAndBase64(jobLabel) {
-      const isMimaki = STATE.activeUnit === 'unit2';
-      if (!isMimaki) {
-        return buildMutohVj1624NativePrnBytes(jobLabel);
-      }
+    // Envía JSON al puente local mostrando el porcentaje real de envío/impresión en la Barra 2
+    function sendPayloadWithLiveProgress(url, payloadObj, totalRawBytes, heightMm, targetLabel, pqItem) {
+      return new Promise((resolve, reject) => {
+        const bodyStr = JSON.stringify(payloadObj);
+        const xhr = new XMLHttpRequest();
+        RIP_PROGRESS_STATE.activeXhr = xhr;
 
-      const pw = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
-      const ph = parseFloat(document.getElementById('quick-paper-height').value) || 50000;
-      const jw = parseFloat(document.getElementById('job-w-mm').value) || 297;
-      const jh = parseFloat(document.getElementById('job-h-mm').value) || 420;
-      const unitName = 'Mimaki_UJV100-160';
-      const cmdLang = 'MRL-V';
+        let simPct = 5;
+        updatePrintProgressUI(simPct, `Conectando con ${targetLabel}...`, (heightMm * simPct) / 100, heightMm);
 
-      const srcCanvas = document.getElementById('job-canvas');
-      const sampleW = 128, sampleH = 128;
-      const tmp = document.createElement('canvas');
-      tmp.width = sampleW;
-      tmp.height = sampleH;
-      const tCtx = tmp.getContext('2d');
-      tCtx.drawImage(srcCanvas, 0, 0, sampleW, sampleH);
-      const rgba = tCtx.getImageData(0, 0, sampleW, sampleH).data;
+        // Ticker suave para reflejar el avance físico de pasadas mientras el socket TCP transmite al cabezal
+        const passTimer = setInterval(() => {
+          if (RIP_PROGRESS_STATE.cancelled) {
+            clearInterval(passTimer);
+            return;
+          }
+          if (simPct < 92) {
+            simPct += Math.max(2, Math.round((95 - simPct) * 0.18));
+            const curMm = (heightMm * simPct) / 100;
+            const sentBytes = Math.round((totalRawBytes * simPct) / 100);
+            updatePrintProgressUI(
+              simPct,
+              `Imprimiendo en ${targetLabel} (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totalRawBytes)})...`,
+              curMm,
+              heightMm
+            );
+            if (pqItem) {
+              pqItem.notes = `${payloadObj.job_title} [Imprimiendo ${simPct}% • ${curMm.toFixed(0)}/${Math.round(heightMm)}mm]`;
+              renderQueuesSplitView();
+            }
+          }
+        }, 120);
 
-      const headerStr = `\x1b@\x1b(R\x08\x00\x00REMOTE1\n${cmdLang}|PRINTER=${unitName}|ROLL_W_MM=${pw}|ROLL_H_MM=${ph}|JOB_W_MM=${jw}|JOB_H_MM=${jh}|JOB=${jobLabel}\n`;
-      const headerBytes = new TextEncoder().encode(headerStr);
-      const rasterBytes = new Uint8Array(sampleW * sampleH);
-      for (let i = 0; i < rasterBytes.length; i++) {
-        rasterBytes[i] = 255 - rgba[i * 4];
-      }
-      const footerBytes = new TextEncoder().encode('\n\x0c\x1b@');
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable && evt.total > 0) {
+            const upPct = Math.min(95, Math.max(simPct, Math.round((evt.loaded / evt.total) * 92)));
+            simPct = upPct;
+            const curMm = (heightMm * simPct) / 100;
+            const sentBytes = Math.round((totalRawBytes * simPct) / 100);
+            updatePrintProgressUI(
+              simPct,
+              `Transmitiendo pasadas a ${targetLabel} (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totalRawBytes)})...`,
+              curMm,
+              heightMm
+            );
+          }
+        };
 
-      const totalBytes = new Uint8Array(headerBytes.length + rasterBytes.length + footerBytes.length);
-      totalBytes.set(headerBytes, 0);
-      totalBytes.set(rasterBytes, headerBytes.length);
-      totalBytes.set(footerBytes, headerBytes.length + rasterBytes.length);
+        xhr.onload = () => {
+          clearInterval(passTimer);
+          RIP_PROGRESS_STATE.activeXhr = null;
+          try {
+            const data = JSON.parse(xhr.responseText || '{}');
+            resolve(data);
+          } catch (e) {
+            reject(new Error('Respuesta inválida del puente local'));
+          }
+        };
 
-      const base64Str = uint8ArrayToBase64(totalBytes);
-      return { totalBytes, base64Str, unitName };
+        xhr.onerror = () => {
+          clearInterval(passTimer);
+          RIP_PROGRESS_STATE.activeXhr = null;
+          reject(new Error('No se pudo conectar con el puente local (127.0.0.1:8765)'));
+        };
+
+        xhr.onabort = () => {
+          clearInterval(passTimer);
+          RIP_PROGRESS_STATE.activeXhr = null;
+          reject(new Error('CANCELLED'));
+        };
+
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(bodyStr);
+      });
     }
 
-    function exportPrnFile(jobLabel) {
-      showToast('⏳ Compilando archivo .PRN nativo Mutoh_PM (720×720 DPI 4 planos KCMY 2-bit)...');
-      setTimeout(() => {
-        const { totalBytes, unitName, widthMm, heightMm } = compileRealPrnBytesAndBase64(jobLabel || STATE.activeFileName || 'Impresion');
-        const dimTag = widthMm ? `_${Math.round(widthMm)}x${Math.round(heightMm)}mm_720dpi` : '';
-        downloadBytesAsFile(
-          totalBytes,
-          `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}${dimTag}.prn`,
-          'application/octet-stream'
-        );
-        showToast(`✅ Archivo .PRN Mutoh_PM descargado (${(totalBytes.length / 1024).toFixed(1)} KB)`);
-      }, 20);
+    async function exportPrnFile(jobLabel) {
+      await actionRipAndPrint({ forceDownloadPrn: true, customLabel: jobLabel });
     }
 
-    async function actionRipAndPrint() {
-      const jobLabel = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
-      actionRipCurrentJob();
+    async function actionRipAndPrint(opts = {}) {
+      const ripOnly = Boolean(opts && opts.ripOnly);
+      const forceDownloadPrn = Boolean(opts && opts.forceDownloadPrn);
+      const jobLabel = (opts && opts.customLabel) || (STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP');
+      const { pqItem, w, h, printerName } = enqueueRipAndPrintJobEntries();
 
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
       const targetSoftware = isMimaki ? 'Mimaki RasterLink 7' : 'Wasatch SoftRIP';
+      const isPdfMode = !forceDownloadPrn && (cfg.connMode === 'hot_folder' || cfg.connMode === 'pdf_1to1_download');
 
-      // MODO 1 y 2 (RECOMENDADO): PDF 1:1 exacto en mm -> Hot Folder automático o descarga directa
-      if (cfg.connMode === 'hot_folder' || cfg.connMode === 'pdf_1to1_download') {
-        const dpi = parseInt(cfg.exportDpi, 10) || 150;
-        showToast(`⏳ Generando PDF 1:1 exacto (${dpi} DPI) para ${targetSoftware}...`);
-        const { canvas, widthMm, heightMm, effectiveDpi, itemCount } = renderExact1to1PrintCanvas(dpi);
-        const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
-        const safeBase = (jobLabel || (isMimaki ? 'Mimaki_Job' : 'Mutoh_Job')).replace(/[^a-zA-Z0-9_-]/g, '_');
-        const pdfFileName = `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm_1to1.pdf`;
+      const printerDesc = isPdfMode
+        ? `${printerName} (${cfg.connMode === 'hot_folder' ? 'Hot Folder' : 'PDF 1:1'})`
+        : `${printerName} (${cfg.ip}:${cfg.port})`;
+      const protocolDesc = isPdfMode
+        ? `PDF 1.4 1:1 (${cfg.exportDpi || 150} DPI)`
+        : (isMimaki ? 'Mimaki MRL-V (Puerto 11111)' : 'Mutoh_PM / MH-RTL 720dpi 2-Bit');
 
-        if (cfg.connMode === 'pdf_1to1_download') {
-          downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
-          showToast(`📄 PDF 1:1 descargado: ${Math.round(widthMm)}×${Math.round(heightMm)} mm (${effectiveDpi} DPI, ${itemCount} ítem(s))`);
-          return;
-        }
+      openRipProgressModal(jobLabel, printerDesc, `${w} × ${h} mm`, protocolDesc);
+      appendRipProgressLog(`Iniciando trabajo "${jobLabel}" para ${printerDesc}...`, 'text-white font-bold');
 
-        // Enviar atómicamente a la Hot Folder de Windows vía puente local
-        const pdfBase64 = uint8ArrayToBase64(pdfBytes);
-        const hotFolder = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
-        try {
-          const res = await fetch(`${BRIDGE_BASE_URL}/api/hotfolder/export`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+      try {
+        // ====================================================================
+        // MODO A: PDF 1:1 EXACTO (Hot Folder o Descarga PDF 1:1)
+        // ====================================================================
+        if (isPdfMode) {
+          const dpi = parseInt(cfg.exportDpi, 10) || 150;
+          updateRipProgressUI(20, `Renderizando composición 1:1 a ${dpi} DPI...`, 0);
+          await new Promise((r) => setTimeout(r, 25));
+
+          const { canvas, widthMm, heightMm, effectiveDpi, itemCount } = renderExact1to1PrintCanvas(dpi);
+          document.getElementById('rp-dimensions').textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${effectiveDpi} DPI)`;
+          updateRipProgressUI(65, `Compilando estructura vectorial PDF 1.4 (/MediaBox 1:1 en mm)...`, 0);
+          await new Promise((r) => setTimeout(r, 25));
+
+          const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
+          const safeBase = (jobLabel || (isMimaki ? 'Mimaki_Job' : 'Mutoh_Job')).replace(/[^a-zA-Z0-9_-]/g, '_');
+          const pdfFileName = `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm_1to1.pdf`;
+
+          RIP_PROGRESS_STATE.lastCompiled = {
+            bytes: pdfBytes,
+            filename: pdfFileName,
+            mimeType: 'application/pdf'
+          };
+
+          updateRipProgressUI(100, `✅ PDF 1:1 compilado (${Math.round(widthMm)}×${Math.round(heightMm)} mm, ${itemCount} pieza/s)`, pdfBytes.length);
+          appendRipProgressLog(`PDF 1.4 1:1 generado: ${pdfFileName} (${formatKbOrMb(pdfBytes.length)})`, 'text-emerald-300');
+
+          if (ripOnly) {
+            updatePrintProgressUI(100, 'Listo en cola de impresión (Modo Solo RIP).', heightMm, heightMm);
+            finishRipProgressModal('RIP COMPLETADO (100%)', 'done');
+            showToast(`✅ Trabajo "${jobLabel}" ripeado al 100%`);
+            return;
+          }
+
+          if (cfg.connMode === 'pdf_1to1_download') {
+            setRipModalStatusBadge('EXPORTANDO PDF...', 'print');
+            updatePrintProgressUI(100, `Descargando ${pdfFileName} en tu navegador...`, heightMm, heightMm);
+            downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
+            appendRipProgressLog(`✅ Archivo descargado: ${pdfFileName}`, 'text-emerald-400 font-bold');
+            finishRipProgressModal('PDF DESCARGADO (100%)', 'done');
+            showToast(`📄 PDF 1:1 descargado: ${Math.round(widthMm)}×${Math.round(heightMm)} mm`);
+            return;
+          }
+
+          // Enviar a Hot Folder mostrando progreso en Barra 2
+          setRipModalStatusBadge('ENVIANDO A HOT FOLDER...', 'print');
+          const hotFolder = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
+          appendRipProgressLog(`Depositando PDF 1:1 en Hot Folder: ${hotFolder}...`, 'text-sky-300');
+
+          const pdfBase64 = uint8ArrayToBase64(pdfBytes);
+          const data = await sendPayloadWithLiveProgress(
+            `${BRIDGE_BASE_URL}/api/hotfolder/export`,
+            {
               job_title: `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm`,
               hot_folder_path: hotFolder,
               file_ext: 'pdf',
               file_base64: pdfBase64
-            })
-          });
-          const data = await res.json();
+            },
+            pdfBytes.length,
+            heightMm,
+            `Hot Folder (${targetSoftware})`,
+            pqItem
+          );
+
           BRIDGE_ONLINE = true;
           updateBridgeToolbarBadge();
           if (data.spool && data.spool.success) {
-            showToast(`✅ Enviado a Hot Folder (${Math.round(widthMm)}×${Math.round(heightMm)} mm → ${targetSoftware})`);
-            const box = document.getElementById('network-test-result-box');
-            if (box) {
-              box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.spool.message}</span>`;
+            updatePrintProgressUI(100, `✅ Entregado en Hot Folder: ${data.spool.target || hotFolder}`, heightMm, heightMm);
+            appendRipProgressLog(`✅ ${data.spool.message}`, 'text-emerald-400 font-bold');
+            if (pqItem) {
+              pqItem.notes = `${jobLabel} [✅ Impreso 100% • ${Math.round(widthMm)}×${Math.round(heightMm)}mm]`;
+              renderQueuesSplitView();
             }
+            finishRipProgressModal('IMPRESIÓN 100% ENVIADA', 'done');
+            showToast(`✅ Enviado a Hot Folder (${Math.round(widthMm)}×${Math.round(heightMm)} mm)`);
           } else {
-            downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
-            openSetupModal();
-            const box = document.getElementById('network-test-result-box');
-            if (box) {
-              box.innerHTML = `<span class="text-amber-300 font-bold">⚠️ ${data.spool ? data.spool.message : 'Error al escribir en Hot Folder'}. Se descargó el PDF 1:1 como respaldo.</span>`;
-            }
+            throw new Error(data.spool ? data.spool.message : 'No se pudo escribir en la Hot Folder');
           }
-        } catch (err) {
-          // Si el puente local no está corriendo, descargamos igualmente el PDF 1:1 exacto (nunca .prn genérico)
-          downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
-          showToast(`📄 PDF 1:1 descargado (${Math.round(widthMm)}×${Math.round(heightMm)} mm). Arrástralo a ${targetSoftware} o inicia CONECTAR_IMPRESORAS_RED_WINDOWS.bat`);
-          const box = document.getElementById('network-test-result-box');
-          if (box) {
-            box.innerHTML = `
-              <div class="space-y-1 text-emerald-200">
-                <div class="font-bold text-emerald-400">📄 Se descargó el PDF 1:1 exacto (${Math.round(widthMm)}×${Math.round(heightMm)} mm, ${effectiveDpi} DPI)</div>
-                <div>• Puedes arrastrar <b>${pdfFileName}</b> directo a <b>${targetSoftware}</b> para imprimir ya mismo.</div>
-                <div>• Para que entre <b>automáticamente</b> sin arrastrar nada, abre <b><code class="text-white bg-slate-800 px-1 rounded">CONECTAR_IMPRESORAS_RED_WINDOWS.bat</code></b> y configura la Hot Folder <b><code>${hotFolder}</code></b> en ${targetSoftware}.</div>
-              </div>
-            `;
-          }
+          return;
         }
-        return;
-      }
 
-      // MODO 3 y 4: Envío RAW TCP/IP Puerto 9100 o Cola Windows
-      if (cfg.connMode === 'spool_file') {
-        exportPrnFile(jobLabel);
-        showToast(`💾 Archivo .PRN descargado (${jobLabel})`);
-        return;
-      }
+        // ====================================================================
+        // MODO B: DRIVER NATIVO DIRECTO (Mutoh_PM / MH-RTL Puerto 9100 o .PRN)
+        // ====================================================================
+        let compiled;
+        if (!isMimaki) {
+          compiled = await buildMutohVj1624NativePrnBytesAsync(jobLabel, (pct, stage, bytesLen) => {
+            updateRipProgressUI(pct, stage, bytesLen);
+          });
+        } else {
+          updateRipProgressUI(35, 'Preparando trama para Mimaki UJV100-160...', 0);
+          await new Promise((r) => setTimeout(r, 40));
+          const { canvas, widthMm, heightMm } = renderExact1to1PrintCanvas(150);
+          const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
+          compiled = {
+            totalBytes: pdfBytes,
+            base64Str: uint8ArrayToBase64(pdfBytes),
+            unitName: 'Mimaki_UJV100-160',
+            widthMm,
+            heightMm,
+            w720: canvas.width,
+            h720: canvas.height
+          };
+          updateRipProgressUI(100, `✅ Datos RIP Mimaki listos (${Math.round(widthMm)}×${Math.round(heightMm)} mm)`, pdfBytes.length);
+        }
 
-      const { base64Str } = compileRealPrnBytesAndBase64(jobLabel);
-      showToast(`🖨️ Enviando RAW a ${cfg.connMode === 'windows_spooler' ? cfg.winQueue : cfg.ip + ':' + cfg.port} ...`);
+        const safeName = (jobLabel || compiled.unitName).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const dimTag = compiled.widthMm ? `_${Math.round(compiled.widthMm)}x${Math.round(compiled.heightMm)}mm_720dpi` : '';
+        const prnFileName = `${safeName}${dimTag}.prn`;
 
-      try {
-        const res = await fetch(`${BRIDGE_BASE_URL}/api/spool/send-raw`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        RIP_PROGRESS_STATE.lastCompiled = {
+          bytes: compiled.totalBytes,
+          filename: prnFileName,
+          mimeType: 'application/octet-stream'
+        };
+
+        appendRipProgressLog(
+          `✅ Fase 1 (RIP) completada al 100%: ${prnFileName} (${formatKbOrMb(compiled.totalBytes.length)})`,
+          'text-emerald-300 font-bold'
+        );
+
+        if (ripOnly) {
+          updatePrintProgressUI(100, 'Archivo .PRN nativo listo en cola de impresión.', compiled.heightMm, compiled.heightMm);
+          if (pqItem) {
+            pqItem.notes = `${jobLabel} [Ripeado 100% • ${formatKbOrMb(compiled.totalBytes.length)}]`;
+            renderQueuesSplitView();
+          }
+          finishRipProgressModal('RIP COMPLETADO (100%)', 'done');
+          showToast(`✅ "${jobLabel}" ripeado al 100% (${formatKbOrMb(compiled.totalBytes.length)})`);
+          return;
+        }
+
+        if (forceDownloadPrn || cfg.connMode === 'spool_file') {
+          setRipModalStatusBadge('GUARDANDO .PRN...', 'print');
+          updatePrintProgressUI(100, `Archivo .PRN nativo descargado: ${prnFileName}`, compiled.heightMm, compiled.heightMm);
+          downloadBytesAsFile(compiled.totalBytes, prnFileName, 'application/octet-stream');
+          appendRipProgressLog(`💾 Archivo .PRN descargado en tu PC: ${prnFileName}`, 'text-emerald-400 font-bold');
+          finishRipProgressModal('.PRN DESCARGADO (100%)', 'done');
+          showToast(`✅ Archivo .PRN descargado (${formatKbOrMb(compiled.totalBytes.length)})`);
+          return;
+        }
+
+        // Envío directo TCP/IP Puerto 9100 (Mutoh_PM) o Cola de Windows con progreso en vivo
+        const targetHostDesc = cfg.connMode === 'windows_spooler' ? `Cola Windows (${cfg.winQueue})` : `${cfg.ip}:${cfg.port}`;
+        setRipModalStatusBadge('IMPRIMIENDO EN PLOTTER...', 'print');
+        appendRipProgressLog(`Abriendo conexión directa con ${targetHostDesc}...`, 'text-sky-300');
+
+        const data = await sendPayloadWithLiveProgress(
+          `${BRIDGE_BASE_URL}/api/spool/send-raw`,
+          {
             job_title: jobLabel,
             host: cfg.ip,
             port: cfg.port,
             connection_mode: cfg.connMode,
             windows_printer_name: cfg.winQueue,
-            prn_base64: base64Str
-          })
-        });
-        const data = await res.json();
+            prn_base64: compiled.base64Str
+          },
+          compiled.totalBytes.length,
+          compiled.heightMm || 50,
+          targetHostDesc,
+          pqItem
+        );
+
         BRIDGE_ONLINE = true;
         updateBridgeToolbarBadge();
 
         if (data.spool && data.spool.tcp_delivered) {
+          updatePrintProgressUI(
+            100,
+            `✅ Impresión entregada al 100% en ${targetHostDesc} (${formatKbOrMb(compiled.totalBytes.length)})`,
+            compiled.heightMm,
+            compiled.heightMm
+          );
+          appendRipProgressLog(`✅ ${data.spool.message}`, 'text-emerald-400 font-bold');
+          if (pqItem) {
+            pqItem.notes = `${jobLabel} [✅ Impreso 100% • ${Math.round(compiled.widthMm)}×${Math.round(compiled.heightMm)}mm]`;
+            renderQueuesSplitView();
+          }
+          finishRipProgressModal('IMPRESIÓN 100% COMPLETADA', 'done');
           showToast(`✅ ${data.spool.message}`);
-          const box = document.getElementById('network-test-result-box');
-          if (box) {
-            box.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${data.spool.message}</span>`;
-          }
         } else {
-          openSetupModal();
-          const box = document.getElementById('network-test-result-box');
-          if (box) {
-            box.innerHTML = `<span class="text-red-400 font-bold">❌ ${data.spool ? data.spool.message : 'La impresora no respondió en ' + cfg.ip + ':' + cfg.port}</span>`;
-          }
-          showToast(`⚠️ Verifica la IP de la impresora (${cfg.ip}:${cfg.port})`);
+          const errMsg = data.spool ? data.spool.message : `El plotter no respondió en ${targetHostDesc}`;
+          appendRipProgressLog(`❌ ${errMsg}`, 'text-red-400 font-bold');
+          appendRipProgressLog(`💡 Puedes pulsar "💾 Guardar Copia del Archivo" abajo para conservar el .PRN ya ripeado.`, 'text-amber-300');
+          updatePrintProgressUI(0, `⚠️ Sin respuesta en ${targetHostDesc}`, 0, compiled.heightMm || 50);
+          finishRipProgressModal('PLOTTER NO CONECTADO', 'warn');
+          showToast(`⚠️ Verifica conexión con ${targetHostDesc}`);
         }
       } catch (err) {
-        exportPrnFile(jobLabel);
-        openSetupModal();
-        const box = document.getElementById('network-test-result-box');
-        if (box) {
-          box.innerHTML = `
-            <div class="space-y-1.5 text-amber-200">
-              <div class="font-bold text-amber-400">📡 Abre CONECTAR_IMPRESORAS_RED_WINDOWS.bat para habilitar el envío local</div>
-              <div>Te recomendamos usar el modo <b>"📂 Hot Folder 1:1 (Wasatch / RasterLink 7)"</b> para imprimir en producción sin bloqueos de firmware ("Converting").</div>
-            </div>
-          `;
+        if (err && err.message === 'CANCELLED') return;
+        appendRipProgressLog(`⚠️ Puente local no detectado o error de red: ${err.message || err}`, 'text-amber-300 font-bold');
+        if (RIP_PROGRESS_STATE.lastCompiled) {
+          const item = RIP_PROGRESS_STATE.lastCompiled;
+          downloadBytesAsFile(item.bytes, item.filename, item.mimeType);
+          updatePrintProgressUI(100, `💾 Puente local apagado: se descargó ${item.filename} automáticamente`, 50, 50);
+          appendRipProgressLog(`💾 Se descargó automáticamente ${item.filename}. Abre CONECTAR_IMPRESORAS_RED_WINDOWS.bat para envío directo por red.`, 'text-emerald-300');
+          finishRipProgressModal('ARCHIVO DESCARGADO (100%)', 'warn');
+        } else {
+          finishRipProgressModal('ERROR EN PROCESO', 'warn');
         }
       }
     }
