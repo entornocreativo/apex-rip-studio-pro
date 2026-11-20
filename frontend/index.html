@@ -1003,9 +1003,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             <div class="grid grid-cols-12 items-center gap-2">
               <label class="col-span-3 font-semibold text-sky-300">Modo de Impresión</label>
               <select id="setup-conn-mode" class="col-span-5 px-2.5 py-1.5 rounded font-semibold" onchange="onConnModeChange()">
-                <option value="hot_folder">📂 Hot Folder 1:1 (Wasatch / RasterLink 7 — Recomendado)</option>
-                <option value="pdf_1to1_download">📄 Descargar PDF 1:1 (mm exactos para Wasatch/RasterLink)</option>
-                <option value="tcp_raw">📡 Red TCP/IP Directa (Puerto 9100 — Requiere .PRN nativo)</option>
+                <option value="tcp_raw">⚡ Red TCP/IP Directa (Driver Nativo Mutoh_PM 9100 — Sin Wasatch)</option>
+                <option value="hot_folder">📂 Hot Folder 1:1 (Wasatch / RasterLink 7)</option>
+                <option value="pdf_1to1_download">📄 Descargar PDF 1:1 (mm exactos)</option>
+                <option value="spool_file">💾 Descargar .PRN Nativo (Mutoh_PM / MH-RTL)</option>
                 <option value="windows_spooler">🖨️ Cola de Impresora Instalada en Windows</option>
               </select>
               <div class="col-span-4 flex gap-1.5">
@@ -4874,7 +4875,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     const BRIDGE_BASE_URL = 'http://127.0.0.1:8765';
     const DEFAULT_NET_CONFIG = {
       unit1: {
-        connMode: 'hot_folder',
+        connMode: 'tcp_raw',
         ip: '192.168.1.240',
         port: 9100,
         hotFolder: 'C:\\ApexRIP_HotFolder_Mutoh',
@@ -4893,18 +4894,17 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     let NET_CONFIG = JSON.parse(JSON.stringify(DEFAULT_NET_CONFIG));
     try {
-      const savedNet = localStorage.getItem('wasatch_softrip_net_v36') || localStorage.getItem('wasatch_softrip_net_v33');
+      const savedNet = localStorage.getItem('wasatch_softrip_net_v37') || localStorage.getItem('wasatch_softrip_net_v36');
       if (savedNet) {
         const parsedNet = JSON.parse(savedNet);
         if (parsedNet.unit1) NET_CONFIG.unit1 = { ...DEFAULT_NET_CONFIG.unit1, ...parsedNet.unit1 };
         if (parsedNet.unit2) NET_CONFIG.unit2 = { ...DEFAULT_NET_CONFIG.unit2, ...parsedNet.unit2 };
         if (Number(NET_CONFIG.unit2.port) === 9100) NET_CONFIG.unit2.port = 11111;
-        // Si venia de v3.3 con tcp_raw por defecto y nunca configuro hotFolder, migrar a hot_folder 1:1 seguro
-        if (!localStorage.getItem('wasatch_softrip_net_v36')) {
-          NET_CONFIG.unit1.connMode = 'hot_folder';
-          NET_CONFIG.unit2.connMode = 'hot_folder';
-          NET_CONFIG.unit2.ip = '192.168.1.73';
-          NET_CONFIG.unit2.port = 11111;
+        // Activar driver directo TCP 9100 Mutoh_PM nativo en unit1 al actualizar a v3.7
+        if (!localStorage.getItem('wasatch_softrip_net_v37')) {
+          NET_CONFIG.unit1.connMode = 'tcp_raw';
+          NET_CONFIG.unit1.ip = '192.168.1.240';
+          NET_CONFIG.unit1.port = 9100;
         }
       }
     } catch (e) {}
@@ -4913,7 +4913,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     function saveNetConfigToStorage() {
       try {
-        localStorage.setItem('wasatch_softrip_net_v36', JSON.stringify(NET_CONFIG));
+        localStorage.setItem('wasatch_softrip_net_v37', JSON.stringify(NET_CONFIG));
       } catch (e) {}
       updateBridgeToolbarBadge();
     }
@@ -4927,11 +4927,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       if (!badge) return;
       const cfg = getActiveUnitNetConfig();
       const isMimaki = STATE.activeUnit === 'unit2';
-      let targetStr = `${cfg.ip}:${cfg.port}`;
+      let targetStr = isMimaki ? `${cfg.ip}:${cfg.port}` : `Mutoh_PM Directo (${cfg.ip}:${cfg.port})`;
       if (cfg.connMode === 'hot_folder') {
         targetStr = isMimaki ? `RasterLink HotFolder (192.168.1.73)` : `Wasatch HotFolder (192.168.1.240)`;
       } else if (cfg.connMode === 'pdf_1to1_download') {
         targetStr = `PDF 1:1 (${cfg.exportDpi || 150} DPI)`;
+      } else if (cfg.connMode === 'spool_file') {
+        targetStr = `Descargar .PRN (${isMimaki ? 'MRL-V' : 'Mutoh_PM 720dpi'})`;
       } else if (cfg.connMode === 'windows_spooler') {
         targetStr = `Cola Win: ${cfg.winQueue}`;
       }
@@ -4940,7 +4942,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         badge.textContent = `🟢 Listo → ${targetStr}`;
       } else {
         badge.className = 'px-2.5 py-1 rounded bg-slate-800 border border-amber-500/70 font-mono text-[11px] text-amber-200 cursor-pointer';
-        badge.textContent = `📂 ${targetStr} (Setup)`;
+        badge.textContent = `⚡ ${targetStr} (Setup)`;
       }
     }
 
@@ -4966,21 +4968,31 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       const box = document.getElementById('network-test-result-box');
       if (!box) return;
+      const isMimaki = STATE.activeUnit === 'unit2';
       if (mode === 'tcp_raw') {
-        box.innerHTML = `
-          <div class="space-y-1 text-amber-200">
-            <div class="font-bold text-amber-400">⚠️ Aviso técnico sobre Puerto 9100 Directo (Mutoh "Converting" / Mimaki MRL-V):</div>
-            <div>Mutoh VJ-1624 usa el protocolo cerrado <b>MH-RTL</b> y Mimaki UJV100-160 usa <b>MRL-V</b>. Enviar un .PRN genérico por puerto 9100 hace que la Mutoh se quede en <b>"Converting"</b>.</div>
-            <div>👉 Para imprimir <b>HOY mismo sin errores</b> elige arriba <b>"📂 Hot Folder 1:1 (Wasatch / RasterLink 7)"</b>. Si deseas activar el driver binario nativo, ejecuta <b><code class="text-white bg-slate-800 px-1 rounded">CAPTURAR_PRN_TEST.bat</code></b> en tu PC para capturar un .prn de prueba de 5×5 cm.</div>
-          </div>
-        `;
+        if (!isMimaki) {
+          box.innerHTML = `
+            <div class="space-y-1 text-emerald-200">
+              <div class="font-bold text-emerald-400">✅ Driver Nativo Mutoh_PM / MH-RTL Activo (Sin Wasatch):</div>
+              <div>Envía directamente a <b>192.168.1.240:9100</b> la cabecera real <code>\\x07Mutoh_PM*ID250;*TM1;*PQ5;*IP2,2;*WF3;*CV2;*FH40;*PH40;*DH50;</code> + 4 planos <b>[K, C, M, Y]</b> a <b>720×720 DPI</b> en gota variable de 2 bits comprimidos con <b>PackBits RLE</b> (<code>\\x1b*b#V/W</code>).</div>
+            </div>
+          `;
+        } else {
+          box.innerHTML = `
+            <div class="space-y-1 text-amber-200">
+              <div class="font-bold text-amber-400">ℹ️ Mimaki UJV100-160 (Puerto 11111 — MRL-V):</div>
+              <div>Para capturar el protocolo nativo de la Mimaki igual que hicimos con la Mutoh, ejecuta <b><code class="text-white bg-slate-800 px-1 rounded">CAPTURAR_PRN_TEST.bat</code></b> (Opción 2: Puerto 11111) con IP <code>127.0.0.1</code> en la PC de la Mimaki.</div>
+            </div>
+          `;
+        }
       } else if (mode === 'hot_folder') {
-        const isMimaki = STATE.activeUnit === 'unit2';
         box.innerHTML = isMimaki
-          ? `✅ <strong>Mimaki UJV100-160 (IP 192.168.1.73) vía RasterLink 7 Hot Folder:</strong> Crea/asigna la Hot Folder de arriba en <b>RasterLink 7</b> (Entorno → Hot Folder). Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, el PDF 1:1 exacto se deposita ahí y RasterLink lo imprime automáticamente con tinta UV y perfiles ICC reales.`
-          : `✅ <strong>Mutoh VJ-1624 (IP 192.168.1.240) vía Wasatch SoftRIP Hot Folder:</strong> En <b>Wasatch SoftRIP</b> (Server → Hot Folder), apunta a la carpeta de arriba. Al pulsar <b>🖨️ Imprimir</b> en ApexRIP, se genera el PDF 1:1 exacto (con copias pegadas, panelación y marcas T acostada) y Wasatch lo envía a tu Mutoh sin quedarse en "Converting".`;
+          ? `✅ <strong>Mimaki UJV100-160 (IP 192.168.1.73) vía RasterLink 7 Hot Folder:</strong> Crea/asigna la Hot Folder de arriba en <b>RasterLink 7</b> (Entorno → Hot Folder).`
+          : `✅ <strong>Mutoh VJ-1624 (IP 192.168.1.240) vía Hot Folder:</strong> Exporta PDF 1:1 exacto en milímetros.`;
       } else if (mode === 'pdf_1to1_download') {
-        box.innerHTML = `📄 <strong>Descarga directa PDF 1:1:</strong> Genera un archivo PDF a medida real exacta en milímetros (sin deformar ni pasar a A3) listo para arrastrar a <b>Wasatch SoftRIP</b> o <b>RasterLink 7</b>.`;
+        box.innerHTML = `📄 <strong>Descarga directa PDF 1:1:</strong> Genera un archivo PDF a medida real exacta en milímetros (sin deformar ni pasar a A3).`;
+      } else if (mode === 'spool_file') {
+        box.innerHTML = `💾 <strong>Descarga directa .PRN Nativo:</strong> Descarga el archivo binario <code>.prn</code> con protocolo real <b>Mutoh_PM / MH-RTL (720×720 DPI 4 planos KCMY 2-bit PackBits)</b>.`;
       }
     }
 
@@ -5349,15 +5361,188 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
 
-    // Compila el stream binario .PRN (solo para pruebas / captura de puerto 9100)
+    // Compresor TIFF PackBits RLE exacto para Mutoh ValueJet (\x1b*b2M)
+    function encodePackBitsRle(rowBytes, scratchOut) {
+      const n = rowBytes.length;
+      const out = scratchOut || new Uint8Array(n * 2 + 16);
+      let outLen = 0;
+      let i = 0;
+      while (i < n) {
+        const runVal = rowBytes[i];
+        let runLen = 1;
+        while (i + runLen < n && rowBytes[i + runLen] === runVal && runLen < 128) {
+          runLen++;
+        }
+        if (runLen >= 2) {
+          out[outLen++] = 257 - runLen;
+          out[outLen++] = runVal;
+          i += runLen;
+        } else {
+          const litStart = i;
+          let litLen = 0;
+          while (i < n && litLen < 128) {
+            if (i + 1 < n && rowBytes[i] === rowBytes[i + 1]) break;
+            i++;
+            litLen++;
+          }
+          out[outLen++] = litLen - 1;
+          for (let k = 0; k < litLen; k++) {
+            out[outLen++] = rowBytes[litStart + k];
+          }
+        }
+      }
+      return out.slice(0, outLen);
+    }
+
+    function asciiToBytes(str) {
+      const arr = new Uint8Array(str.length);
+      for (let i = 0; i < str.length; i++) {
+        arr[i] = str.charCodeAt(i) & 0xff;
+      }
+      return arr;
+    }
+
+    // Generador Nativo 100% Real Mutoh ValueJet VJ-1624 (Mutoh_PM / MH-RTL 720x720 DPI 4-Pass VL i2 Wave)
+    function buildMutohVj1624NativePrnBytes(jobLabel) {
+      // Renderizar composición 1:1 en mm exactos
+      const { canvas, widthMm, heightMm } = renderExact1to1PrintCanvas(360);
+      const srcW = canvas.width;
+      const srcH = canvas.height;
+      const srcCtx = canvas.getContext('2d');
+      const rgba = srcCtx.getImageData(0, 0, srcW, srcH).data;
+
+      // Dimensiones físicas exactas a 720x720 DPI (*PQ5;*IP2,2;) múltiplo de 4 píxeles
+      const w720 = Math.max(4, Math.round((widthMm * 720.0 / 25.4) / 4) * 4);
+      const h720 = Math.max(4, Math.round(heightMm * 720.0 / 25.4));
+      const planeBytes = Math.ceil(w720 / 8) * 2; // Ej: 1420 px -> 178 * 2 = 356 bytes por plano
+
+      const fh = 40, phHeater = 40, dh = 50, wf = 3;
+      const headerStr =
+        `\x07Mutoh_PM*ID250;*TM1;*PQ5;*IP2,2;*WF${wf};*CV2;*FH${fh};*PH${phHeater};*DH${dh};*SW0;*PC1,0;*EF18;*FF;` +
+        `\x1bE\x1b%0A\x1b*r${w720 * 2}S\x1b*r-4U\x1b*r1A\x1b*b2M`;
+
+      const chunks = [];
+      let totalLength = 0;
+      const pushChunk = (u8) => {
+        chunks.push(u8);
+        totalLength += u8.length;
+      };
+
+      pushChunk(asciiToBytes(headerStr));
+
+      const xMap = new Int32Array(w720);
+      for (let x = 0; x < w720; x++) {
+        xMap[x] = Math.min(srcW - 1, Math.floor((x * srcW) / w720)) * 4;
+      }
+
+      const BAYER8 = [
+        [  0, 48, 12, 60,  3, 51, 15, 63 ],
+        [ 32, 16, 44, 28, 35, 19, 47, 31 ],
+        [  8, 56,  4, 52, 11, 59,  7, 55 ],
+        [ 40, 24, 36, 20, 43, 27, 39, 23 ],
+        [  2, 50, 14, 62,  1, 49, 13, 61 ],
+        [ 34, 18, 46, 30, 33, 17, 45, 29 ],
+        [ 10, 58,  6, 54,  9, 57,  5, 53 ],
+        [ 42, 26, 38, 22, 41, 25, 37, 21 ]
+      ];
+
+      const kRow = new Uint8Array(planeBytes);
+      const cRow = new Uint8Array(planeBytes);
+      const mRow = new Uint8Array(planeBytes);
+      const yRow = new Uint8Array(planeBytes);
+      const rleScratch = new Uint8Array(planeBytes * 2 + 16);
+      const numPixelBytes = w720 >> 2;
+
+      for (let y = 0; y < h720; y++) {
+        const srcY = Math.min(srcH - 1, Math.floor((y * srcH) / h720));
+        const rowOffset = srcY * srcW * 4;
+        const bRow = BAYER8[y & 7];
+
+        kRow.fill(0);
+        cRow.fill(0);
+        mRow.fill(0);
+        yRow.fill(0);
+
+        for (let bx = 0; bx < numPixelBytes; bx++) {
+          let kb = 0, cb = 0, mb = 0, yb = 0;
+          const baseX = bx << 2;
+          for (let p = 0; p < 4; p++) {
+            const x = baseX + p;
+            const idx = rowOffset + xMap[x];
+            const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
+            if (r >= 253 && g >= 253 && b >= 253) continue;
+
+            // Separación GCR CMYK + cuantización 2-bit Variable Dot (00, 01, 10, 11)
+            const maxRgb = r > g ? (r > b ? r : b) : (g > b ? g : b);
+            const kRaw = 255 - maxRgb;
+            const kVal = (kRaw * 204) >> 8; // GCR 80%
+            const denom = Math.max(1, 255 - kVal);
+            const cVal = Math.max(0, Math.min(255, Math.floor(((255 - r - kVal) * 255) / denom)));
+            const mVal = Math.max(0, Math.min(255, Math.floor(((255 - g - kVal) * 255) / denom)));
+            const yVal = Math.max(0, Math.min(255, Math.floor(((255 - b - kVal) * 255) / denom)));
+
+            const dither = bRow[x & 7] - 31; // -31..+32
+            const kv = kVal <= 2 ? 0 : Math.max(0, Math.min(3, ((kVal * 3 + dither * 2) / 255) | 0));
+            const cv = cVal <= 2 ? 0 : Math.max(0, Math.min(3, ((cVal * 3 + dither * 2) / 255) | 0));
+            const mv = mVal <= 2 ? 0 : Math.max(0, Math.min(3, ((mVal * 3 + dither * 2) / 255) | 0));
+            const yv = yVal <= 2 ? 0 : Math.max(0, Math.min(3, ((yVal * 3 + dither * 2) / 255) | 0));
+
+            const shift = 6 - (p << 1);
+            kb |= (kv << shift);
+            cb |= (cv << shift);
+            mb |= (mv << shift);
+            yb |= (yv << shift);
+          }
+          kRow[bx] = kb;
+          cRow[bx] = cb;
+          mRow[bx] = mb;
+          yRow[bx] = yb;
+        }
+
+        // Orden exacto de planos en Mutoh_PM / MH-RTL: Plane 0 = K (V), Plane 1 = C (V), Plane 2 = M (V), Plane 3 = Y (W)
+        const planes = [kRow, cRow, mRow, yRow];
+        for (let pIdx = 0; pIdx < 4; pIdx++) {
+          const rle = encodePackBitsRle(planes[pIdx], rleScratch);
+          const cmdPrefix = asciiToBytes(`\x1b*b${rle.length}${pIdx === 3 ? 'W' : 'V'}`);
+          pushChunk(cmdPrefix);
+          pushChunk(rle);
+        }
+      }
+
+      // Fin de trabajo RTL: \x1b*rC\x1bE
+      pushChunk(asciiToBytes('\x1b*rC\x1bE'));
+
+      const totalBytes = new Uint8Array(totalLength);
+      let offset = 0;
+      for (let i = 0; i < chunks.length; i++) {
+        totalBytes.set(chunks[i], offset);
+        offset += chunks[i].length;
+      }
+
+      return {
+        totalBytes,
+        base64Str: uint8ArrayToBase64(totalBytes),
+        unitName: 'Mutoh_VJ-1624',
+        widthMm,
+        heightMm,
+        w720,
+        h720
+      };
+    }
+
+    // Compila el stream binario .PRN nativo (Mutoh_PM / MH-RTL para Mutoh VJ-1624)
     function compileRealPrnBytesAndBase64(jobLabel) {
+      const isMimaki = STATE.activeUnit === 'unit2';
+      if (!isMimaki) {
+        return buildMutohVj1624NativePrnBytes(jobLabel);
+      }
+
       const pw = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
       const ph = parseFloat(document.getElementById('quick-paper-height').value) || 50000;
       const jw = parseFloat(document.getElementById('job-w-mm').value) || 297;
       const jh = parseFloat(document.getElementById('job-h-mm').value) || 420;
-      const isMimaki = STATE.activeUnit === 'unit2';
-      const unitName = isMimaki ? 'Mimaki_UJV100-160' : 'Mutoh_VJ-1624';
-      const cmdLang = isMimaki ? 'MRL-V' : 'MH-RTL/ESC-P2';
+      const unitName = 'Mimaki_UJV100-160';
+      const cmdLang = 'MRL-V';
 
       const srcCanvas = document.getElementById('job-canvas');
       const sampleW = 128, sampleH = 128;
@@ -5371,23 +5556,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const headerStr = `\x1b@\x1b(R\x08\x00\x00REMOTE1\n${cmdLang}|PRINTER=${unitName}|ROLL_W_MM=${pw}|ROLL_H_MM=${ph}|JOB_W_MM=${jw}|JOB_H_MM=${jh}|JOB=${jobLabel}\n`;
       const headerBytes = new TextEncoder().encode(headerStr);
       const rasterBytes = new Uint8Array(sampleW * sampleH);
-      const bayer4 = [
-        [0, 128, 32, 160],
-        [192, 64, 224, 96],
-        [48, 176, 16, 144],
-        [240, 112, 208, 80]
-      ];
-      for (let y = 0; y < sampleH; y++) {
-        for (let x = 0; x < sampleW; x++) {
-          const idx = (y * sampleW + x) * 4;
-          const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
-          const thr = bayer4[y & 3][x & 3];
-          const cBit = (255 - r) > thr ? 1 : 0;
-          const mBit = (255 - g) > thr ? 2 : 0;
-          const yBit = (255 - b) > thr ? 4 : 0;
-          const kBit = (255 - Math.max(r, g, b)) > thr ? 8 : 0;
-          rasterBytes[y * sampleW + x] = (cBit | mBit | yBit | kBit);
-        }
+      for (let i = 0; i < rasterBytes.length; i++) {
+        rasterBytes[i] = 255 - rgba[i * 4];
       }
       const footerBytes = new TextEncoder().encode('\n\x0c\x1b@');
 
@@ -5401,12 +5571,17 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     function exportPrnFile(jobLabel) {
-      const { totalBytes, unitName } = compileRealPrnBytesAndBase64(jobLabel || STATE.activeFileName || 'Impresion');
-      downloadBytesAsFile(
-        totalBytes,
-        `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`,
-        'application/octet-stream'
-      );
+      showToast('⏳ Compilando archivo .PRN nativo Mutoh_PM (720×720 DPI 4 planos KCMY 2-bit)...');
+      setTimeout(() => {
+        const { totalBytes, unitName, widthMm, heightMm } = compileRealPrnBytesAndBase64(jobLabel || STATE.activeFileName || 'Impresion');
+        const dimTag = widthMm ? `_${Math.round(widthMm)}x${Math.round(heightMm)}mm_720dpi` : '';
+        downloadBytesAsFile(
+          totalBytes,
+          `${(jobLabel || unitName).replace(/[^a-zA-Z0-9_-]/g, '_')}${dimTag}.prn`,
+          'application/octet-stream'
+        );
+        showToast(`✅ Archivo .PRN Mutoh_PM descargado (${(totalBytes.length / 1024).toFixed(1)} KB)`);
+      }, 20);
     }
 
     async function actionRipAndPrint() {

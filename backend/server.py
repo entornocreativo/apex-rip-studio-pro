@@ -615,6 +615,8 @@ def api_spool_send(req: SpoolSendRequest) -> Dict[str, Any]:
         head_direction=req.head_direction,
         auto_cut=req.auto_cut,
         roll_width_mm=req.roll_width_mm,
+        width_mm=req.width_mm,
+        height_mm=req.height_mm,
     )
 
     spool_result = send_prn_to_printer(
