@@ -62,6 +62,22 @@ function Send-JsonResponse($Response, $Obj, $StatusCode = 200) {
     $Response.Close()
 }
 
+Add-Type -AssemblyName System.Web.Extensions -ErrorAction SilentlyContinue
+function Parse-LargeJsonBody($InputStream) {
+    $Reader = New-Object System.IO.StreamReader($InputStream, [System.Text.Encoding]::UTF8)
+    $RawJson = $Reader.ReadToEnd()
+    try {
+        $Ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+        $Ser.MaxJsonLength = [int]::MaxValue
+        return $Ser.DeserializeObject($RawJson)
+    } catch {
+        $Obj = $RawJson | ConvertFrom-Json
+        $Hash = @{}
+        foreach ($p in $Obj.PSObject.Properties) { $Hash[$p.Name] = $p.Value }
+        return $Hash
+    }
+}
+
 while ($Listener.IsListening) {
     try {
         $Context = $Listener.GetContext()
@@ -254,15 +270,14 @@ while ($Listener.IsListening) {
         }
 
         if ($Path -eq "/api/spool/send-raw" -and $Req.HttpMethod -eq "POST") {
-            $Reader = New-Object System.IO.StreamReader($Req.InputStream, [System.Text.Encoding]::UTF8)
-            $Body = $Reader.ReadToEnd() | ConvertFrom-Json
-            $TargetHost = ([string]$Body.host).Trim()
-            $TargetPort = [int]$Body.port
+            $Body = Parse-LargeJsonBody $Req.InputStream
+            $TargetHost = ([string]$Body["host"]).Trim()
+            $TargetPort = [int]$Body["port"]
             if ($TargetPort -le 0) { $TargetPort = 9100 }
-            $JobTitle = ([string]$Body.job_title) -replace '[^a-zA-Z0-9_-]', '_'
-            $ConnMode = [string]$Body.connection_mode
-            $WinPrinter = [string]$Body.windows_printer_name
-            $PrnBytes = [System.Convert]::FromBase64String([string]$Body.prn_base64)
+            $JobTitle = ([string]$Body["job_title"]) -replace '[^a-zA-Z0-9_-]', '_'
+            $ConnMode = [string]$Body["connection_mode"]
+            $WinPrinter = [string]$Body["windows_printer_name"]
+            $PrnBytes = [System.Convert]::FromBase64String([string]$Body["prn_base64"])
 
             $PrnFile = Join-Path $SpoolDir "$($JobTitle)_$(Get-Date -Format 'yyyyMMdd_HHmmss').prn"
             [System.IO.File]::WriteAllBytes($PrnFile, $PrnBytes)
@@ -286,13 +301,21 @@ while ($Listener.IsListening) {
 
             Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes por Red TCP/IP a $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
             $Tcp = New-Object System.Net.Sockets.TcpClient
+            $Tcp.SendBufferSize = 65536
             try {
                 $Async = $Tcp.BeginConnect($TargetHost, $TargetPort, $null, $null)
                 $Wait = $Async.AsyncWaitHandle.WaitOne(4000, $false)
                 if ($Wait -and $Tcp.Connected) {
                     $Tcp.EndConnect($Async)
                     $Stream = $Tcp.GetStream()
-                    $Stream.Write($PrnBytes, 0, $PrnBytes.Length)
+                    $Stream.WriteTimeout = 120000
+                    $ChunkSize = 65536
+                    $Offset = 0
+                    while ($Offset -lt $PrnBytes.Length) {
+                        $Count = [Math]::Min($ChunkSize, $PrnBytes.Length - $Offset)
+                        $Stream.Write($PrnBytes, $Offset, $Count)
+                        $Offset += $Count
+                    }
                     $Stream.Flush()
                     $Stream.Close()
                     $Tcp.Close()
@@ -301,7 +324,7 @@ while ($Listener.IsListening) {
                         spool = @{
                             success = $true
                             tcp_delivered = $true
-                            mode = "TCP/IP Raw Socket (Red Directa)"
+                            mode = "TCP/IP Raw Socket (Mutoh_PM / MH-RTL Directo)"
                             target = "$TargetHost`:$TargetPort"
                             bytes_sent = $PrnBytes.Length
                             spool_backup = $PrnFile
@@ -393,15 +416,14 @@ while ($Listener.IsListening) {
         }
 
         if ($Path -eq "/api/hotfolder/export" -and $Req.HttpMethod -eq "POST") {
-            $Reader = New-Object System.IO.StreamReader($Req.InputStream, [System.Text.Encoding]::UTF8)
-            $Body = $Reader.ReadToEnd() | ConvertFrom-Json
-            $HotFolder = ([string]$Body.hot_folder_path).Trim()
+            $Body = Parse-LargeJsonBody $Req.InputStream
+            $HotFolder = ([string]$Body["hot_folder_path"]).Trim()
             if (!$HotFolder) { $HotFolder = "C:\ApexRIP_HotFolder_Mutoh" }
-            $JobTitle = ([string]$Body.job_title) -replace '[^a-zA-Z0-9_-]', '_'
+            $JobTitle = ([string]$Body["job_title"]) -replace '[^a-zA-Z0-9_-]', '_'
             if (!$JobTitle) { $JobTitle = "ApexRIP_Job" }
-            $Ext = ([string]$Body.file_ext).Trim().TrimStart('.')
+            $Ext = ([string]$Body["file_ext"]).Trim().TrimStart('.')
             if (!$Ext) { $Ext = "pdf" }
-            $FileBytes = [System.Convert]::FromBase64String([string]$Body.file_base64)
+            $FileBytes = [System.Convert]::FromBase64String([string]$Body["file_base64"])
 
             try {
                 if (!(Test-Path $HotFolder)) {

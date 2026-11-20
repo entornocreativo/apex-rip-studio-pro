@@ -3266,7 +3266,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x, y, w, h);
 
-      const imgToDraw = customImgObj || STATE.customImage;
+      const candidateImg = (customImgObj && typeof customImgObj === 'object') ? customImgObj : STATE.customImage;
+      const imgToDraw = (candidateImg && typeof candidateImg === 'object') ? candidateImg : null;
       if (imgToDraw) {
         const iw = imgToDraw.naturalWidth || imgToDraw.width || w;
         const ih = imgToDraw.naturalHeight || imgToDraw.height || h;
@@ -5342,11 +5343,21 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         const dy = it.ry * pxPerMm;
         const dw = it.w * pxPerMm;
         const dh = it.h * pxPerMm;
-        drawArtworkIntoRect(oCtx, dx, dy, dw, dh, it.img || STATE.customImage, {
-          rotation: it.rotation || 0,
-          mirror: !!it.mirror,
-          crop: it.crop || null
-        });
+        drawArtworkIntoRect(
+          oCtx,
+          it.art || STATE.activeSampleArt || 'custom',
+          it.img || STATE.customImage,
+          dx,
+          dy,
+          dw,
+          dh,
+          false,
+          {
+            rotation: it.rotation || 0,
+            mirror: !!it.mirror,
+            crop: it.crop || null
+          }
+        );
         if (drawTMarks) {
           // Dibujar marcas de corte en T acostada (⊣ / ⊢) a escala física real (~6mm brazo, ~4mm tope)
           const arm = Math.max(8, Math.round(5.5 * pxPerMm));
