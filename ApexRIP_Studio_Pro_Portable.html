@@ -837,23 +837,38 @@
         </div>
 
         <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0 overflow-hidden">
-          <!-- RIP QUEUE CON SCROLL -->
+          <!-- RIP QUEUE CON SCROLL Y CLIC DERECHO -->
           <div class="bg-[#1e293b] border border-slate-700 rounded flex flex-col min-h-0 overflow-hidden">
-            <div class="p-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
-              <span id="rip-queue-title" class="font-bold">Rip Queue</span>
-              <div class="flex gap-1">
-                <button onclick="actionRipCurrentJob()" class="ws-tool-btn primary-rip" style="height:24px;">RIP</button>
-                <button onclick="deleteSelectedRipQueue()" class="ws-tool-btn danger-btn" style="height:24px;">✕ Eliminar</button>
+            <div class="p-2 bg-slate-800 border-b border-slate-700 flex flex-wrap items-center justify-between gap-1.5 flex-shrink-0">
+              <div class="flex items-center gap-2">
+                <span id="rip-queue-title" class="font-bold">Rip Queue (0)</span>
+                <span id="rip-temp-mem-badge" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-600 font-mono text-[10px] text-sky-300" title="Memoria temporal ocupada por archivos ripeados">
+                  Mem. Temp: 0 KB
+                </span>
               </div>
+              <div class="flex flex-wrap gap-1">
+                <button onclick="rqCtxRipSelected()" class="ws-tool-btn primary-rip" style="height:24px;" title="Solo ripear (sin imprimir)">⚙️ Solo RIP</button>
+                <button onclick="rqCtxRipAndPrintSelected()" class="ws-tool-btn primary-print" style="height:24px;" title="Ripear e Imprimir seleccionados">🖨️ RIP + Print</button>
+                <button onclick="rqCtxCancelSelected()" class="ws-tool-btn danger-btn" style="height:24px;" title="Cancelar todas las operaciones de los seleccionados">⏹ Cancelar</button>
+                <button onclick="rqCtxDeleteSelected()" class="ws-tool-btn danger-btn" style="height:24px;" title="Eliminar seleccionados y vaciar memoria temporal">🗑️ Eliminar</button>
+              </div>
+            </div>
+            <div class="px-2.5 py-1 bg-[#0f172a] border-b border-slate-700/80 text-[11px] text-slate-400 flex items-center justify-between flex-shrink-0">
+              <span>💡 Haz <b>Clic Derecho</b> sobre cualquier fila para abrir el menú de opciones de la Cola de RIP.</span>
+              <span class="font-mono text-[10px] text-sky-400">Dígito [N] = Veces impreso</span>
             </div>
             <div class="flex-1 roll-scroll-viewport min-h-0">
               <table class="w-full text-left border-collapse text-xs">
-                <thead class="bg-[#0b1120] text-slate-400 border-b border-slate-700 sticky top-0">
+                <thead class="bg-[#0b1120] text-slate-400 border-b border-slate-700 sticky top-0 z-10">
                   <tr>
-                    <th class="p-2">RIP</th>
+                    <th class="p-2 w-7 text-center">
+                      <input id="rq-select-all" type="checkbox" onchange="toggleSelectAllRipQueue(this.checked)" title="Seleccionar todos" />
+                    </th>
+                    <th class="p-2" title="Cantidad de veces impreso y estado RIP">Imp. # / RIP</th>
                     <th class="p-2">Copies</th>
                     <th class="p-2">Job Name / Medida</th>
-                    <th class="p-2">Source file / Material</th>
+                    <th class="p-2">Archivo / Memoria Temp.</th>
+                    <th class="p-2 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="rip-queue-tbody" class="divide-y divide-slate-700"></tbody>
@@ -861,22 +876,33 @@
             </div>
           </div>
 
-          <!-- PRINT QUEUE CON SCROLL -->
+          <!-- PRINT QUEUE CON SCROLL Y CLIC DERECHO -->
           <div class="bg-[#1e293b] border border-slate-700 rounded flex flex-col min-h-0 overflow-hidden">
-            <div class="p-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
-              <span id="print-queue-title" class="font-bold">Print Queue</span>
-              <div class="flex gap-1">
-                <button onclick="actionRipAndPrint()" class="ws-tool-btn primary-print" style="height:24px;">🖨️ Exportar .PRN</button>
+            <div class="p-2 bg-slate-800 border-b border-slate-700 flex flex-wrap items-center justify-between gap-1.5 flex-shrink-0">
+              <span id="print-queue-title" class="font-bold">Print Queue (0)</span>
+              <div class="flex flex-wrap gap-1">
+                <button onclick="pqCtxPrintSelected()" class="ws-tool-btn primary-print" style="height:24px;" title="Imprimir los trabajos seleccionados">🖨️ Imprimir</button>
+                <button onclick="pqCtxCancelSelected()" class="ws-tool-btn danger-btn" style="height:24px;" title="Cancelar todas las operaciones para los trabajos seleccionados">⏹ Cancelar</button>
+                <button onclick="pqCtxQuickPrint()" class="ws-tool-btn" style="height:24px;" title="Impresión rápida (sin enviar al layout)">⚡ Imp. Rápida</button>
+                <button onclick="pqCtxAddToLayout()" class="ws-tool-btn" style="height:24px;" title="Añadir seleccionados al Layout">➕ Al Layout</button>
               </div>
+            </div>
+            <div class="px-2.5 py-1 bg-[#0f172a] border-b border-slate-700/80 text-[11px] text-slate-400 flex items-center justify-between flex-shrink-0">
+              <span>💡 Haz <b>Clic Derecho</b> sobre cualquier trabajo para abrir las opciones de la Cola de Impresión.</span>
+              <span class="font-mono text-[10px] text-emerald-400">Dígito [N] = Veces enviado a imprimir</span>
             </div>
             <div class="flex-1 roll-scroll-viewport min-h-0">
               <table class="w-full text-left border-collapse text-xs">
-                <thead class="bg-[#0b1120] text-slate-400 border-b border-slate-700 sticky top-0">
+                <thead class="bg-[#0b1120] text-slate-400 border-b border-slate-700 sticky top-0 z-10">
                   <tr>
+                    <th class="p-2 w-7 text-center">
+                      <input id="pq-select-all" type="checkbox" onchange="toggleSelectAllPrintQueue(this.checked)" title="Seleccionar todos" />
+                    </th>
+                    <th class="p-2" title="Dígito de cantidad de veces enviado a imprimir">Imp. #</th>
                     <th class="p-2">Copies</th>
                     <th class="p-2">Index</th>
-                    <th class="p-2">Notes / Medida</th>
-                    <th class="p-2">Acción (.PRN)</th>
+                    <th class="p-2">Trabajo / Estado</th>
+                    <th class="p-2 text-right">Acción / Cancelar</th>
                   </tr>
                 </thead>
                 <tbody id="print-queue-tbody" class="divide-y divide-slate-700"></tbody>
@@ -1525,6 +1551,104 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       <span>🗑️ Suprimir / Borrar</span>
       <span class="text-[10px] font-mono">Supr</span>
     </button>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MENÚ CONTEXTUAL (CLIC DERECHO) — COLA DE RIP (RIP QUEUE)                   -->
+  <!-- ========================================================================== -->
+  <div id="rip-queue-context-menu" class="ws-ctx-menu" style="min-width: 320px;" role="menu">
+    <div id="rq-ctx-menu-title" class="ws-ctx-header">Cola de RIP — Trabajo seleccionado</div>
+    <button class="ws-ctx-item" onclick="rqCtxOpenOriginalInJob()">
+      <span>📂 Abrir el archivo original</span>
+      <span class="text-[10px] text-sky-400 font-mono">→ Pestaña Job</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="rqCtxRipSelected()">
+      <span>⚙️ Ripear los trabajos seleccionados</span>
+      <span class="text-[10px] text-sky-300 font-mono">Solo RIP [0]</span>
+    </button>
+    <button class="ws-ctx-item" onclick="rqCtxRipAndPrintSelected()">
+      <span>🖨️ Ripear e Imprimir los trabajos seleccionados</span>
+      <span class="text-[10px] text-emerald-400 font-mono">RIP + Print</span>
+    </button>
+    <button class="ws-ctx-item danger" onclick="rqCtxCancelSelected()">
+      <span>⏹ Cancelar todas las operaciones para los trabajos seleccionados</span>
+      <span class="text-[10px] font-mono">Stop</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="rqCtxAddToLayout()">
+      <span>📐 Añadir trabajos seleccionados a la composición actual</span>
+      <span class="text-[10px] text-amber-300 font-mono">→ Layout</span>
+    </button>
+    <button class="ws-ctx-item danger" onclick="rqCtxDeleteSelected()">
+      <span>🗑️ Eliminar los trabajos seleccionados</span>
+      <span class="text-[10px] font-mono">Vaciar Mem. Temp</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="rqCtxShowSelected()">
+      <span>👁️ Mostrar los trabajos seleccionados</span>
+      <span class="text-[10px] text-slate-400 font-mono">Vista / Info</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MENÚ CONTEXTUAL (CLIC DERECHO) — COLA DE IMPRESIÓN (PRINT QUEUE)           -->
+  <!-- ========================================================================== -->
+  <div id="print-queue-context-menu" class="ws-ctx-menu" style="min-width: 330px;" role="menu">
+    <div id="pq-ctx-menu-title" class="ws-ctx-header">Cola de Impresión — Trabajo seleccionado</div>
+    <button class="ws-ctx-item" onclick="pqCtxPrintSelected()">
+      <span>🖨️ Imprimir los trabajos seleccionados</span>
+      <span class="text-[10px] text-emerald-400 font-mono">Enviar Plotter</span>
+    </button>
+    <button class="ws-ctx-item danger" onclick="pqCtxCancelSelected()">
+      <span>⏹ Cancelar todas las operaciones para los trabajos seleccionados</span>
+      <span class="text-[10px] font-mono">Abortar</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="pqCtxAddToLayout()">
+      <span>➕ Añadir al layout (ya ripeados o sin ripear)</span>
+      <span class="text-[10px] text-amber-300 font-mono">→ Layout</span>
+    </button>
+    <button class="ws-ctx-item" onclick="pqCtxQuickPrint()">
+      <span>⚡ Impresión rápida (sin enviar al layout)</span>
+      <span class="text-[10px] text-sky-300 font-mono">Directo 1:1</span>
+    </button>
+    <div class="ws-ctx-sep"></div>
+    <button class="ws-ctx-item" onclick="pqCtxShowProperties()">
+      <span>ℹ️ Mostrar propiedades de los trabajos seleccionados</span>
+      <span class="text-[10px] text-slate-400 font-mono">Propiedades</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MODAL DE PROPIEDADES Y VISTA DE TRABAJOS SELECCIONADOS (RIP / PRINT QUEUE) -->
+  <!-- ========================================================================== -->
+  <div id="modal-queue-job-properties" class="ws-modal-backdrop" onclick="if(event.target===this) closeQueueJobPropertiesModal()">
+    <div class="ws-modal-box w-full max-w-2xl">
+      <div class="ws-modal-header">
+        <span id="qjp-modal-title">ℹ️ Propiedades de los Trabajos Seleccionados</span>
+        <button onclick="closeQueueJobPropertiesModal()" class="px-2.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 space-y-4 bg-[#1e293b] text-slate-100">
+        <div id="qjp-body-content" class="space-y-3 max-h-[65vh] overflow-y-auto pr-1"></div>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-700">
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="closeQueueJobPropertiesModal(); pqCtxPrintSelected();" class="py-1.5 px-3 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs cursor-pointer">
+              🖨️ Imprimir Seleccionados
+            </button>
+            <button onclick="closeQueueJobPropertiesModal(); rqCtxOpenOriginalInJob();" class="py-1.5 px-3 rounded bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs cursor-pointer">
+              📂 Abrir en Pestaña Job
+            </button>
+            <button onclick="closeQueueJobPropertiesModal(); rqCtxAddToLayout();" class="py-1.5 px-3 rounded bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer">
+              📐 Añadir al Layout
+            </button>
+          </div>
+          <button onclick="closeQueueJobPropertiesModal()" class="py-1.5 px-5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold text-xs cursor-pointer">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ========================================================================== -->
@@ -3645,11 +3769,14 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     // INTERACCIÓN CON RATÓN, CLIC DERECHO (MENÚ CONTEXTUAL), SNAP 0mm Y RECORTE EN JOB
     // ============================================================================
     function hideContextMenu() {
-      const menu = document.getElementById('layout-context-menu');
-      if (menu) menu.classList.remove('open');
+      ['layout-context-menu', 'rip-queue-context-menu', 'print-queue-context-menu'].forEach((id) => {
+        const menu = document.getElementById(id);
+        if (menu) menu.classList.remove('open');
+      });
     }
 
     function showContextMenuAt(clientX, clientY, targetItem) {
+      hideContextMenu();
       const menu = document.getElementById('layout-context-menu');
       if (!menu) return;
 
@@ -3719,7 +3846,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       // Cerrar menú contextual al hacer clic en cualquier otra parte
       window.addEventListener('mousedown', (ev) => {
-        if (!ev.target.closest('#layout-context-menu')) {
+        if (
+          !ev.target.closest('#layout-context-menu') &&
+          !ev.target.closest('#rip-queue-context-menu') &&
+          !ev.target.closest('#print-queue-context-menu')
+        ) {
           hideContextMenu();
         }
       });
@@ -4790,9 +4921,71 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       syncPaperAndRender();
     }
 
+    function computeTotalRipTempMemoryBytes() {
+      const seenUids = new Set();
+      let total = 0;
+      STATE.ripQueue.forEach((r) => {
+        if (r.compiledData && r.compiledData.bytes) {
+          seenUids.add(r.jobUid || r.id);
+          total += r.compiledData.bytes.length;
+        }
+      });
+      STATE.printQueue.forEach((p) => {
+        const key = p.jobUid || p.id;
+        if (!seenUids.has(key) && p.compiledData && p.compiledData.bytes) {
+          total += p.compiledData.bytes.length;
+        }
+      });
+      return total;
+    }
+
+    function renderPrintCountAndStatusBadge(count, status, isPrintQueue = false) {
+      const n = Number(count) || 0;
+      if (status === 'C') {
+        return `
+          <div class="inline-flex items-center gap-1">
+            <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded bg-red-900 border border-red-400 text-red-100 font-mono font-extrabold text-xs" title="Veces enviado a imprimir: ${n}">${n}</span>
+            <span class="px-1.5 py-0.5 rounded bg-red-950 border border-red-600 text-red-300 font-mono text-[10px] font-bold">CANCELADO</span>
+          </div>
+        `;
+      }
+      if (status === 'W' || status === 'I') {
+        return `
+          <div class="inline-flex items-center gap-1">
+            <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded bg-amber-700 border border-amber-300 text-white font-mono font-extrabold text-xs animate-pulse" title="En operación • Veces impreso: ${n}">${n}</span>
+            <span class="px-1.5 py-0.5 rounded bg-amber-900 border border-amber-400 text-amber-100 font-mono text-[10px] font-bold">${status === 'I' ? 'IMPRIMIENDO' : 'RIPEANDO'}</span>
+          </div>
+        `;
+      }
+      if (n > 0) {
+        return `
+          <div class="inline-flex items-center gap-1">
+            <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded bg-emerald-700 border border-emerald-300 text-white font-mono font-extrabold text-xs" title="Enviado a imprimir ${n} vez/veces">${n}</span>
+            <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-mono text-[10px] font-bold">${n}x IMPRESO</span>
+          </div>
+        `;
+      }
+      if (status === 'R') {
+        return `
+          <div class="inline-flex items-center gap-1">
+            <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded bg-sky-800 border border-sky-400 text-sky-100 font-mono font-extrabold text-xs" title="Solo Ripeado (0 veces impreso)">0</span>
+            <span class="px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500 text-sky-300 font-mono text-[10px] font-bold">${isPrintQueue ? 'EN COLA [0]' : 'RIPEADO [0]'}</span>
+          </div>
+        `;
+      }
+      return `
+        <div class="inline-flex items-center gap-1">
+          <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded bg-slate-800 border border-slate-500 text-slate-300 font-mono font-extrabold text-xs">0</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-600 text-slate-400 font-mono text-[10px] font-bold">SIN RIPEAR</span>
+        </div>
+      `;
+    }
+
     function renderQueuesSplitView() {
-      const u1 = document.getElementById('q-chk-u1').checked;
-      const u2 = document.getElementById('q-chk-u2').checked;
+      const u1El = document.getElementById('q-chk-u1');
+      const u2El = document.getElementById('q-chk-u2');
+      const u1 = u1El ? u1El.checked : true;
+      const u2 = u2El ? u2El.checked : true;
 
       const rqFiltered = STATE.ripQueue.filter((r) => (r.unit === 'unit1' && u1) || (r.unit === 'unit2' && u2));
       const pqFiltered = STATE.printQueue.filter((p) => (p.unit === 'unit1' && u1) || (p.unit === 'unit2' && u2));
@@ -4800,21 +4993,45 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       document.getElementById('rip-queue-title').textContent = `Rip Queue (${rqFiltered.length})`;
       document.getElementById('print-queue-title').textContent = `Print Queue (${pqFiltered.length})`;
 
+      const memBadge = document.getElementById('rip-temp-mem-badge');
+      if (memBadge) {
+        const memBytes = computeTotalRipTempMemoryBytes();
+        memBadge.textContent = `Mem. Temp: ${formatKbOrMb(memBytes)}`;
+      }
+
       if (rqFiltered.length === 0) {
         document.getElementById('rip-queue-tbody').innerHTML = `
-          <tr><td colspan="4" class="p-4 text-center text-slate-400">Cola de ripeo vacía. Pulsa el botón <b>RIP</b> para añadir trabajos.</td></tr>
+          <tr><td colspan="6" class="p-4 text-center text-slate-400">Cola de ripeo vacía. Pulsa el botón <b>RIP</b> para solo ripear (sin imprimir) o <b>🖨️ Imprimir</b>.</td></tr>
         `;
       } else {
         document.getElementById('rip-queue-tbody').innerHTML = rqFiltered.map((r) => {
-          const rowClass = r.status === 'R' ? 'rq-row-ripped' : (r.status === 'F' ? 'rq-row-error' : 'rq-row-pending');
+          const isSel = !!r.selected;
+          const rowClass = r.status === 'C'
+            ? 'rq-row-error'
+            : (r.status === 'R' ? 'rq-row-ripped' : 'rq-row-pending');
+          const selBorder = isSel ? 'outline: 1px solid #38bdf8; background-color: rgba(14, 116, 144, 0.28);' : '';
+          const memTag = r.compiledData && r.compiledData.bytes
+            ? `<span class="text-sky-300 font-bold">${formatKbOrMb(r.compiledData.bytes.length)} en caché</span>`
+            : `<span class="text-slate-500">0 KB (sin caché)</span>`;
           return `
-            <tr class="${rowClass}">
-              <td class="p-2 font-mono font-bold">
-                <span class="inline-block px-1.5 py-0.5 rounded border border-slate-600 mr-1">${r.status}</span>
+            <tr class="${rowClass} cursor-pointer select-none" style="${selBorder}"
+                onclick="onRipQueueRowClick(event, '${r.id}')"
+                oncontextmenu="onRipQueueRowContextMenu(event, '${r.id}')">
+              <td class="p-2 text-center" onclick="event.stopPropagation()">
+                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleRipQueueItemSelect('${r.id}', this.checked)" />
               </td>
-              <td class="p-2 font-mono">${r.copies}</td>
-              <td class="p-2 font-semibold">${r.name}</td>
-              <td class="p-2 font-mono text-xs text-slate-400">${r.source}</td>
+              <td class="p-2 whitespace-nowrap">
+                ${renderPrintCountAndStatusBadge(r.printCount, r.status, false)}
+              </td>
+              <td class="p-2 font-mono font-bold">${r.copies}</td>
+              <td class="p-2 font-semibold text-white">${r.name}</td>
+              <td class="p-2 font-mono text-[11px] text-slate-300">${r.source} • ${memTag}</td>
+              <td class="p-2 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                <button onclick="ripSingleQueueItem('${r.id}', false)" class="px-1.5 py-0.5 rounded bg-sky-700 hover:bg-sky-600 text-white font-bold text-[11px] cursor-pointer" title="Solo Ripear">RIP</button>
+                <button onclick="ripSingleQueueItem('${r.id}', true)" class="px-1.5 py-0.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[11px] cursor-pointer ml-0.5" title="Ripear e Imprimir">🖨️</button>
+                <button onclick="cancelSingleRipQueueItem('${r.id}')" class="px-1.5 py-0.5 rounded bg-amber-700 hover:bg-amber-600 text-white font-bold text-[11px] cursor-pointer ml-0.5" title="Cancelar operaciones de este trabajo">⏹</button>
+                <button onclick="deleteSingleRipQueueItem('${r.id}')" class="px-1.5 py-0.5 rounded bg-red-800 hover:bg-red-700 text-white font-bold text-[11px] cursor-pointer ml-0.5" title="Eliminar y vaciar memoria temporal">🗑️</button>
+              </td>
             </tr>
           `;
         }).join('');
@@ -4822,21 +5039,37 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       if (pqFiltered.length === 0) {
         document.getElementById('print-queue-tbody').innerHTML = `
-          <tr><td colspan="4" class="p-4 text-center text-slate-400">Cola de impresión vacía.</td></tr>
+          <tr><td colspan="6" class="p-4 text-center text-slate-400">Cola de impresión vacía.</td></tr>
         `;
       } else {
-        document.getElementById('print-queue-tbody').innerHTML = pqFiltered.map((p) => `
-          <tr class="rq-row-ripped">
-            <td class="p-2 font-mono font-bold">${p.copies}</td>
-            <td class="p-2 font-mono text-sky-400">${p.index}</td>
-            <td class="p-2 font-semibold">${p.notes}</td>
-            <td class="p-2">
-              <button onclick="exportPrnFile('${p.notes}')" class="px-2 py-0.5 rounded bg-sky-600 text-white font-semibold cursor-pointer">
-                .PRN
-              </button>
-            </td>
-          </tr>
-        `).join('');
+        document.getElementById('print-queue-tbody').innerHTML = pqFiltered.map((p) => {
+          const isSel = !!p.selected;
+          const rowClass = p.status === 'C' ? 'rq-row-error' : 'rq-row-ripped';
+          const selBorder = isSel ? 'outline: 1px solid #10b981; background-color: rgba(6, 95, 70, 0.28);' : '';
+          return `
+            <tr class="${rowClass} cursor-pointer select-none" style="${selBorder}"
+                onclick="onPrintQueueRowClick(event, '${p.id}')"
+                oncontextmenu="onPrintQueueRowContextMenu(event, '${p.id}')">
+              <td class="p-2 text-center" onclick="event.stopPropagation()">
+                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="togglePrintQueueItemSelect('${p.id}', this.checked)" />
+              </td>
+              <td class="p-2 whitespace-nowrap">
+                ${renderPrintCountAndStatusBadge(p.printCount, p.status, true)}
+              </td>
+              <td class="p-2 font-mono font-bold">${p.copies}</td>
+              <td class="p-2 font-mono text-sky-400">${p.index}</td>
+              <td class="p-2 font-semibold text-white">${p.notes}</td>
+              <td class="p-2 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                <button onclick="printSinglePrintQueueItem('${p.id}')" class="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[11px] cursor-pointer" title="Imprimir este trabajo (+1 al contador)">
+                  🖨️ Imprimir
+                </button>
+                <button onclick="cancelSinglePrintQueueItem('${p.id}')" class="px-2 py-0.5 rounded bg-red-700 hover:bg-red-600 text-white font-bold text-[11px] cursor-pointer ml-1" title="Cancelar impresión / operación de este trabajo">
+                  ⏹ Cancelar
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
       }
     }
 
@@ -4937,37 +5170,99 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     function sendVdpToQueues() {
+      const uid = 'JOB-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const printerName = STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+      STATE.ripQueue.forEach((x) => (x.selected = false));
       STATE.ripQueue.unshift({
         id: 'RQ-' + Date.now(),
+        jobUid: uid,
+        selected: true,
         status: 'R',
+        printCount: 0,
         copies: 1,
+        rawJobName: 'VDP_Batch_Seriado_001',
         name: 'VDP_Batch_Seriado_001',
-        source: 'Lote Datos Variables — ' + (STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624'),
-        unit: STATE.activeUnit
+        source: 'Lote Datos Variables — ' + printerName,
+        widthMm: 660,
+        heightMm: 260,
+        unit: STATE.activeUnit,
+        imgObj: STATE.customImage,
+        rotation: 0,
+        mirror: false,
+        crop: null,
+        compiledData: null,
+        createdAt: new Date().toLocaleTimeString()
       });
       renderQueuesSplitView();
       switchCenterTab('tab-queues');
     }
 
-    function enqueueRipAndPrintJobEntries() {
-      const w = document.getElementById('job-w-mm').value;
-      const h = document.getElementById('job-h-mm').value;
+    function enqueueRipAndPrintJobEntries(reuseExisting = null) {
+      if (reuseExisting && (reuseExisting.rqItem || reuseExisting.pqItem)) {
+        const rq = reuseExisting.rqItem || STATE.ripQueue.find((r) => r.jobUid && r.jobUid === (reuseExisting.pqItem && reuseExisting.pqItem.jobUid));
+        const pq = reuseExisting.pqItem || STATE.printQueue.find((p) => p.jobUid && p.jobUid === (reuseExisting.rqItem && reuseExisting.rqItem.jobUid));
+        const itemRef = rq || pq;
+        const w = itemRef ? (itemRef.widthMm || 50) : (parseFloat(document.getElementById('job-w-mm').value) || 50);
+        const h = itemRef ? (itemRef.heightMm || 50) : (parseFloat(document.getElementById('job-h-mm').value) || 50);
+        const jobName = itemRef ? (itemRef.rawJobName || itemRef.name || 'Trabajo_RIP') : 'Trabajo_RIP';
+        const unit = itemRef ? (itemRef.unit || STATE.activeUnit) : STATE.activeUnit;
+        const printerName = unit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+        return { rqItem: rq, pqItem: pq, jobName, w, h, printerName };
+      }
+
+      const w = parseFloat(document.getElementById('job-w-mm').value) || 50;
+      const h = parseFloat(document.getElementById('job-h-mm').value) || 50;
       const jobName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
       const printerName = STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+      const uid = 'JOB-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const nowStr = new Date().toLocaleTimeString();
+
+      STATE.ripQueue.forEach((x) => (x.selected = false));
+      STATE.printQueue.forEach((x) => (x.selected = false));
+
       const rqItem = {
-        id: 'RQ-' + Date.now(),
-        status: 'R',
+        id: 'RQ-' + Date.now() + '-' + Math.floor(Math.random() * 100),
+        jobUid: uid,
+        selected: true,
+        status: 'W',
+        printCount: 0,
         copies: 1,
-        name: `${jobName} (${w}x${h}mm)`,
-        source: `${w} x ${h} mm — ${printerName}`,
-        unit: STATE.activeUnit
+        rawJobName: jobName,
+        name: `${jobName} (${Math.round(w)}×${Math.round(h)}mm)`,
+        source: `${Math.round(w)} × ${Math.round(h)} mm — ${printerName}`,
+        widthMm: w,
+        heightMm: h,
+        unit: STATE.activeUnit,
+        imgObj: STATE.customImage,
+        rotation: STATE.activeRotation || 0,
+        mirror: !!STATE.activeMirror,
+        crop: STATE.activeCrop ? { ...STATE.activeCrop } : null,
+        compiledData: null,
+        createdAt: nowStr,
+        rippedAt: null,
+        lastPrintedAt: null
       };
       const pqItem = {
-        id: 'PQ-' + Date.now(),
+        id: 'PQ-' + Date.now() + '-' + Math.floor(Math.random() * 100),
+        jobUid: uid,
+        selected: true,
+        status: 'R',
+        printCount: 0,
         copies: 1,
         index: String(6660000 + Math.floor(Math.random() * 9000)),
-        notes: `${jobName} [${w}x${h}mm] (${printerName})`,
-        unit: STATE.activeUnit
+        rawJobName: jobName,
+        notes: `${jobName} [${Math.round(w)}×${Math.round(h)}mm] (${printerName})`,
+        widthMm: w,
+        heightMm: h,
+        unit: STATE.activeUnit,
+        imgObj: STATE.customImage,
+        rotation: STATE.activeRotation || 0,
+        mirror: !!STATE.activeMirror,
+        crop: STATE.activeCrop ? { ...STATE.activeCrop } : null,
+        compiledData: null,
+        createdAt: nowStr,
+        rippedAt: null,
+        lastPrintedAt: null
       };
       STATE.ripQueue.unshift(rqItem);
       STATE.printQueue.unshift(pqItem);
@@ -4975,12 +5270,479 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       return { rqItem, pqItem, jobName, w, h, printerName };
     }
 
+    // Cuando el usuario presiona el botón "RIP", SOLO debe ripear (sin ejecutar la impresión)
     function actionRipCurrentJob(silentEnqueue = false) {
       if (silentEnqueue) {
         return enqueueRipAndPrintJobEntries();
       }
-      // Si el usuario pulsa directamente el botón "RIP", abrimos la modal de carga de datos del RIP en vivo
       actionRipAndPrint({ ripOnly: true });
+    }
+
+    // ============================================================================
+    // SELECCIÓN, MENÚS CONTEXTUALES (CLIC DERECHO) Y OPERACIONES DE COLAS RIP / PRINT
+    // ============================================================================
+    function toggleSelectAllRipQueue(checked) {
+      STATE.ripQueue.forEach((r) => (r.selected = !!checked));
+      renderQueuesSplitView();
+    }
+
+    function toggleSelectAllPrintQueue(checked) {
+      STATE.printQueue.forEach((p) => (p.selected = !!checked));
+      renderQueuesSplitView();
+    }
+
+    function toggleRipQueueItemSelect(id, checked) {
+      const it = STATE.ripQueue.find((r) => r.id === id);
+      if (it) it.selected = !!checked;
+      renderQueuesSplitView();
+    }
+
+    function togglePrintQueueItemSelect(id, checked) {
+      const it = STATE.printQueue.find((p) => p.id === id);
+      if (it) it.selected = !!checked;
+      renderQueuesSplitView();
+    }
+
+    function onRipQueueRowClick(ev, id) {
+      const it = STATE.ripQueue.find((r) => r.id === id);
+      if (!it) return;
+      if (ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey)) {
+        it.selected = !it.selected;
+      } else {
+        STATE.ripQueue.forEach((r) => (r.selected = r.id === id));
+      }
+      renderQueuesSplitView();
+    }
+
+    function onPrintQueueRowClick(ev, id) {
+      const it = STATE.printQueue.find((p) => p.id === id);
+      if (!it) return;
+      if (ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey)) {
+        it.selected = !it.selected;
+      } else {
+        STATE.printQueue.forEach((p) => (p.selected = p.id === id));
+      }
+      renderQueuesSplitView();
+    }
+
+    function getSelectedRipQueueItems() {
+      const sel = STATE.ripQueue.filter((r) => r.selected);
+      if (sel.length > 0) return sel;
+      return STATE.ripQueue.length > 0 ? [STATE.ripQueue[0]] : [];
+    }
+
+    function getSelectedPrintQueueItems() {
+      const sel = STATE.printQueue.filter((p) => p.selected);
+      if (sel.length > 0) return sel;
+      return STATE.printQueue.length > 0 ? [STATE.printQueue[0]] : [];
+    }
+
+    function onRipQueueRowContextMenu(ev, id) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const it = STATE.ripQueue.find((r) => r.id === id);
+      if (it && !it.selected) {
+        STATE.ripQueue.forEach((r) => (r.selected = r.id === id));
+        renderQueuesSplitView();
+      }
+      hideContextMenu();
+      const sel = getSelectedRipQueueItems();
+      const menu = document.getElementById('rip-queue-context-menu');
+      const titleEl = document.getElementById('rq-ctx-menu-title');
+      if (titleEl) {
+        titleEl.textContent = sel.length > 1
+          ? `Cola de RIP — ${sel.length} trabajos seleccionados`
+          : `Cola de RIP — ${it ? it.name : 'Trabajo seleccionado'}`;
+      }
+      if (!menu) return;
+      menu.classList.add('open');
+      const mw = menu.offsetWidth || 330;
+      const mh = menu.offsetHeight || 310;
+      menu.style.left = `${Math.max(8, Math.min(window.innerWidth - mw - 10, ev.clientX))}px`;
+      menu.style.top = `${Math.max(8, Math.min(window.innerHeight - mh - 10, ev.clientY))}px`;
+    }
+
+    function onPrintQueueRowContextMenu(ev, id) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const it = STATE.printQueue.find((p) => p.id === id);
+      if (it && !it.selected) {
+        STATE.printQueue.forEach((p) => (p.selected = p.id === id));
+        renderQueuesSplitView();
+      }
+      hideContextMenu();
+      const sel = getSelectedPrintQueueItems();
+      const menu = document.getElementById('print-queue-context-menu');
+      const titleEl = document.getElementById('pq-ctx-menu-title');
+      if (titleEl) {
+        titleEl.textContent = sel.length > 1
+          ? `Cola de Impresión — ${sel.length} trabajos seleccionados`
+          : `Cola de Impresión — #${it ? it.index : ''} (${it ? (it.rawJobName || it.notes) : ''})`;
+      }
+      if (!menu) return;
+      menu.classList.add('open');
+      const mw = menu.offsetWidth || 340;
+      const mh = menu.offsetHeight || 260;
+      menu.style.left = `${Math.max(8, Math.min(window.innerWidth - mw - 10, ev.clientX))}px`;
+      menu.style.top = `${Math.max(8, Math.min(window.innerHeight - mh - 10, ev.clientY))}px`;
+    }
+
+    // Acciones individuales de fila
+    async function ripSingleQueueItem(rqId, andPrint = false) {
+      const rq = STATE.ripQueue.find((r) => r.id === rqId);
+      if (!rq) return;
+      const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+      await actionRipAndPrint({
+        ripOnly: !andPrint,
+        reuseExisting: { rqItem: rq, pqItem: pq },
+        customLabel: rq.rawJobName || rq.name
+      });
+    }
+
+    function cancelSingleRipQueueItem(rqId) {
+      const rq = STATE.ripQueue.find((r) => r.id === rqId);
+      if (!rq) return;
+      if (RIP_PROGRESS_STATE.running) cancelActiveRipPrintJob();
+      rq.status = 'C';
+      const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+      if (pq) {
+        pq.status = 'C';
+        pq.notes = `${pq.rawJobName || rq.rawJobName || 'Trabajo'} [⏹ Cancelado • ${pq.printCount || 0} imp.]`;
+      }
+      renderQueuesSplitView();
+      showToast(`⏹ Operaciones canceladas para "${rq.name}"`);
+    }
+
+    function deleteSingleRipQueueItem(rqId) {
+      const rq = STATE.ripQueue.find((r) => r.id === rqId);
+      if (!rq) return;
+      let freedBytes = 0;
+      if (rq.compiledData && rq.compiledData.bytes) {
+        freedBytes += rq.compiledData.bytes.length;
+        rq.compiledData = null;
+      }
+      const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+      if (pq && pq.compiledData) {
+        pq.compiledData = null;
+      }
+      STATE.ripQueue = STATE.ripQueue.filter((r) => r.id !== rqId);
+      renderQueuesSplitView();
+      showToast(`🗑️ Eliminado "${rq.name}" (Memoria temporal liberada: ${formatKbOrMb(freedBytes)})`);
+    }
+
+    async function printSinglePrintQueueItem(pqId) {
+      const pq = STATE.printQueue.find((p) => p.id === pqId);
+      if (!pq) return;
+      const rq = STATE.ripQueue.find((r) => r.jobUid && r.jobUid === pq.jobUid);
+      await actionRipAndPrint({
+        ripOnly: false,
+        reuseExisting: { rqItem: rq, pqItem: pq },
+        customLabel: pq.rawJobName || pq.notes
+      });
+    }
+
+    function cancelSinglePrintQueueItem(pqId) {
+      const pq = STATE.printQueue.find((p) => p.id === pqId);
+      if (!pq) return;
+      if (RIP_PROGRESS_STATE.running) cancelActiveRipPrintJob();
+      pq.status = 'C';
+      pq.notes = `${pq.rawJobName || 'Trabajo'} [⏹ Cancelado • ${pq.printCount || 0} imp.]`;
+      const rq = STATE.ripQueue.find((r) => r.jobUid && r.jobUid === pq.jobUid);
+      if (rq) rq.status = 'C';
+      renderQueuesSplitView();
+      showToast(`⏹ Impresión cancelada para #${pq.index}`);
+    }
+
+    // ============================================================================
+    // 7 OPCIONES DEL MENÚ CONTEXTUAL DE LA COLA DE RIP (RIP QUEUE)
+    // ============================================================================
+    function rqCtxOpenOriginalInJob() {
+      hideContextMenu();
+      const sel = getSelectedRipQueueItems();
+      if (sel.length === 0) {
+        showToast('⚠️ No hay trabajos en la Cola de RIP');
+        return;
+      }
+      const it = sel[0];
+      if (it.imgObj) {
+        STATE.customImage = it.imgObj;
+        STATE.activeFileName = it.rawJobName || it.name;
+      }
+      if (it.widthMm && it.heightMm) {
+        document.getElementById('job-w-mm').value = Math.round(it.widthMm);
+        document.getElementById('job-h-mm').value = Math.round(it.heightMm);
+      }
+      STATE.activeRotation = it.rotation || 0;
+      STATE.activeMirror = !!it.mirror;
+      STATE.activeCrop = it.crop ? { ...it.crop } : null;
+      switchCenterTab('tab-job');
+      syncPaperAndRender();
+      showToast(`📂 Archivo original "${it.rawJobName || it.name}" abierto en la pestaña Job`);
+    }
+
+    async function rqCtxRipSelected() {
+      hideContextMenu();
+      const sel = getSelectedRipQueueItems();
+      if (sel.length === 0) {
+        await actionRipAndPrint({ ripOnly: true });
+        return;
+      }
+      for (const rq of sel) {
+        const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+        await actionRipAndPrint({
+          ripOnly: true,
+          reuseExisting: { rqItem: rq, pqItem: pq },
+          customLabel: rq.rawJobName || rq.name
+        });
+      }
+    }
+
+    async function rqCtxRipAndPrintSelected() {
+      hideContextMenu();
+      const sel = getSelectedRipQueueItems();
+      if (sel.length === 0) {
+        await actionRipAndPrint({ ripOnly: false });
+        return;
+      }
+      for (const rq of sel) {
+        const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+        await actionRipAndPrint({
+          ripOnly: false,
+          reuseExisting: { rqItem: rq, pqItem: pq },
+          customLabel: rq.rawJobName || rq.name
+        });
+      }
+    }
+
+    function rqCtxCancelSelected() {
+      hideContextMenu();
+      if (RIP_PROGRESS_STATE.running) {
+        cancelActiveRipPrintJob();
+      }
+      const sel = getSelectedRipQueueItems();
+      sel.forEach((rq) => {
+        rq.status = 'C';
+        const pq = STATE.printQueue.find((p) => p.jobUid && p.jobUid === rq.jobUid);
+        if (pq) {
+          pq.status = 'C';
+          pq.notes = `${pq.rawJobName || rq.rawJobName || 'Trabajo'} [⏹ Cancelado • ${pq.printCount || 0} imp.]`;
+        }
+      });
+      renderQueuesSplitView();
+      showToast(`⏹ Operaciones canceladas para ${sel.length} trabajo(s) seleccionado(s)`);
+    }
+
+    function addQueueItemsToCurrentLayout(items) {
+      if (!items || items.length === 0) {
+        showToast('⚠️ Selecciona al menos un trabajo de la cola');
+        return;
+      }
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      let curX = 10;
+      let curY = 10;
+      STATE.layoutItems.forEach((existing) => {
+        curY = Math.max(curY, existing.y);
+      });
+      if (STATE.layoutItems.length > 0) {
+        const last = STATE.layoutItems[STATE.layoutItems.length - 1];
+        if (last.x + last.w + (items[0].widthMm || 150) <= rollW - 10) {
+          curX = last.x + last.w;
+          curY = last.y;
+        } else {
+          curX = 10;
+          curY = last.y + last.h;
+        }
+      }
+      STATE.layoutItems.forEach((x) => (x.selected = false));
+      items.forEach((it, idx) => {
+        const w = it.widthMm || parseFloat(document.getElementById('job-w-mm').value) || 150;
+        const h = it.heightMm || parseFloat(document.getElementById('job-h-mm').value) || 150;
+        if (curX + w > rollW - 5 && curX > 10) {
+          curX = 10;
+          curY += h;
+        }
+        STATE.layoutItems.push({
+          id: `Q_LAY_${Date.now()}_${idx}`,
+          name: it.rawJobName || it.name || `Pieza_${idx + 1}`,
+          x: curX,
+          y: curY,
+          w,
+          h,
+          origW: w,
+          origH: h,
+          aspectRatio: w / h,
+          rotation: it.rotation || 0,
+          mirror: !!it.mirror,
+          crop: it.crop ? { ...it.crop } : null,
+          art: 'custom',
+          img: it.imgObj || STATE.customImage,
+          selected: idx === items.length - 1
+        });
+        curX += w;
+      });
+      switchCenterTab('tab-layout');
+      syncPaperAndRender();
+      showToast(`📐 ${items.length} trabajo(s) añadido(s) a la composición actual (Layout)`);
+    }
+
+    function rqCtxAddToLayout() {
+      hideContextMenu();
+      addQueueItemsToCurrentLayout(getSelectedRipQueueItems());
+    }
+
+    function rqCtxDeleteSelected() {
+      hideContextMenu();
+      const sel = getSelectedRipQueueItems();
+      if (sel.length === 0) {
+        showToast('⚠️ No hay trabajos seleccionados para eliminar');
+        return;
+      }
+      const selIds = new Set(sel.map((r) => r.id));
+      const selUids = new Set(sel.map((r) => r.jobUid).filter(Boolean));
+      let freedBytes = 0;
+      sel.forEach((r) => {
+        if (r.compiledData && r.compiledData.bytes) {
+          freedBytes += r.compiledData.bytes.length;
+        }
+        r.compiledData = null;
+      });
+      STATE.printQueue.forEach((p) => {
+        if (selUids.has(p.jobUid) && p.compiledData) {
+          p.compiledData = null;
+        }
+      });
+      STATE.ripQueue = STATE.ripQueue.filter((r) => !selIds.has(r.id));
+      renderQueuesSplitView();
+      showToast(`🗑️ Eliminados ${sel.length} trabajo(s) de Cola RIP • Memoria temporal vaciada (${formatKbOrMb(freedBytes)} liberados)`);
+    }
+
+    function rqCtxShowSelected() {
+      hideContextMenu();
+      openQueueJobPropertiesModal(getSelectedRipQueueItems(), 'Cola de RIP');
+    }
+
+    // ============================================================================
+    // 5 OPCIONES DEL MENÚ CONTEXTUAL DE LA COLA DE IMPRESIÓN (PRINT QUEUE)
+    // ============================================================================
+    async function pqCtxPrintSelected() {
+      hideContextMenu();
+      const sel = getSelectedPrintQueueItems();
+      if (sel.length === 0) {
+        await actionRipAndPrint({ ripOnly: false });
+        return;
+      }
+      for (const pq of sel) {
+        const rq = STATE.ripQueue.find((r) => r.jobUid && r.jobUid === pq.jobUid);
+        await actionRipAndPrint({
+          ripOnly: false,
+          reuseExisting: { rqItem: rq, pqItem: pq },
+          customLabel: pq.rawJobName || pq.notes
+        });
+      }
+    }
+
+    function pqCtxCancelSelected() {
+      hideContextMenu();
+      if (RIP_PROGRESS_STATE.running) {
+        cancelActiveRipPrintJob();
+      }
+      const sel = getSelectedPrintQueueItems();
+      sel.forEach((pq) => {
+        pq.status = 'C';
+        pq.notes = `${pq.rawJobName || 'Trabajo'} [⏹ Cancelado • ${pq.printCount || 0} imp.]`;
+        const rq = STATE.ripQueue.find((r) => r.jobUid && r.jobUid === pq.jobUid);
+        if (rq) rq.status = 'C';
+      });
+      renderQueuesSplitView();
+      showToast(`⏹ Operaciones canceladas para ${sel.length} trabajo(s) en Cola de Impresión`);
+    }
+
+    function pqCtxAddToLayout() {
+      hideContextMenu();
+      addQueueItemsToCurrentLayout(getSelectedPrintQueueItems());
+    }
+
+    async function pqCtxQuickPrint() {
+      hideContextMenu();
+      const sel = getSelectedPrintQueueItems();
+      if (sel.length === 0) {
+        await actionRipAndPrint({ ripOnly: false, quickPrintNoLayout: true });
+        return;
+      }
+      for (const pq of sel) {
+        const rq = STATE.ripQueue.find((r) => r.jobUid && r.jobUid === pq.jobUid);
+        await actionRipAndPrint({
+          ripOnly: false,
+          quickPrintNoLayout: true,
+          reuseExisting: { rqItem: rq, pqItem: pq },
+          customLabel: pq.rawJobName || pq.notes
+        });
+      }
+    }
+
+    function pqCtxShowProperties() {
+      hideContextMenu();
+      openQueueJobPropertiesModal(getSelectedPrintQueueItems(), 'Cola de Impresión');
+    }
+
+    function openQueueJobPropertiesModal(items, queueLabel = 'Cola') {
+      if (!items || items.length === 0) {
+        showToast(`⚠️ No hay trabajos seleccionados en ${queueLabel}`);
+        return;
+      }
+      const titleEl = document.getElementById('qjp-modal-title');
+      if (titleEl) {
+        titleEl.textContent = `ℹ️ Propiedades de Trabajos Seleccionados — ${queueLabel} (${items.length})`;
+      }
+      const cfg = getActiveUnitNetConfig();
+      const bodyEl = document.getElementById('qjp-body-content');
+      if (bodyEl) {
+        bodyEl.innerHTML = items.map((it, i) => {
+          const isMimaki = it.unit === 'unit2';
+          const pName = isMimaki ? 'Mimaki UJV100-160 (192.168.1.73:11111)' : 'Mutoh ValueJet VJ-1624 (192.168.1.240:9100)';
+          const proto = isMimaki ? 'MRL-V / PDF 1:1' : 'Mutoh_PM / MH-RTL (720×720 DPI • 4 Planos KCMY 2-Bit PackBits RLE)';
+          const memSize = it.compiledData && it.compiledData.bytes
+            ? formatKbOrMb(it.compiledData.bytes.length)
+            : '0 KB (Sin archivo temporal en caché)';
+          const statusStr = it.status === 'C'
+            ? '⏹ Cancelado'
+            : ((it.printCount || 0) > 0 ? `✅ Impreso (${it.printCount} vez/veces)` : '⚙️ Solo Ripeado (0 impresiones)');
+          const thumbSrc = it.imgObj && it.imgObj.src ? it.imgObj.src : '';
+          return `
+            <div class="bg-[#0f172a] border border-slate-700 rounded p-3.5 space-y-2.5 text-xs">
+              <div class="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                <div class="font-bold text-sm text-white flex items-center gap-2">
+                  ${renderPrintCountAndStatusBadge(it.printCount, it.status, queueLabel.includes('Impresión'))}
+                  <span>${it.rawJobName || it.name || it.notes || `Trabajo #${i + 1}`}</span>
+                </div>
+                <span class="font-mono text-sky-400 font-bold">${it.index ? `Index #${it.index}` : it.id}</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                ${thumbSrc ? `
+                  <div class="sm:col-span-3 flex items-center justify-center bg-slate-900 border border-slate-700 rounded p-1.5 h-24">
+                    <img src="${thumbSrc}" class="max-h-full max-w-full object-contain rounded" alt="Preview" />
+                  </div>
+                ` : ''}
+                <div class="${thumbSrc ? 'sm:col-span-9' : 'sm:col-span-12'} grid grid-cols-2 gap-2 font-mono text-[11px]">
+                  <div><span class="text-slate-400">Estado Actual:</span> <b class="text-white">${statusStr}</b></div>
+                  <div><span class="text-slate-400">Veces Impreso:</span> <b class="text-emerald-300">${it.printCount || 0}</b></div>
+                  <div><span class="text-slate-400">Dimensiones 1:1:</span> <b class="text-sky-300">${Math.round(it.widthMm || 50)} × ${Math.round(it.heightMm || 50)} mm</b></div>
+                  <div><span class="text-slate-400">Copias:</span> <b class="text-white">${it.copies || 1}</b></div>
+                  <div><span class="text-slate-400">Memoria Temporal RIP:</span> <b class="text-amber-300">${memSize}</b></div>
+                  <div><span class="text-slate-400">Hora Creación / RIP:</span> <b class="text-slate-200">${it.rippedAt || it.createdAt || 'Hoy'}</b></div>
+                  <div class="col-span-2"><span class="text-slate-400">Plotter Destino:</span> <b class="text-sky-200">${pName}</b></div>
+                  <div class="col-span-2"><span class="text-slate-400">Protocolo / Driver:</span> <b class="text-emerald-200">${proto}</b></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      document.getElementById('modal-queue-job-properties').classList.add('open');
+    }
+
+    function closeQueueJobPropertiesModal() {
+      document.getElementById('modal-queue-job-properties').classList.remove('open');
     }
 
     // ============================================================================
@@ -5921,10 +6683,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const ripOnly = Boolean(opts && opts.ripOnly);
       const forceDownloadPrn = Boolean(opts && opts.forceDownloadPrn);
       const jobLabel = (opts && opts.customLabel) || (STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP');
-      const { pqItem, w, h, printerName } = enqueueRipAndPrintJobEntries();
+      const { rqItem, pqItem, w, h, printerName } = enqueueRipAndPrintJobEntries(opts.reuseExisting || null);
 
       const cfg = getActiveUnitNetConfig();
-      const isMimaki = STATE.activeUnit === 'unit2';
+      const isMimaki = (rqItem ? rqItem.unit : STATE.activeUnit) === 'unit2';
       const targetSoftware = isMimaki ? 'Mimaki RasterLink 7' : 'Wasatch SoftRIP';
       const isPdfMode = !forceDownloadPrn && (cfg.connMode === 'hot_folder' || cfg.connMode === 'pdf_1to1_download');
 
@@ -5935,8 +6697,17 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ? `PDF 1.4 1:1 (${cfg.exportDpi || 150} DPI)`
         : (isMimaki ? 'Mimaki MRL-V (Puerto 11111)' : 'Mutoh_PM / MH-RTL 720dpi 2-Bit');
 
-      openRipProgressModal(jobLabel, printerDesc, `${w} × ${h} mm`, protocolDesc);
-      appendRipProgressLog(`Iniciando trabajo "${jobLabel}" para ${printerDesc}...`, 'text-white font-bold');
+      openRipProgressModal(jobLabel, printerDesc, `${Math.round(w)} × ${Math.round(h)} mm`, protocolDesc);
+      appendRipProgressLog(
+        ripOnly
+          ? `⚙️ Modo SOLO RIP iniciado para "${jobLabel}" (sin enviar a imprimir)...`
+          : `🖨️ Iniciando RIP + Impresión para "${jobLabel}" → ${printerDesc}...`,
+        'text-white font-bold'
+      );
+
+      if (rqItem) rqItem.status = 'W';
+      if (pqItem) pqItem.status = ripOnly ? 'R' : 'I';
+      renderQueuesSplitView();
 
       try {
         // ====================================================================
@@ -5956,19 +6727,44 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           const safeBase = (jobLabel || (isMimaki ? 'Mimaki_Job' : 'Mutoh_Job')).replace(/[^a-zA-Z0-9_-]/g, '_');
           const pdfFileName = `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm_1to1.pdf`;
 
-          RIP_PROGRESS_STATE.lastCompiled = {
+          const compiledObj = {
             bytes: pdfBytes,
+            base64Str: uint8ArrayToBase64(pdfBytes),
             filename: pdfFileName,
-            mimeType: 'application/pdf'
+            mimeType: 'application/pdf',
+            widthMm,
+            heightMm
           };
+          RIP_PROGRESS_STATE.lastCompiled = compiledObj;
+          const nowRip = new Date().toLocaleTimeString();
+          if (rqItem) {
+            rqItem.status = 'R';
+            rqItem.compiledData = compiledObj;
+            rqItem.widthMm = widthMm;
+            rqItem.heightMm = heightMm;
+            rqItem.rippedAt = nowRip;
+          }
+          if (pqItem) {
+            pqItem.status = 'R';
+            pqItem.compiledData = compiledObj;
+            pqItem.widthMm = widthMm;
+            pqItem.heightMm = heightMm;
+            pqItem.rippedAt = nowRip;
+          }
+          renderQueuesSplitView();
 
           updateRipProgressUI(100, `✅ PDF 1:1 compilado (${Math.round(widthMm)}×${Math.round(heightMm)} mm, ${itemCount} pieza/s)`, pdfBytes.length);
-          appendRipProgressLog(`PDF 1.4 1:1 generado: ${pdfFileName} (${formatKbOrMb(pdfBytes.length)})`, 'text-emerald-300');
+          appendRipProgressLog(`PDF 1.4 1:1 guardado en memoria temporal: ${pdfFileName} (${formatKbOrMb(pdfBytes.length)})`, 'text-emerald-300');
 
           if (ripOnly) {
-            updatePrintProgressUI(100, 'Listo en cola de impresión (Modo Solo RIP).', heightMm, heightMm);
-            finishRipProgressModal('RIP COMPLETADO (100%)', 'done');
-            showToast(`✅ Trabajo "${jobLabel}" ripeado al 100%`);
+            updatePrintProgressUI(0, '⏸ Modo Solo RIP: Archivo ripeado en cola [0 impresiones] (No se envió a imprimir).', 0, heightMm);
+            if (pqItem) {
+              pqItem.notes = `${jobLabel} [⚙️ Solo Ripeado • ${formatKbOrMb(pdfBytes.length)} en caché]`;
+              renderQueuesSplitView();
+            }
+            switchCenterTab('tab-queues');
+            finishRipProgressModal('SOLO RIP COMPLETADO [0 IMP.]', 'done');
+            showToast(`✅ "${jobLabel}" ripeado en cola (0 impresiones)`);
             return;
           }
 
@@ -5976,6 +6772,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             setRipModalStatusBadge('EXPORTANDO PDF...', 'print');
             updatePrintProgressUI(100, `Descargando ${pdfFileName} en tu navegador...`, heightMm, heightMm);
             downloadBytesAsFile(pdfBytes, pdfFileName, 'application/pdf');
+            if (rqItem) rqItem.printCount = (rqItem.printCount || 0) + 1;
+            if (pqItem) {
+              pqItem.printCount = (pqItem.printCount || 0) + 1;
+              pqItem.notes = `${jobLabel} [📄 Descargado ${pqItem.printCount}x • ${Math.round(widthMm)}×${Math.round(heightMm)}mm]`;
+            }
+            renderQueuesSplitView();
             appendRipProgressLog(`✅ Archivo descargado: ${pdfFileName}`, 'text-emerald-400 font-bold');
             finishRipProgressModal('PDF DESCARGADO (100%)', 'done');
             showToast(`📄 PDF 1:1 descargado: ${Math.round(widthMm)}×${Math.round(heightMm)} mm`);
@@ -5984,17 +6786,18 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
           // Enviar a Hot Folder mostrando progreso en Barra 2
           setRipModalStatusBadge('ENVIANDO A HOT FOLDER...', 'print');
+          if (pqItem) pqItem.status = 'I';
+          renderQueuesSplitView();
           const hotFolder = cfg.hotFolder || (isMimaki ? 'C:\\ApexRIP_HotFolder_Mimaki' : 'C:\\ApexRIP_HotFolder_Mutoh');
           appendRipProgressLog(`Depositando PDF 1:1 en Hot Folder: ${hotFolder}...`, 'text-sky-300');
 
-          const pdfBase64 = uint8ArrayToBase64(pdfBytes);
           const data = await sendPayloadWithLiveProgress(
             `${BRIDGE_BASE_URL}/api/hotfolder/export`,
             {
               job_title: `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm`,
               hot_folder_path: hotFolder,
               file_ext: 'pdf',
-              file_base64: pdfBase64
+              file_base64: compiledObj.base64Str
             },
             pdfBytes.length,
             heightMm,
@@ -6005,14 +6808,22 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           BRIDGE_ONLINE = true;
           updateBridgeToolbarBadge();
           if (data.spool && data.spool.success) {
+            if (rqItem) {
+              rqItem.status = 'R';
+              rqItem.printCount = (rqItem.printCount || 0) + 1;
+              rqItem.lastPrintedAt = new Date().toLocaleTimeString();
+            }
+            if (pqItem) {
+              pqItem.status = 'R';
+              pqItem.printCount = (pqItem.printCount || 0) + 1;
+              pqItem.lastPrintedAt = new Date().toLocaleTimeString();
+              pqItem.notes = `${jobLabel} [✅ Impreso ${pqItem.printCount}x • ${Math.round(widthMm)}×${Math.round(heightMm)}mm]`;
+            }
+            renderQueuesSplitView();
             updatePrintProgressUI(100, `✅ Entregado en Hot Folder: ${data.spool.target || hotFolder}`, heightMm, heightMm);
             appendRipProgressLog(`✅ ${data.spool.message}`, 'text-emerald-400 font-bold');
-            if (pqItem) {
-              pqItem.notes = `${jobLabel} [✅ Impreso 100% • ${Math.round(widthMm)}×${Math.round(heightMm)}mm]`;
-              renderQueuesSplitView();
-            }
             finishRipProgressModal('IMPRESIÓN 100% ENVIADA', 'done');
-            showToast(`✅ Enviado a Hot Folder (${Math.round(widthMm)}×${Math.round(heightMm)} mm)`);
+            showToast(`✅ Enviado a Hot Folder (Impresión #${pqItem ? pqItem.printCount : 1})`);
           } else {
             throw new Error(data.spool ? data.spool.message : 'No se pudo escribir en la Hot Folder');
           }
@@ -6022,61 +6833,115 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         // ====================================================================
         // MODO B: DRIVER NATIVO DIRECTO (Mutoh_PM / MH-RTL Puerto 9100 o .PRN)
         // ====================================================================
-        let compiled;
-        if (!isMimaki) {
-          compiled = await buildMutohVj1624NativePrnBytesAsync(jobLabel, (pct, stage, bytesLen) => {
-            updateRipProgressUI(pct, stage, bytesLen);
-          });
+        let compiledObj = null;
+        const cachedData = !ripOnly && ((pqItem && pqItem.compiledData) || (rqItem && rqItem.compiledData));
+
+        if (cachedData && cachedData.bytes && cachedData.base64Str) {
+          compiledObj = cachedData;
+          updateRipProgressUI(
+            100,
+            `⚡ Datos RIP cargados instantáneamente desde memoria temporal (${formatKbOrMb(cachedData.bytes.length)})`,
+            cachedData.bytes.length
+          );
+          appendRipProgressLog(
+            `⚡ Reutilizando archivo ya ripeado en memoria temporal: ${cachedData.filename} (${formatKbOrMb(cachedData.bytes.length)})`,
+            'text-sky-300 font-bold'
+          );
         } else {
-          updateRipProgressUI(35, 'Preparando trama para Mimaki UJV100-160...', 0);
-          await new Promise((r) => setTimeout(r, 40));
-          const { canvas, widthMm, heightMm } = renderExact1to1PrintCanvas(150);
-          const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
-          compiled = {
-            totalBytes: pdfBytes,
-            base64Str: uint8ArrayToBase64(pdfBytes),
-            unitName: 'Mimaki_UJV100-160',
-            widthMm,
-            heightMm,
-            w720: canvas.width,
-            h720: canvas.height
+          let compiled;
+          if (!isMimaki) {
+            compiled = await buildMutohVj1624NativePrnBytesAsync(jobLabel, (pct, stage, bytesLen) => {
+              updateRipProgressUI(pct, stage, bytesLen);
+            });
+          } else {
+            updateRipProgressUI(35, 'Preparando trama para Mimaki UJV100-160...', 0);
+            await new Promise((r) => setTimeout(r, 40));
+            const { canvas, widthMm, heightMm } = renderExact1to1PrintCanvas(150);
+            const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
+            compiled = {
+              totalBytes: pdfBytes,
+              base64Str: uint8ArrayToBase64(pdfBytes),
+              unitName: 'Mimaki_UJV100-160',
+              widthMm,
+              heightMm,
+              w720: canvas.width,
+              h720: canvas.height
+            };
+            updateRipProgressUI(100, `✅ Datos RIP Mimaki listos (${Math.round(widthMm)}×${Math.round(heightMm)} mm)`, pdfBytes.length);
+          }
+
+          const safeName = (jobLabel || compiled.unitName).replace(/[^a-zA-Z0-9_-]/g, '_');
+          const dimTag = compiled.widthMm ? `_${Math.round(compiled.widthMm)}x${Math.round(compiled.heightMm)}mm_720dpi` : '';
+          const prnFileName = `${safeName}${dimTag}.prn`;
+
+          compiledObj = {
+            bytes: compiled.totalBytes,
+            base64Str: compiled.base64Str,
+            filename: prnFileName,
+            mimeType: 'application/octet-stream',
+            widthMm: compiled.widthMm,
+            heightMm: compiled.heightMm,
+            w720: compiled.w720,
+            h720: compiled.h720
           };
-          updateRipProgressUI(100, `✅ Datos RIP Mimaki listos (${Math.round(widthMm)}×${Math.round(heightMm)} mm)`, pdfBytes.length);
         }
 
-        const safeName = (jobLabel || compiled.unitName).replace(/[^a-zA-Z0-9_-]/g, '_');
-        const dimTag = compiled.widthMm ? `_${Math.round(compiled.widthMm)}x${Math.round(compiled.heightMm)}mm_720dpi` : '';
-        const prnFileName = `${safeName}${dimTag}.prn`;
-
-        RIP_PROGRESS_STATE.lastCompiled = {
-          bytes: compiled.totalBytes,
-          filename: prnFileName,
-          mimeType: 'application/octet-stream'
-        };
+        RIP_PROGRESS_STATE.lastCompiled = compiledObj;
+        const nowRip = new Date().toLocaleTimeString();
+        if (rqItem) {
+          rqItem.status = 'R';
+          rqItem.compiledData = compiledObj;
+          rqItem.widthMm = compiledObj.widthMm;
+          rqItem.heightMm = compiledObj.heightMm;
+          rqItem.rippedAt = rqItem.rippedAt || nowRip;
+        }
+        if (pqItem) {
+          pqItem.status = ripOnly ? 'R' : 'I';
+          pqItem.compiledData = compiledObj;
+          pqItem.widthMm = compiledObj.widthMm;
+          pqItem.heightMm = compiledObj.heightMm;
+          pqItem.rippedAt = pqItem.rippedAt || nowRip;
+        }
+        renderQueuesSplitView();
 
         appendRipProgressLog(
-          `✅ Fase 1 (RIP) completada al 100%: ${prnFileName} (${formatKbOrMb(compiled.totalBytes.length)})`,
+          `✅ Fase 1 (RIP) lista al 100%: ${compiledObj.filename} (${formatKbOrMb(compiledObj.bytes.length)} en memoria temporal)`,
           'text-emerald-300 font-bold'
         );
 
+        // Si el usuario presionó "RIP" (Solo Ripear): NO envía a imprimir, deja el contador en 0
         if (ripOnly) {
-          updatePrintProgressUI(100, 'Archivo .PRN nativo listo en cola de impresión.', compiled.heightMm, compiled.heightMm);
+          updatePrintProgressUI(
+            0,
+            '⏸ Modo Solo RIP: Archivo guardado en cola [0 impresiones]. Haz clic derecho en la cola para imprimir.',
+            0,
+            compiledObj.heightMm || 50
+          );
           if (pqItem) {
-            pqItem.notes = `${jobLabel} [Ripeado 100% • ${formatKbOrMb(compiled.totalBytes.length)}]`;
+            pqItem.status = 'R';
+            pqItem.notes = `${jobLabel} [⚙️ Solo Ripeado • ${formatKbOrMb(compiledObj.bytes.length)} en caché]`;
             renderQueuesSplitView();
           }
-          finishRipProgressModal('RIP COMPLETADO (100%)', 'done');
-          showToast(`✅ "${jobLabel}" ripeado al 100% (${formatKbOrMb(compiled.totalBytes.length)})`);
+          switchCenterTab('tab-queues');
+          finishRipProgressModal('SOLO RIP COMPLETADO [0 IMP.]', 'done');
+          showToast(`✅ "${jobLabel}" ripeado en cola [0 impresiones] (${formatKbOrMb(compiledObj.bytes.length)})`);
           return;
         }
 
         if (forceDownloadPrn || cfg.connMode === 'spool_file') {
           setRipModalStatusBadge('GUARDANDO .PRN...', 'print');
-          updatePrintProgressUI(100, `Archivo .PRN nativo descargado: ${prnFileName}`, compiled.heightMm, compiled.heightMm);
-          downloadBytesAsFile(compiled.totalBytes, prnFileName, 'application/octet-stream');
-          appendRipProgressLog(`💾 Archivo .PRN descargado en tu PC: ${prnFileName}`, 'text-emerald-400 font-bold');
+          updatePrintProgressUI(100, `Archivo .PRN nativo descargado: ${compiledObj.filename}`, compiledObj.heightMm, compiledObj.heightMm);
+          downloadBytesAsFile(compiledObj.bytes, compiledObj.filename, 'application/octet-stream');
+          if (rqItem) rqItem.printCount = (rqItem.printCount || 0) + 1;
+          if (pqItem) {
+            pqItem.status = 'R';
+            pqItem.printCount = (pqItem.printCount || 0) + 1;
+            pqItem.notes = `${jobLabel} [💾 .PRN #${pqItem.printCount} • ${formatKbOrMb(compiledObj.bytes.length)}]`;
+          }
+          renderQueuesSplitView();
+          appendRipProgressLog(`💾 Archivo .PRN descargado en tu PC: ${compiledObj.filename}`, 'text-emerald-400 font-bold');
           finishRipProgressModal('.PRN DESCARGADO (100%)', 'done');
-          showToast(`✅ Archivo .PRN descargado (${formatKbOrMb(compiled.totalBytes.length)})`);
+          showToast(`✅ Archivo .PRN descargado (${formatKbOrMb(compiledObj.bytes.length)})`);
           return;
         }
 
@@ -6093,10 +6958,10 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             port: cfg.port,
             connection_mode: cfg.connMode,
             windows_printer_name: cfg.winQueue,
-            prn_base64: compiled.base64Str
+            prn_base64: compiledObj.base64Str
           },
-          compiled.totalBytes.length,
-          compiled.heightMm || 50,
+          compiledObj.bytes.length,
+          compiledObj.heightMm || 50,
           targetHostDesc,
           pqItem
         );
@@ -6105,36 +6970,57 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         updateBridgeToolbarBadge();
 
         if (data.spool && data.spool.tcp_delivered) {
+          if (rqItem) {
+            rqItem.status = 'R';
+            rqItem.printCount = (rqItem.printCount || 0) + 1;
+            rqItem.lastPrintedAt = new Date().toLocaleTimeString();
+          }
+          if (pqItem) {
+            pqItem.status = 'R';
+            pqItem.printCount = (pqItem.printCount || 0) + 1;
+            pqItem.lastPrintedAt = new Date().toLocaleTimeString();
+            pqItem.notes = `${jobLabel} [✅ Impreso ${pqItem.printCount}x • ${Math.round(compiledObj.widthMm)}×${Math.round(compiledObj.heightMm)}mm]`;
+          }
+          renderQueuesSplitView();
           updatePrintProgressUI(
             100,
-            `✅ Impresión entregada al 100% en ${targetHostDesc} (${formatKbOrMb(compiled.totalBytes.length)})`,
-            compiled.heightMm,
-            compiled.heightMm
+            `✅ Impresión #${pqItem ? pqItem.printCount : 1} entregada al 100% en ${targetHostDesc} (${formatKbOrMb(compiledObj.bytes.length)})`,
+            compiledObj.heightMm,
+            compiledObj.heightMm
           );
           appendRipProgressLog(`✅ ${data.spool.message}`, 'text-emerald-400 font-bold');
+          finishRipProgressModal(`IMPRESIÓN #${pqItem ? pqItem.printCount : 1} COMPLETADA (100%)`, 'done');
+          showToast(`✅ Impresión #${pqItem ? pqItem.printCount : 1} enviada a ${targetHostDesc}`);
+        } else {
           if (pqItem) {
-            pqItem.notes = `${jobLabel} [✅ Impreso 100% • ${Math.round(compiled.widthMm)}×${Math.round(compiled.heightMm)}mm]`;
+            pqItem.status = 'R';
             renderQueuesSplitView();
           }
-          finishRipProgressModal('IMPRESIÓN 100% COMPLETADA', 'done');
-          showToast(`✅ ${data.spool.message}`);
-        } else {
           const errMsg = data.spool ? data.spool.message : `El plotter no respondió en ${targetHostDesc}`;
           appendRipProgressLog(`❌ ${errMsg}`, 'text-red-400 font-bold');
-          appendRipProgressLog(`💡 Puedes pulsar "💾 Guardar Copia del Archivo" abajo para conservar el .PRN ya ripeado.`, 'text-amber-300');
-          updatePrintProgressUI(0, `⚠️ Sin respuesta en ${targetHostDesc}`, 0, compiled.heightMm || 50);
+          appendRipProgressLog(`💡 El archivo sigue ripeado en la cola [0 imp.]. Puedes reintentar o pulsar "💾 Guardar Copia del Archivo".`, 'text-amber-300');
+          updatePrintProgressUI(0, `⚠️ Sin respuesta en ${targetHostDesc}`, 0, compiledObj.heightMm || 50);
           finishRipProgressModal('PLOTTER NO CONECTADO', 'warn');
           showToast(`⚠️ Verifica conexión con ${targetHostDesc}`);
         }
       } catch (err) {
-        if (err && err.message === 'CANCELLED') return;
+        if (err && err.message === 'CANCELLED') {
+          if (rqItem) rqItem.status = 'C';
+          if (pqItem) {
+            pqItem.status = 'C';
+            pqItem.notes = `${jobLabel} [⏹ Cancelado • ${pqItem.printCount || 0} imp.]`;
+          }
+          renderQueuesSplitView();
+          return;
+        }
+        if (pqItem) pqItem.status = 'R';
+        renderQueuesSplitView();
         appendRipProgressLog(`⚠️ Puente local no detectado o error de red: ${err.message || err}`, 'text-amber-300 font-bold');
         if (RIP_PROGRESS_STATE.lastCompiled) {
           const item = RIP_PROGRESS_STATE.lastCompiled;
-          downloadBytesAsFile(item.bytes, item.filename, item.mimeType);
-          updatePrintProgressUI(100, `💾 Puente local apagado: se descargó ${item.filename} automáticamente`, 50, 50);
-          appendRipProgressLog(`💾 Se descargó automáticamente ${item.filename}. Abre CONECTAR_IMPRESORAS_RED_WINDOWS.bat para envío directo por red.`, 'text-emerald-300');
-          finishRipProgressModal('ARCHIVO DESCARGADO (100%)', 'warn');
+          updatePrintProgressUI(0, `⚠️ Puente local apagado (${item.filename} quedó guardado en memoria temporal de la cola)`, 0, item.heightMm || 50);
+          appendRipProgressLog(`💡 El archivo ${item.filename} quedó ripeado en la cola. Abre CONECTAR_IMPRESORAS_RED_WINDOWS.bat y haz clic derecho → "Imprimir los trabajos seleccionados", o pulsa "💾 Guardar Copia del Archivo".`, 'text-emerald-300');
+          finishRipProgressModal('RIPEADO EN COLA (PUENTE OFF)', 'warn');
         } else {
           finishRipProgressModal('ERROR EN PROCESO', 'warn');
         }
