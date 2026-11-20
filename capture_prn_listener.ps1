@@ -9,20 +9,26 @@ $BaseDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SpoolDir = Join-Path $BaseDir "output_spool"
 if (!(Test-Path $SpoolDir)) { New-Item -ItemType Directory -Path $SpoolDir | Out-Null }
 
-# Detectar IP LAN de esta PC (PC 3)
+# Detectar IP LAN de esta PC (Compatible con Windows 7 PowerShell 2.0 y Windows 10/11)
 $LocalIp = "127.0.0.1"
 try {
-    $ipObj = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {
-        $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*"
-    } | Select-Object -First 1
-    if ($ipObj) { $LocalIp = $ipObj.IPAddress }
+    $addrs = [System.Net.Dns]::GetHostAddresses([System.Net.Dns]::GetHostName()) | Where-Object {
+        $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork -and
+        $_.IPAddressToString -notlike "127.*" -and
+        $_.IPAddressToString -notlike "169.254.*"
+    }
+    if ($addrs) {
+        if ($addrs -is [array]) { $LocalIp = $addrs[0].IPAddressToString }
+        else { $LocalIp = $addrs.IPAddressToString }
+    }
 } catch {}
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "  APEXRIP - CAPTURADOR DE PROTOCOLO NATIVO (.PRN) PARA DRIVER DIRECTO" -ForegroundColor Green
+Write-Host "  APEXRIP - CAPTURADOR DE ARCHIVO .PRN (LOCAL 127.0.0.1 O RED LAN)" -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "  IP de ESTA PC en tu red local:  $LocalIp" -ForegroundColor Yellow
+Write-Host "  IP en la misma PC (sin Firewall):  127.0.0.1" -ForegroundColor Green
+Write-Host "  IP de esta PC en la red local:     $LocalIp" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Que impresora quieres capturar ahora?" -ForegroundColor White
 Write-Host "    [1] Mutoh ValueJet VJ-1624   (Puerto TCP 9100  - desde Wasatch)" -ForegroundColor Cyan
