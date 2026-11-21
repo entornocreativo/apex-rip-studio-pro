@@ -5887,13 +5887,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           const cr = it.crop ? `${it.crop.sx.toFixed(3)},${it.crop.sy.toFixed(3)},${it.crop.sw.toFixed(3)},${it.crop.sh.toFixed(3)}` : 'nocrop';
           return `${fn}@${Math.round(it.x)},${Math.round(it.y)},${Math.round(it.w)}x${Math.round(it.h)},r${it.rotation || 0},m${it.mirror ? 1 : 0},${cr}`;
         }).join('|');
-        return `LAYOUT_V3_VIVID::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${itemsSig}`;
+        return `LAYOUT_V4_PQ170::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${itemsSig}`;
       }
       const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 50);
       const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 50);
       const fn = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName || 'job') : 'job';
       const cr = STATE.activeCrop ? `${STATE.activeCrop.sx.toFixed(3)},${STATE.activeCrop.sy.toFixed(3)},${STATE.activeCrop.sw.toFixed(3)},${STATE.activeCrop.sh.toFixed(3)}` : 'nocrop';
-      return `JOB_V3_VIVID::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${fn}@${w}x${h},r${STATE.activeRotation || 0},m${STATE.activeMirror ? 1 : 0},${cr}`;
+      return `JOB_V4_PQ170::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${fn}@${w}x${h},r${STATE.activeRotation || 0},m${STATE.activeMirror ? 1 : 0},${cr}`;
     }
 
     function updateQueueItemCopiesCount(id, newVal) {
@@ -7188,46 +7188,52 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const srcCtx = canvas.getContext('2d');
       const rgba = srcCtx.getImageData(0, 0, srcW, srcH).data;
 
-      // Detectar perfil activo de Wasatch (4 pasadas 720x720 VL, 6 pasadas VxL, 12 pasadas VxL o Backlite Doble Pasada Overprint 2x)
+      // Detectar perfil activo de Wasatch (4 pasadas 720x720 VL, 6 pasadas 720x1080 VxL, 12 pasadas 720x1080 VxL o Backlite Doble Pasada Overprint 2x)
       const activeProf = (STATE.profiles && STATE.profiles.find((p) => p.id === STATE.activeProfileId)) || (STATE.profiles && STATE.profiles[0]) || null;
       const isBacklite2x = activeProf && (activeProf.id === 'wasatch_backlite_720x1080_vxl_doble_pasada' || Number(activeProf.overprint) === 2);
       const is12PassVxl = !isBacklite2x && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_12pass' || Number(activeProf.passes) === 12);
       const is6PassVxl = !isBacklite2x && !is12PassVxl && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_6pass' || String(activeProf.res).includes('1080') || Number(activeProf.passes) === 6);
       const isVxl1080 = is6PassVxl || is12PassVxl || isBacklite2x;
-      // Mantener grilla geométrica 720x720 1:1 (*PQ5;*CV2;) verificada en hardware Mutoh VJ-1624 para evitar estiramiento vertical 1.5x (1080/720),
-      // conservando las 12 pasadas reales (*IP4,2 / *IP4,1), efecto weave (*EF7 / *EF19), temperaturas, Overprint (*OP2) y CLUT ICC VXL6.
+
+      // Decodificado byte a byte de captura_mutoh_9100_20261121_142300.prn (12 pasadas Wasatch Real):
+      // \x07Mutoh_PM*ID250;*TM1;*PQ170;*IP4,2;*WF4;*CV2;*DN2;*FH39;*PH43;*DH50;*SW0;*PC1,0;*EF7;*FF;
+      // - *PQ170 activa el motor vertical de la Mutoh VJ-1624 a 1080 DPI reales (360x3 -> 12 pasadas sin estirar)
+      // - *WF4 activa la forma de onda VxL (gota variable extra grande para vinilo de alta densidad)
+      // - *CV2 tabla de 2 bits; *DN2 dirección de impresión 2 (en 6 y 12 pasadas)
       const dpiX = 720.0;
-      const dpiY = 720.0;
-      const pqCode = 5;
+      const dpiY = isVxl1080 ? 1080.0 : 720.0;
+      const pqCode = isVxl1080 ? 170 : 5;
       const ipPass = (is12PassVxl || isBacklite2x) ? 4 : 2;
       const ipSpeed = isBacklite2x ? 1 : 2;
+      const wf = isVxl1080 ? 4 : 3;
       const cvCode = 2;
+      const dnCmd = (is6PassVxl || is12PassVxl) ? '*DN2;' : '';
       const efCode = is12PassVxl ? 7 : (isVxl1080 ? 19 : 18);
       const fh = isBacklite2x ? 50 : (isVxl1080 ? 39 : 40);
       const phHeater = isBacklite2x ? 50 : (isVxl1080 ? 43 : 40);
       const dh = 50;
-      const wf = 3;
       const overprintCount = isBacklite2x ? 2 : 1;
-      // Al rasterizar en grilla 720x720 1:1, usamos la densidad viva 95/92/92/89 y el CLUT +10% saturación (RGBinput_plus10saturation.icm)
-      // ya que la reducción 78/78/87/75 de Wasatch solo aplica cuando se inyectan 1.5x más líneas verticales (1080 DPI).
-      const redArr = isBacklite2x ? [78.0, 78.0, 87.0, 75.0] : [95.0, 92.0, 92.0, 89.0];
+      // Densidad calibrada con captura real de 12 pasadas (en 12 pasadas Magenta sube a media 2.21 con gota grande VxL *WF4)
+      const redArr = isBacklite2x
+        ? [78.0, 78.0, 87.0, 75.0]
+        : (isVxl1080 ? [88.0, 98.0, 92.0, 85.0] : [95.0, 92.0, 92.0, 89.0]);
       const profDisplayName = isBacklite2x
-        ? 'Backlite 720 x 1080 VxL DOBLE PASADA + MAS CLARO (Overprint 2x • Escala 1:1)'
-        : (is12PassVxl ? '720 x 1080 VxL VINILICO 12 pass (Colores Vivos +10% Sat • Escala 1:1)' : (is6PassVxl ? '720 x 1080 VxL VINILICO 6 pass (Colores Vivos +10% Sat • Escala 1:1)' : '720 x 720 VL 4 Pas MICRO Y LONA'));
+        ? 'Backlite 720 x 1080 VxL DOBLE PASADA + MAS CLARO (*PQ170 *WF4 *OP2)'
+        : (is12PassVxl ? '720 x 1080 VxL VINILICO 12 pass (*PQ170 *IP4,2 *WF4 *CV2 *DN2 *EF7)' : (is6PassVxl ? '720 x 1080 VxL VINILICO 6 pass (*PQ170 *IP2,2 *WF4 *CV2 *DN2 *EF19)' : '720 x 720 VL 4 Pas MICRO Y LONA (*PQ5 *IP2,2 *WF3 *CV2 *EF18)'));
 
-      // Dimensiones físicas exactas 1:1 en milímetros (múltiplo de 4 píxeles)
+      // Dimensiones físicas exactas a 720x720 (*PQ5) o 720x1080 (*PQ170) múltiplo de 4 píxeles
       const w720 = Math.max(4, Math.round((widthMm * dpiX / 25.4) / 4) * 4);
       const h720 = Math.max(4, Math.round(heightMm * dpiY / 25.4));
       const planeBytes = Math.ceil(w720 / 8) * 2; // Ej: 1420 px -> 356 bytes por plano
 
       const dimEl = document.getElementById('rp-dimensions');
       if (dimEl) {
-        dimEl.textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${w720}×${h720} px @ Escala 1:1${overprintCount > 1 ? ' • 2x Overprint' : ''})`;
+        dimEl.textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${w720}×${h720} px @ ${dpiX}×${dpiY} DPI${overprintCount > 1 ? ' • 2x Overprint' : ''})`;
       }
 
       const opCmd = overprintCount > 1 ? `*OP${overprintCount};` : '';
       const headerStr =
-        `\x07Mutoh_PM*ID250;*TM1;*PQ${pqCode};*IP${ipPass},${ipSpeed};*WF${wf};*CV${cvCode};*FH${fh};*PH${phHeater};*DH${dh};*SW0;*PC1,0;*EF${efCode};${opCmd}*FF;` +
+        `\x07Mutoh_PM*ID250;*TM1;*PQ${pqCode};*IP${ipPass},${ipSpeed};*WF${wf};*CV${cvCode};${dnCmd}*FH${fh};*PH${phHeater};*DH${dh};*SW0;*PC1,0;*EF${efCode};${opCmd}*FF;` +
         `\x1bE\x1b%0A\x1b*r${w720 * 2}S\x1b*r-4U\x1b*r1A\x1b*b2M`;
 
       const chunks = [];
@@ -7239,7 +7245,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       pushChunk(asciiToBytes(headerStr));
       appendRipProgressLog(`Perfil Wasatch activo: ${profDisplayName}`, 'text-emerald-300 font-bold');
-      appendRipProgressLog(`Cabecera Mutoh_PM: *ID250 *PQ${pqCode} *IP${ipPass},${ipSpeed} (Escala 1:1 ${dpiX}×${dpiY} DPI) *WF${wf} *CV${cvCode} *EF${efCode} ${opCmd}*FH${fh}/*PH${phHeater}/*DH${dh}°C`, 'text-sky-300');
+      appendRipProgressLog(`Cabecera Mutoh_PM: *ID250 *PQ${pqCode} *IP${ipPass},${ipSpeed} (${dpiX}×${dpiY} DPI) *WF${wf} *CV${cvCode} ${dnCmd}*EF${efCode} ${opCmd}*FH${fh}/*PH${phHeater}/*DH${dh}°C`, 'text-sky-300');
       appendRipProgressLog(`Geometría raster: ${w720}×${h720} px (${planeBytes} bytes/plano × 4 planos [K, C, M, Y])`, 'text-slate-300');
 
       const xMap = new Int32Array(w720);
