@@ -331,6 +331,29 @@
       background-color: #334155;
       margin: 4px 8px;
     }
+    .ws-ctx-has-sub {
+      position: relative;
+    }
+    .ws-ctx-submenu {
+      position: absolute;
+      top: -4px;
+      left: 100%;
+      min-width: 245px;
+      background-color: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(56, 189, 248, 0.25);
+      padding: 4px 0;
+      display: none;
+      z-index: 100000;
+    }
+    .ws-ctx-has-sub:hover > .ws-ctx-submenu {
+      display: block;
+    }
+    .ws-ctx-menu.flip-left .ws-ctx-submenu {
+      left: auto;
+      right: 100%;
+    }
   </style>
 </head>
 <body class="ws-window h-screen flex flex-col m-0 p-0 overflow-hidden">
@@ -800,7 +823,7 @@
         </div>
 
         <div class="text-xs text-slate-300 px-1 flex-shrink-0 flex flex-wrap items-center justify-between gap-2">
-          <span>🖱️ <strong>Haz Clic Derecho sobre cualquier imagen</strong> para abrir el menú rápido (<em>Dimensionar/Cortar, Girar, Espejo, Tamaño Rápido, Posición, Panelación, Duplicar, Añadir Copias, Suprimir</em>). Con <strong>Separación = 0 mm</strong> las imágenes quedan <strong>pegadas una al lado de la otra</strong> con marcas de corte en <strong>T acostada (⊣ ⊢)</strong>.</span>
+          <span>🖱️ <strong>Arrastra un recuadro con clic izquierdo</strong> para seleccionar varias imágenes a la vez (o <kbd class="px-1 py-0.5 rounded bg-slate-800 border border-slate-600 font-mono text-[10px]">Ctrl+A</kbd>). Haz <strong>Clic Derecho fuera de las imágenes</strong> (o fuera de la mesa) para abrir el menú de <strong>Imposición inteligente, Alineación, Espaciar equitativamente, Mismo tamaño y Centro de alto</strong>, o sobre una imagen para sus opciones individuales.</span>
         </div>
 
         <!-- Viewport con Scroll Vertical y Horizontal Real -->
@@ -4846,19 +4869,22 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
     }
 
     function deleteSelectedLayoutItem() {
-      const idx = STATE.layoutItems.findIndex((it) => it.selected);
-      if (idx !== -1) {
-        const removed = STATE.layoutItems[idx];
-        STATE.layoutItems.splice(idx, 1);
+      const selectedItems = STATE.layoutItems.filter((it) => it.selected);
+      if (selectedItems.length > 0) {
+        STATE.layoutItems = STATE.layoutItems.filter((it) => !it.selected);
         if (STATE.layoutItems.length > 0) {
-          const nextIdx = Math.min(idx, STATE.layoutItems.length - 1);
-          STATE.layoutItems[nextIdx].selected = true;
-          syncSelectedLayoutItemInputs(STATE.layoutItems[nextIdx]);
+          const lastItem = STATE.layoutItems[STATE.layoutItems.length - 1];
+          lastItem.selected = true;
+          syncSelectedLayoutItemInputs(lastItem);
         }
         syncPaperAndRender();
-        showToast(`🗑️ "${removed.name}" eliminado del Layout`);
+        if (selectedItems.length === 1) {
+          showToast(`🗑️ "${selectedItems[0].name}" eliminado del Layout`);
+        } else {
+          showToast(`🗑️ ${selectedItems.length} piezas eliminadas del Layout`);
+        }
       } else {
-        showToast('ℹ️ Haz clic sobre una pieza en el Layout para seleccionarla y borrarla.');
+        showToast('ℹ️ Haz clic o arrastra sobre las piezas en el Layout para seleccionarlas y borrarlas.');
       }
     }
 
