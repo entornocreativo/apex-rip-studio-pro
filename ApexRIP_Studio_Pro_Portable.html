@@ -6502,7 +6502,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const rgba = srcCtx.getImageData(0, 0, srcW, srcH).data;
 
       // Detectar perfil activo de Wasatch (4 pasadas 720x720 VL, 6 pasadas 720x1080 VxL, 12 pasadas 720x1080 VxL o Backlite Doble Pasada Overprint 2x)
-      const activeProf = getActiveProfile ? getActiveProfile() : null;
+      const activeProf = (STATE.profiles && STATE.profiles.find((p) => p.id === STATE.activeProfileId)) || (STATE.profiles && STATE.profiles[0]) || null;
       const isBacklite2x = activeProf && (activeProf.id === 'wasatch_backlite_720x1080_vxl_doble_pasada' || Number(activeProf.overprint) === 2);
       const is12PassVxl = !isBacklite2x && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_12pass' || Number(activeProf.passes) === 12);
       const is6PassVxl = !isBacklite2x && !is12PassVxl && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_6pass' || String(activeProf.res).includes('1080') || Number(activeProf.passes) === 6);
