@@ -7720,7 +7720,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       return {
         totalBytes,
-        base64Str: uint8ArrayToBase64(totalBytes),
         unitName: 'Mutoh_VJ-1624',
         widthMm,
         heightMm,
@@ -7729,10 +7728,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       };
     }
 
-    // Envía JSON al puente local mostrando el porcentaje real de envío/impresión en la Barra 2
-    function sendPayloadWithLiveProgress(url, payloadObj, totalRawBytes, heightMm, targetLabel, pqItem) {
+    // Envía binario directo (application/octet-stream) o JSON al puente local mostrando el porcentaje real en la Barra 2
+    function sendPayloadWithLiveProgress(url, payloadOrBytes, totalRawBytes, heightMm, targetLabel, pqItem, jobTitleLabel = '') {
       return new Promise((resolve, reject) => {
-        const bodyStr = JSON.stringify(payloadObj);
+        const isBinary = (payloadOrBytes instanceof Uint8Array) || (payloadOrBytes instanceof Blob);
+        const bodyData = isBinary ? payloadOrBytes : JSON.stringify(payloadOrBytes);
+        const displayTitle = jobTitleLabel || (payloadOrBytes && payloadOrBytes.job_title) || 'Trabajo_RIP';
         const xhr = new XMLHttpRequest();
         RIP_PROGRESS_STATE.activeXhr = xhr;
 
@@ -7756,7 +7757,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               heightMm
             );
             if (pqItem) {
-              pqItem.notes = `${payloadObj.job_title} [Imprimiendo ${simPct}% • ${curMm.toFixed(0)}/${Math.round(heightMm)}mm]`;
+              pqItem.notes = `${displayTitle} [Imprimiendo ${simPct}% • ${curMm.toFixed(0)}/${Math.round(heightMm)}mm]`;
               renderQueuesSplitView();
             }
           }
@@ -7801,8 +7802,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         };
 
         xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(bodyStr);
+        xhr.setRequestHeader('Content-Type', isBinary ? 'application/octet-stream' : 'application/json');
+        xhr.send(bodyData);
       });
     }
 
@@ -7860,7 +7861,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
           const compiledObj = {
             bytes: pdfBytes,
-            base64Str: uint8ArrayToBase64(pdfBytes),
             filename: pdfFileName,
             mimeType: 'application/pdf',
             widthMm,
@@ -7928,7 +7928,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               job_title: `${safeBase}_${Math.round(widthMm)}x${Math.round(heightMm)}mm`,
               hot_folder_path: hotFolder,
               file_ext: 'pdf',
-              file_base64: compiledObj.base64Str
+              file_base64: uint8ArrayToBase64(pdfBytes)
             },
             pdfBytes.length,
             heightMm,
@@ -7967,7 +7967,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         let compiledObj = null;
         const cachedData = !ripOnly && ((pqItem && pqItem.compiledData) || (rqItem && rqItem.compiledData));
 
-        if (cachedData && cachedData.bytes && cachedData.base64Str) {
+        if (cachedData && cachedData.bytes) {
           compiledObj = cachedData;
           updateRipProgressUI(
             100,
@@ -7991,7 +7991,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             const pdfBytes = buildExact1to1PdfBytes(canvas, widthMm, heightMm);
             compiled = {
               totalBytes: pdfBytes,
-              base64Str: uint8ArrayToBase64(pdfBytes),
               unitName: 'Mimaki_UJV100-160',
               widthMm,
               heightMm,
@@ -8007,7 +8006,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
           compiledObj = {
             bytes: compiled.totalBytes,
-            base64Str: compiled.base64Str,
             filename: prnFileName,
             mimeType: 'application/octet-stream',
             widthMm: compiled.widthMm,
@@ -8076,25 +8074,28 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           return;
         }
 
-        // Envío directo TCP/IP Puerto 9100 (Mutoh_PM) o Cola de Windows con progreso en vivo
+        // Envío directo binario (application/octet-stream) sin pasar por Base64 ni JSON.stringify
+        // Evita por completo el error "Invalid string length" de Chrome en tiradas grandes (>150 MB)
         const targetHostDesc = cfg.connMode === 'windows_spooler' ? `Cola Windows (${cfg.winQueue})` : `${cfg.ip}:${cfg.port}`;
         setRipModalStatusBadge('IMPRIMIENDO EN PLOTTER...', 'print');
-        appendRipProgressLog(`Abriendo conexión directa con ${targetHostDesc}...`, 'text-sky-300');
+        appendRipProgressLog(`Transmitiendo flujo binario directo (${formatKbOrMb(compiledObj.bytes.length)}) a ${targetHostDesc}...`, 'text-sky-300');
+
+        const qs = new URLSearchParams({
+          job_title: jobLabel,
+          host: cfg.ip || '192.168.1.240',
+          port: String(cfg.port || 9100),
+          connection_mode: cfg.connMode || 'tcp_raw',
+          windows_printer_name: cfg.winQueue || ''
+        }).toString();
 
         const data = await sendPayloadWithLiveProgress(
-          `${BRIDGE_BASE_URL}/api/spool/send-raw`,
-          {
-            job_title: jobLabel,
-            host: cfg.ip,
-            port: cfg.port,
-            connection_mode: cfg.connMode,
-            windows_printer_name: cfg.winQueue,
-            prn_base64: compiledObj.base64Str
-          },
+          `${BRIDGE_BASE_URL}/api/spool/send-raw?${qs}`,
+          compiledObj.bytes,
           compiledObj.bytes.length,
           compiledObj.heightMm || 50,
           targetHostDesc,
-          pqItem
+          pqItem,
+          jobLabel
         );
 
         BRIDGE_ONLINE = true;

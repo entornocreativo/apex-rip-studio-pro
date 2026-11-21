@@ -270,14 +270,41 @@ while ($Listener.IsListening) {
         }
 
         if ($Path -eq "/api/spool/send-raw" -and $Req.HttpMethod -eq "POST") {
-            $Body = Parse-LargeJsonBody $Req.InputStream
-            $TargetHost = ([string]$Body["host"]).Trim()
-            $TargetPort = [int]$Body["port"]
-            if ($TargetPort -le 0) { $TargetPort = 9100 }
-            $JobTitle = ([string]$Body["job_title"]) -replace '[^a-zA-Z0-9_-]', '_'
-            $ConnMode = [string]$Body["connection_mode"]
-            $WinPrinter = [string]$Body["windows_printer_name"]
-            $PrnBytes = [System.Convert]::FromBase64String([string]$Body["prn_base64"])
+            $ContentType = ([string]$Req.ContentType).ToLower()
+            $TargetHost = ""
+            $TargetPort = 9100
+            $JobTitle = "Mutoh_Job"
+            $ConnMode = "tcp_raw"
+            $WinPrinter = ""
+            $PrnBytes = $null
+
+            if ($ContentType -like "*octet-stream*") {
+                $TargetHost = ([string]$Req.QueryString["host"]).Trim()
+                try { $TargetPort = [int]$Req.QueryString["port"] } catch { $TargetPort = 9100 }
+                if ($TargetPort -le 0) { $TargetPort = 9100 }
+                $RawTitle = [string]$Req.QueryString["job_title"]
+                if ($RawTitle) { $JobTitle = $RawTitle -replace '[^a-zA-Z0-9_-]', '_' }
+                $ConnMode = [string]$Req.QueryString["connection_mode"]
+                $WinPrinter = [string]$Req.QueryString["windows_printer_name"]
+
+                $Ms = New-Object System.IO.MemoryStream
+                $Buf = New-Object byte[] 65536
+                $InStream = $Req.InputStream
+                while (($ReadCount = $InStream.Read($Buf, 0, $Buf.Length)) -gt 0) {
+                    $Ms.Write($Buf, 0, $ReadCount)
+                }
+                $PrnBytes = $Ms.ToArray()
+                $Ms.Close()
+            } else {
+                $Body = Parse-LargeJsonBody $Req.InputStream
+                $TargetHost = ([string]$Body["host"]).Trim()
+                $TargetPort = [int]$Body["port"]
+                if ($TargetPort -le 0) { $TargetPort = 9100 }
+                $JobTitle = ([string]$Body["job_title"]) -replace '[^a-zA-Z0-9_-]', '_'
+                $ConnMode = [string]$Body["connection_mode"]
+                $WinPrinter = [string]$Body["windows_printer_name"]
+                $PrnBytes = [System.Convert]::FromBase64String([string]$Body["prn_base64"])
+            }
 
             $PrnFile = Join-Path $SpoolDir "$($JobTitle)_$(Get-Date -Format 'yyyyMMdd_HHmmss').prn"
             [System.IO.File]::WriteAllBytes($PrnFile, $PrnBytes)
