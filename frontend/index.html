@@ -1901,6 +1901,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         width_mm: 1370,
         til: 200,
         pq: 5,
+        ipPass: 2,
         cv: 2,
         ef: 18,
         fh: 40,
@@ -1920,11 +1921,56 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         width_mm: 1520,
         til: 250,
         pq: 17,
+        ipPass: 2,
         cv: 0,
         ef: 19,
         fh: 39,
         ph: 43,
         dh: 50,
+        stochasticReduction: [78, 78, 87, 75],
+        clutKey: 'VXL6',
+        gains: { C: 78, M: 78, Y: 87, K: 75, W: 0 }
+      },
+      {
+        id: 'wasatch_720x1080_vxl_vinilico_12pass',
+        name: '720 x 1080 VxL VINILICO 12 pass (Wasatch Real)',
+        printer: 'mutoh_vj_1624',
+        mode: 'Ultra Quality 12 Pass VxL',
+        res: '720x1080',
+        passes: 12,
+        width_mm: 1520,
+        til: 250,
+        pq: 17,
+        ipPass: 4,
+        ipSpeed: 2,
+        cv: 0,
+        ef: 7,
+        fh: 39,
+        ph: 43,
+        dh: 50,
+        overprint: 1,
+        stochasticReduction: [78, 78, 87, 75],
+        clutKey: 'VXL6',
+        gains: { C: 78, M: 78, Y: 87, K: 75, W: 0 }
+      },
+      {
+        id: 'wasatch_backlite_720x1080_vxl_doble_pasada',
+        name: 'Backlite 720 x 1080 VxL DOBLE PASADA + MAS CLARO (Overprint 2x)',
+        printer: 'mutoh_vj_1624',
+        mode: 'Backlit Overprint 2x (Caja Luminosa)',
+        res: '720x1080',
+        passes: 12,
+        width_mm: 1510,
+        til: 250,
+        pq: 17,
+        ipPass: 4,
+        ipSpeed: 1,
+        cv: 0,
+        ef: 19,
+        fh: 50,
+        ph: 50,
+        dh: 50,
+        overprint: 2,
         stochasticReduction: [78, 78, 87, 75],
         clutKey: 'VXL6',
         gains: { C: 78, M: 78, Y: 87, K: 75, W: 0 }
@@ -1955,7 +2001,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
     let storedProfiles = INITIAL_PROFILES;
     try {
-      const raw = localStorage.getItem('wasatch_softrip_profiles_v34');
+      const raw = localStorage.getItem('wasatch_softrip_profiles_v36');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) storedProfiles = parsed;
@@ -6455,19 +6501,28 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const srcCtx = canvas.getContext('2d');
       const rgba = srcCtx.getImageData(0, 0, srcW, srcH).data;
 
-      // Detectar perfil activo de Wasatch (4 pasadas 720x720 VL o 6 pasadas 720x1080 VxL)
+      // Detectar perfil activo de Wasatch (4 pasadas 720x720 VL, 6 pasadas 720x1080 VxL, 12 pasadas 720x1080 VxL o Backlite Doble Pasada Overprint 2x)
       const activeProf = getActiveProfile ? getActiveProfile() : null;
-      const is6PassVxl = activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_6pass' || String(activeProf.res).includes('1080') || Number(activeProf.passes) === 6);
+      const isBacklite2x = activeProf && (activeProf.id === 'wasatch_backlite_720x1080_vxl_doble_pasada' || Number(activeProf.overprint) === 2);
+      const is12PassVxl = !isBacklite2x && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_12pass' || Number(activeProf.passes) === 12);
+      const is6PassVxl = !isBacklite2x && !is12PassVxl && activeProf && (activeProf.id === 'wasatch_720x1080_vxl_vinilico_6pass' || String(activeProf.res).includes('1080') || Number(activeProf.passes) === 6);
+      const isVxl1080 = is6PassVxl || is12PassVxl || isBacklite2x;
       const dpiX = 720.0;
-      const dpiY = is6PassVxl ? 1080.0 : 720.0;
-      const pqCode = is6PassVxl ? 17 : 5;
-      const cvCode = is6PassVxl ? 0 : 2;
-      const efCode = is6PassVxl ? 19 : 18;
-      const fh = is6PassVxl ? 39 : 40;
-      const phHeater = is6PassVxl ? 43 : 40;
+      const dpiY = isVxl1080 ? 1080.0 : 720.0;
+      const pqCode = isVxl1080 ? 17 : 5;
+      const ipPass = (is12PassVxl || isBacklite2x) ? 4 : 2;
+      const ipSpeed = isBacklite2x ? 1 : 2;
+      const cvCode = isVxl1080 ? 0 : 2;
+      const efCode = is12PassVxl ? 7 : (isVxl1080 ? 19 : 18);
+      const fh = isBacklite2x ? 50 : (isVxl1080 ? 39 : 40);
+      const phHeater = isBacklite2x ? 50 : (isVxl1080 ? 43 : 40);
       const dh = 50;
       const wf = 3;
-      const redArr = is6PassVxl ? [78.0, 78.0, 87.0, 75.0] : [95.0, 92.0, 92.0, 89.0];
+      const overprintCount = isBacklite2x ? 2 : 1;
+      const redArr = isVxl1080 ? [78.0, 78.0, 87.0, 75.0] : [95.0, 92.0, 92.0, 89.0];
+      const profDisplayName = isBacklite2x
+        ? 'Backlite 720 x 1080 VxL DOBLE PASADA + MAS CLARO (Overprint 2x)'
+        : (is12PassVxl ? '720 x 1080 VxL VINILICO 12 pass' : (is6PassVxl ? '720 x 1080 VxL VINILICO 6 pass' : '720 x 720 VL 4 Pas MICRO Y LONA'));
 
       // Dimensiones físicas exactas a 720x720 o 720x1080 DPI múltiplo de 4 píxeles
       const w720 = Math.max(4, Math.round((widthMm * dpiX / 25.4) / 4) * 4);
@@ -6476,11 +6531,12 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       const dimEl = document.getElementById('rp-dimensions');
       if (dimEl) {
-        dimEl.textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${w720}×${h720} px @ ${dpiX}×${dpiY} DPI)`;
+        dimEl.textContent = `${Math.round(widthMm)}×${Math.round(heightMm)} mm (${w720}×${h720} px @ ${dpiX}×${dpiY} DPI${overprintCount > 1 ? ' • 2x Overprint' : ''})`;
       }
 
+      const opCmd = overprintCount > 1 ? `*OP${overprintCount};` : '';
       const headerStr =
-        `\x07Mutoh_PM*ID250;*TM1;*PQ${pqCode};*IP2,2;*WF${wf};*CV${cvCode};*FH${fh};*PH${phHeater};*DH${dh};*SW0;*PC1,0;*EF${efCode};*FF;` +
+        `\x07Mutoh_PM*ID250;*TM1;*PQ${pqCode};*IP${ipPass},${ipSpeed};*WF${wf};*CV${cvCode};*FH${fh};*PH${phHeater};*DH${dh};*SW0;*PC1,0;*EF${efCode};${opCmd}*FF;` +
         `\x1bE\x1b%0A\x1b*r${w720 * 2}S\x1b*r-4U\x1b*r1A\x1b*b2M`;
 
       const chunks = [];
@@ -6491,8 +6547,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       };
 
       pushChunk(asciiToBytes(headerStr));
-      appendRipProgressLog(`Perfil Wasatch activo: ${is6PassVxl ? '720 x 1080 VxL VINILICO 6 pass' : '720 x 720 VL 4 Pas MICRO Y LONA'}`, 'text-emerald-300 font-bold');
-      appendRipProgressLog(`Cabecera Mutoh_PM: *ID250 *PQ${pqCode} *IP2,2 (${dpiX}×${dpiY} DPI) *WF${wf} *CV${cvCode} *EF${efCode} *FH${fh}/*PH${phHeater}/*DH${dh}°C`, 'text-sky-300');
+      appendRipProgressLog(`Perfil Wasatch activo: ${profDisplayName}`, 'text-emerald-300 font-bold');
+      appendRipProgressLog(`Cabecera Mutoh_PM: *ID250 *PQ${pqCode} *IP${ipPass},${ipSpeed} (${dpiX}×${dpiY} DPI) *WF${wf} *CV${cvCode} *EF${efCode} ${opCmd}*FH${fh}/*PH${phHeater}/*DH${dh}°C`, 'text-sky-300');
       appendRipProgressLog(`Geometría raster: ${w720}×${h720} px (${planeBytes} bytes/plano × 4 planos [K, C, M, Y])`, 'text-slate-300');
 
       const xMap = new Int32Array(w720);
