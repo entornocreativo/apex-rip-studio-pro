@@ -7733,7 +7733,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       };
     }
 
-    // Envía binario directo (application/octet-stream) o JSON al puente local mostrando el porcentaje real en la Barra 2
+    // Envía binario directo (application/octet-stream) o JSON al puente local mostrando el porcentaje REAL de transmisión TCP al plotter en la Barra 2
     function sendPayloadWithLiveProgress(url, payloadOrBytes, totalRawBytes, heightMm, targetLabel, pqItem, jobTitleLabel = '') {
       return new Promise((resolve, reject) => {
         const isBinary = (payloadOrBytes instanceof Uint8Array) || (payloadOrBytes instanceof Blob);
@@ -7742,52 +7742,104 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         const xhr = new XMLHttpRequest();
         RIP_PROGRESS_STATE.activeXhr = xhr;
 
-        let simPct = 5;
-        updatePrintProgressUI(simPct, `Conectando con ${targetLabel}...`, (heightMm * simPct) / 100, heightMm);
+        let parsedLineIdx = 0;
+        let lastLoggedTens = 0;
+        let lastBufferWarnTime = 0;
+        let receivedRealTcpProgress = false;
 
-        // Ticker suave para reflejar el avance físico de pasadas mientras el socket TCP transmite al cabezal
-        const passTimer = setInterval(() => {
-          if (RIP_PROGRESS_STATE.cancelled) {
-            clearInterval(passTimer);
-            return;
-          }
-          if (simPct < 92) {
-            simPct += Math.max(2, Math.round((95 - simPct) * 0.18));
-            const curMm = (heightMm * simPct) / 100;
-            const sentBytes = Math.round((totalRawBytes * simPct) / 100);
-            updatePrintProgressUI(
-              simPct,
-              `Imprimiendo en ${targetLabel} (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totalRawBytes)})...`,
-              curMm,
-              heightMm
-            );
-            if (pqItem) {
-              pqItem.notes = `${displayTitle} [Imprimiendo ${simPct}% • ${curMm.toFixed(0)}/${Math.round(heightMm)}mm]`;
-              renderQueuesSplitView();
-            }
-          }
-        }, 120);
+        updatePrintProgressUI(0, `Iniciando conexión con puente local → ${targetLabel}...`, 0, heightMm);
 
+        // El upload del navegador a 127.0.0.1:8765 es solo la entrega en memoria RAM local (0% -> 1%)
         xhr.upload.onprogress = (evt) => {
-          if (evt.lengthComputable && evt.total > 0) {
-            const upPct = Math.min(95, Math.max(simPct, Math.round((evt.loaded / evt.total) * 92)));
-            simPct = upPct;
-            const curMm = (heightMm * simPct) / 100;
-            const sentBytes = Math.round((totalRawBytes * simPct) / 100);
+          if (!receivedRealTcpProgress && evt.lengthComputable && evt.total > 0) {
+            const localMb = formatKbOrMb(evt.loaded);
+            const totMb = formatKbOrMb(evt.total);
             updatePrintProgressUI(
-              simPct,
-              `Transmitiendo pasadas a ${targetLabel} (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totalRawBytes)})...`,
-              curMm,
+              1,
+              `Entregando flujo binario al socket TCP local (${localMb} / ${totMb}) → ${targetLabel}...`,
+              0,
               heightMm
             );
           }
         };
 
+        const processIncomingLines = (isFinal = false) => {
+          const rawText = xhr.responseText || '';
+          if (!rawText) return;
+          const allLines = rawText.split('\n');
+          const limit = isFinal ? allLines.length : Math.max(0, allLines.length - 1);
+          for (; parsedLineIdx < limit; parsedLineIdx++) {
+            const line = allLines[parsedLineIdx].trim();
+            if (!line) continue;
+            try {
+              const msg = JSON.parse(line);
+              if (msg.event === 'tcp_connecting') {
+                receivedRealTcpProgress = true;
+                updatePrintProgressUI(
+                  1,
+                  `Conectando socket TCP directo con ${msg.target || targetLabel}...`,
+                  0,
+                  heightMm
+                );
+              } else if (msg.event === 'tcp_progress') {
+                receivedRealTcpProgress = true;
+                const realPct = Math.max(1, Math.min(100, Number(msg.pct) || 0));
+                const sentBytes = Number(msg.bytes_sent) || 0;
+                const totBytes = Number(msg.total_bytes) || totalRawBytes;
+                const curMm = (heightMm * realPct) / 100;
+
+                if (msg.buffer_full) {
+                  updatePrintProgressUI(
+                    realPct,
+                    `⏸ Buffer RAM del plotter lleno (${realPct}% • ${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totBytes)}) — avanzando al ritmo físico del cabezal...`,
+                    curMm,
+                    heightMm
+                  );
+                  const now = Date.now();
+                  if (now - lastBufferWarnTime > 8000) {
+                    lastBufferWarnTime = now;
+                    appendRipProgressLog(
+                      `⏸ [BUFFER RAM PLOTTER LLENO al ${realPct}%] Esperando avance físico del cabezal (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totBytes)})...`,
+                      'text-amber-300'
+                    );
+                  }
+                } else {
+                  updatePrintProgressUI(
+                    realPct,
+                    `Transmitiendo por Red TCP a ${targetLabel}: ${realPct}% (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totBytes)})`,
+                    curMm,
+                    heightMm
+                  );
+                  const tens = Math.floor(realPct / 10) * 10;
+                  if (tens >= lastLoggedTens + 10 && tens <= 100) {
+                    lastLoggedTens = tens;
+                    appendRipProgressLog(
+                      `📡 [TCP ${targetLabel}] ${realPct}% recibido por el plotter (${formatKbOrMb(sentBytes)} / ${formatKbOrMb(totBytes)} • ${curMm.toFixed(1)}/${Math.round(heightMm)} mm)`,
+                      'text-sky-300'
+                    );
+                  }
+                }
+
+                if (pqItem) {
+                  pqItem.notes = `${displayTitle} [🖨️ TCP ${realPct}% • ${formatKbOrMb(sentBytes)}/${formatKbOrMb(totBytes)} • ${curMm.toFixed(0)}/${Math.round(heightMm)}mm]`;
+                  renderQueuesSplitView();
+                }
+              }
+            } catch (e) {}
+          }
+        };
+
+        xhr.onprogress = () => {
+          processIncomingLines(false);
+        };
+
         xhr.onload = () => {
-          clearInterval(passTimer);
           RIP_PROGRESS_STATE.activeXhr = null;
+          processIncomingLines(true);
           try {
-            const data = JSON.parse(xhr.responseText || '{}');
+            const lines = (xhr.responseText || '').trim().split('\n').map((l) => l.trim()).filter(Boolean);
+            const lastLine = lines.length > 0 ? lines[lines.length - 1] : '{}';
+            const data = JSON.parse(lastLine);
             resolve(data);
           } catch (e) {
             reject(new Error('Respuesta inválida del puente local'));
@@ -7795,13 +7847,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         };
 
         xhr.onerror = () => {
-          clearInterval(passTimer);
           RIP_PROGRESS_STATE.activeXhr = null;
           reject(new Error('No se pudo conectar con el puente local (127.0.0.1:8765)'));
         };
 
         xhr.onabort = () => {
-          clearInterval(passTimer);
           RIP_PROGRESS_STATE.activeXhr = null;
           reject(new Error('CANCELLED'));
         };
@@ -8090,7 +8140,8 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           host: cfg.ip || '192.168.1.240',
           port: String(cfg.port || 9100),
           connection_mode: cfg.connMode || 'tcp_raw',
-          windows_printer_name: cfg.winQueue || ''
+          windows_printer_name: cfg.winQueue || '',
+          stream_progress: '1'
         }).toString();
 
         const data = await sendPayloadWithLiveProgress(

@@ -62,6 +62,15 @@ function Send-JsonResponse($Response, $Obj, $StatusCode = 200) {
     $Response.Close()
 }
 
+function Write-StreamJsonLine($Response, $Obj) {
+    try {
+        $Line = ($Obj | ConvertTo-Json -Depth 6 -Compress) + "`n"
+        $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Line)
+        $Response.OutputStream.Write($Bytes, 0, $Bytes.Length)
+        $Response.OutputStream.Flush()
+    } catch {}
+}
+
 Add-Type -AssemblyName System.Web.Extensions -ErrorAction SilentlyContinue
 function Parse-LargeJsonBody($InputStream) {
     $Reader = New-Object System.IO.StreamReader($InputStream, [System.Text.Encoding]::UTF8)
@@ -326,6 +335,23 @@ while ($Listener.IsListening) {
                 continue
             }
 
+            $StreamProgress = ($Req.QueryString["stream_progress"] -eq "1")
+            if ($StreamProgress) {
+                $Res.StatusCode = 200
+                $Res.ContentType = "application/x-ndjson; charset=utf-8"
+                $Res.Headers.Add("Access-Control-Allow-Origin", "*")
+                $Res.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                $Res.Headers.Add("Access-Control-Allow-Headers", "Content-Type")
+                $Res.SendChunked = $true
+                Write-StreamJsonLine $Res @{
+                    event = "tcp_connecting"
+                    pct = 1
+                    bytes_sent = 0
+                    total_bytes = $PrnBytes.Length
+                    target = "$TargetHost`:$TargetPort"
+                }
+            }
+
             Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes por Red TCP/IP a $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
             $Tcp = New-Object System.Net.Sockets.TcpClient
             $Tcp.SendBufferSize = 32768
@@ -349,6 +375,7 @@ while ($Listener.IsListening) {
                     $Offset = 0
                     $TotalLen = $PrnBytes.Length
                     $LastPctShown = -1
+                    $LastPctStreamed = -1
 
                     while ($Offset -lt $TotalLen) {
                         $Count = [Math]::Min($ChunkSize, $TotalLen - $Offset)
@@ -364,11 +391,31 @@ while ($Listener.IsListening) {
                                     throw $_
                                 }
                                 Write-Host "  [BUFFER PLOTTER LLENO] Esperando avance fisico del cabezal ($Offset / $TotalLen bytes)..." -ForegroundColor Yellow
+                                if ($StreamProgress) {
+                                    $CurPct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
+                                    Write-StreamJsonLine $Res @{
+                                        event = "tcp_progress"
+                                        pct = $CurPct
+                                        bytes_sent = $Offset
+                                        total_bytes = $TotalLen
+                                        buffer_full = $true
+                                    }
+                                }
                                 Start-Sleep -Milliseconds 1500
                             }
                         }
                         $Offset += $Count
                         $Pct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
+                        if ($StreamProgress -and ($Pct -gt $LastPctStreamed -or $Offset -eq $TotalLen)) {
+                            $LastPctStreamed = $Pct
+                            Write-StreamJsonLine $Res @{
+                                event = "tcp_progress"
+                                pct = $Pct
+                                bytes_sent = $Offset
+                                total_bytes = $TotalLen
+                                buffer_full = $false
+                            }
+                        }
                         if ($Pct -ge ($LastPctShown + 5) -or $Offset -eq $TotalLen) {
                             $LastPctShown = $Pct
                             $MbSent = [Math]::Round($Offset / 1048576.0, 2)
@@ -381,7 +428,8 @@ while ($Listener.IsListening) {
                     $Stream.Close()
                     $Tcp.Close()
                     Write-Host "  -> IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes)" -ForegroundColor Green
-                    Send-JsonResponse $Res @{
+                    $FinalObj = @{
+                        event = "done"
                         spool = @{
                             success = $true
                             tcp_delivered = $true
@@ -392,10 +440,17 @@ while ($Listener.IsListening) {
                             message = "IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes transmitidos a la impresora)."
                         }
                     }
+                    if ($StreamProgress) {
+                        Write-StreamJsonLine $Res $FinalObj
+                        try { $Res.Close() } catch {}
+                    } else {
+                        Send-JsonResponse $Res $FinalObj
+                    }
                 } else {
                     $Tcp.Close()
                     Write-Host "  -> ERROR: La impresora en $TargetHost`:$TargetPort no respondio." -ForegroundColor Red
-                    Send-JsonResponse $Res @{
+                    $ErrObj = @{
+                        event = "done"
                         spool = @{
                             success = $false
                             tcp_delivered = $false
@@ -406,11 +461,18 @@ while ($Listener.IsListening) {
                             message = "No se pudo conectar con la impresora en $TargetHost`:$TargetPort. Verifica la IP en Setup Unit. Respaldo .PRN guardado en: $PrnFile"
                         }
                     }
+                    if ($StreamProgress) {
+                        Write-StreamJsonLine $Res $ErrObj
+                        try { $Res.Close() } catch {}
+                    } else {
+                        Send-JsonResponse $Res $ErrObj
+                    }
                 }
             } catch {
                 $Tcp.Close()
                 Write-Host "  -> ERROR TCP: $($_.Exception.Message)" -ForegroundColor Red
-                Send-JsonResponse $Res @{
+                $CatchObj = @{
+                    event = "done"
                     spool = @{
                         success = $false
                         tcp_delivered = $false
@@ -420,6 +482,12 @@ while ($Listener.IsListening) {
                         spool_backup = $PrnFile
                         message = "Error de red hacia $TargetHost`:$TargetPort tras enviar $Offset de $($PrnBytes.Length) bytes ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
                     }
+                }
+                if ($StreamProgress) {
+                    Write-StreamJsonLine $Res $CatchObj
+                    try { $Res.Close() } catch {}
+                } else {
+                    Send-JsonResponse $Res $CatchObj
                 }
             }
             continue
