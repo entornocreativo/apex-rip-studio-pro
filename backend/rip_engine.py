@@ -184,34 +184,49 @@ def rip_image_pipeline(
     # Componer sobre blanco donde hay transparencia
     rgb_comp = rgb * alpha[:, :, None] + (1.0 - alpha[:, :, None])
 
-    # Aplicación de gamma del sustrato
-    gamma = float(prof.get("gamma", 1.0))
-    if abs(gamma - 1.0) > 0.01:
-        rgb_comp = np.power(np.clip(rgb_comp, 0.0, 1.0), gamma)
+    # Intentar transformación ICC real de Wasatch (RGBinput_plus10saturation.icm -> Grafico_de_1400_parches.icm)
+    import os
+    icc_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icc_profiles")
+    rgb_in_icc = os.path.join(icc_dir, "RGBinput_plus10saturation.icm")
+    out_cmyk_icc = os.path.join(icc_dir, "Grafico_de_1400_parches.icm")
 
-    # Separación Late-Start GCR a CMYK (0.0 .. 1.0) para conservar pieles y rojos limpios
-    k_raw = 1.0 - np.max(rgb_comp, axis=2)
-    gcr_factor = 0.88 if "Fuerte" in prof["black_generation"] else (0.68 if "UCR" in prof["black_generation"] else 0.84)
-    k_chan = np.power(np.clip(k_raw, 0.0, 1.0), 2.10) * gcr_factor
-    k_sub = k_chan * 0.86
-    denom = np.maximum(1e-5, 1.0 - k_sub)
+    if os.path.exists(rgb_in_icc) and os.path.exists(out_cmyk_icc):
+        rgb_u8 = np.clip(rgb_comp * 255.0, 0, 255).astype(np.uint8)
+        pil_rgb = Image.fromarray(rgb_u8, mode="RGB")
+        xform = ImageCms.buildTransform(rgb_in_icc, out_cmyk_icc, "RGB", "CMYK", renderingIntent=0)
+        pil_cmyk = ImageCms.applyTransform(pil_rgb, xform)
+        arr_cmyk = np.asarray(pil_cmyk, dtype=np.float32) / 255.0
+        # Reducción estocástica exacta del archivo halftone ("95 92 92 89")
+        c_chan = arr_cmyk[:, :, 0] * 0.95
+        m_chan = arr_cmyk[:, :, 1] * 0.92
+        y_chan = arr_cmyk[:, :, 2] * 0.92
+        k_chan = arr_cmyk[:, :, 3] * 0.89
+    else:
+        # Fallback: Separación Late-Start GCR a CMYK (0.0 .. 1.0)
+        gamma = float(prof.get("gamma", 1.0))
+        if abs(gamma - 1.0) > 0.01:
+            rgb_comp = np.power(np.clip(rgb_comp, 0.0, 1.0), gamma)
+        k_raw = 1.0 - np.max(rgb_comp, axis=2)
+        gcr_factor = 0.88 if "Fuerte" in prof["black_generation"] else (0.68 if "UCR" in prof["black_generation"] else 0.84)
+        k_chan = np.power(np.clip(k_raw, 0.0, 1.0), 2.10) * gcr_factor
+        k_sub = k_chan * 0.86
+        denom = np.maximum(1e-5, 1.0 - k_sub)
 
-    c_chan = np.clip((1.0 - rgb_comp[:, :, 0] - k_sub) / denom, 0.0, 1.0)
-    m_chan = np.clip((1.0 - rgb_comp[:, :, 1] - k_sub) / denom, 0.0, 1.0)
-    y_chan = np.clip((1.0 - rgb_comp[:, :, 2] - k_sub) / denom, 0.0, 1.0)
-    k_chan = np.clip(k_chan, 0.0, 1.0)
+        c_chan = np.clip((1.0 - rgb_comp[:, :, 0] - k_sub) / denom, 0.0, 1.0)
+        m_chan = np.clip((1.0 - rgb_comp[:, :, 1] - k_sub) / denom, 0.0, 1.0)
+        y_chan = np.clip((1.0 - rgb_comp[:, :, 2] - k_sub) / denom, 0.0, 1.0)
+        k_chan = np.clip(k_chan, 0.0, 1.0)
 
-    # Aplicar ganancias/curvas por canal individual
-    gains = dict(prof["channel_gains"])
-    if channel_gains:
-        for ch_key, val in channel_gains.items():
-            if ch_key in gains:
-                gains[ch_key] = float(val)
+        gains = dict(prof["channel_gains"])
+        if channel_gains:
+            for ch_key, val in channel_gains.items():
+                if ch_key in gains:
+                    gains[ch_key] = float(val)
 
-    c_chan = np.clip(c_chan * gains.get("C", 1.0), 0.0, 1.0)
-    m_chan = np.clip(m_chan * gains.get("M", 1.0), 0.0, 1.0)
-    y_chan = np.clip(y_chan * gains.get("Y", 1.0), 0.0, 1.0)
-    k_chan = np.clip(k_chan * gains.get("K", 1.0), 0.0, 1.0)
+        c_chan = np.clip(c_chan * gains.get("C", 1.0), 0.0, 1.0)
+        m_chan = np.clip(m_chan * gains.get("M", 1.0), 0.0, 1.0)
+        y_chan = np.clip(y_chan * gains.get("Y", 1.0), 0.0, 1.0)
+        k_chan = np.clip(k_chan * gains.get("K", 1.0), 0.0, 1.0)
 
     # Aplicar Límite de Tinta Total (TIL) en porcentaje (ej. 260% -> 2.60)
     til_pct = float(total_ink_limit if total_ink_limit is not None else prof["total_ink_limit"])
@@ -430,13 +445,14 @@ def build_mutoh_vj1624_prn_stream(
     m_norm = resize_ch(m_chan)
     y_norm = resize_ch(y_chan)
 
-    # Cuantización multinivel de 2 bits (0..3) sin zona muerta en altas luces, calibrada a curva Wasatch VL 4 Pas
+    # Cuantización multinivel de 2 bits (0..3) con curva exacta de calibrationCurves (0.121569) + halftone (95/92/92/89)
     tiled_bayer = np.tile(BAYER_8X8, (h_720 // 8 + 1, w_720 // 8 + 1))[:h_720, :w_720]
 
-    def quantize_2bit_plane(norm_arr: np.ndarray, gamma: float, max_level: float) -> np.ndarray:
-        linearized = np.power(np.clip(norm_arr, 0.0, 1.0), gamma) * max_level
+    def quantize_2bit_plane(norm_arr: np.ndarray, red_factor: float = 1.0) -> np.ndarray:
+        eff = np.clip(norm_arr * red_factor, 0.0, 1.0)
+        linearized = np.clip(0.78 * eff + 1.58 * np.power(eff, 3.8), 0.0, 3.0)
         dots = np.clip(np.floor(linearized + tiled_bayer), 0.0, 3.0).astype(np.uint8)
-        dots = np.where(norm_arr <= 0.005, 0, dots).astype(np.uint8)
+        dots = np.where(norm_arr <= 0.003, 0, dots).astype(np.uint8)
         # Empaquetar 4 píxeles de 2 bits por byte (bits 7..6, 5..4, 3..2, 1..0)
         p0 = dots[:, 0::4] << 6
         p1 = dots[:, 1::4] << 4
@@ -448,10 +464,10 @@ def build_mutoh_vj1624_prn_stream(
             packed = np.hstack([packed, pad])
         return packed
 
-    k_packed = quantize_2bit_plane(k_norm, gamma=1.45, max_level=2.51)
-    c_packed = quantize_2bit_plane(c_norm, gamma=1.42, max_level=2.25)
-    m_packed = quantize_2bit_plane(m_norm, gamma=1.38, max_level=2.35)
-    y_packed = quantize_2bit_plane(y_norm, gamma=1.48, max_level=2.24)
+    k_packed = quantize_2bit_plane(k_norm, red_factor=0.89)
+    c_packed = quantize_2bit_plane(c_norm, red_factor=0.95)
+    m_packed = quantize_2bit_plane(m_norm, red_factor=0.92)
+    y_packed = quantize_2bit_plane(y_norm, red_factor=0.92)
 
     for y_idx in range(h_720):
         for p_idx, pl_arr in enumerate((k_packed, c_packed, m_packed, y_packed)):
