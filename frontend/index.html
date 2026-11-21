@@ -5697,7 +5697,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               <td class="p-2 whitespace-nowrap">
                 ${renderPrintCountAndStatusBadge(r.printCount, r.status, false)}
               </td>
-              <td class="p-2 font-mono font-bold">${r.copies}</td>
+              <td class="p-2 font-mono font-bold" onclick="event.stopPropagation()">
+                <input type="number" min="1" max="500" value="${r.copies || 1}" onchange="updateQueueItemCopiesCount('${r.id}', this.value)" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-slate-600 font-mono font-bold text-xs text-white text-center" title="Cantidad de copias (se ripea 1 sola vez)" />
+              </td>
               <td class="p-2 font-semibold text-white">${r.name}</td>
               <td class="p-2 font-mono text-[11px] text-slate-300">${r.source} • ${memTag}</td>
               <td class="p-2 text-right whitespace-nowrap" onclick="event.stopPropagation()">
@@ -5730,7 +5732,9 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
               <td class="p-2 whitespace-nowrap">
                 ${renderPrintCountAndStatusBadge(p.printCount, p.status, true)}
               </td>
-              <td class="p-2 font-mono font-bold">${p.copies}</td>
+              <td class="p-2 font-mono font-bold" onclick="event.stopPropagation()">
+                <input type="number" min="1" max="500" value="${p.copies || 1}" onchange="updateQueueItemCopiesCount('${p.id}', this.value)" class="w-14 px-1.5 py-0.5 rounded bg-[#0b1120] border border-emerald-600/80 font-mono font-bold text-xs text-emerald-300 text-center" title="Cantidad de copias a enviar sin volver a ripear" />
+              </td>
               <td class="p-2 font-mono text-sky-400">${p.index}</td>
               <td class="p-2 font-semibold text-white">${p.notes}</td>
               <td class="p-2 text-right whitespace-nowrap" onclick="event.stopPropagation()">
@@ -5871,6 +5875,41 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       switchCenterTab('tab-queues');
     }
 
+    function computeCurrentJobSignature() {
+      const activeProfId = STATE.activeProfileId || 'default_prof';
+      const unit = STATE.activeUnit || 'unit1';
+      const drawTMarks = document.getElementById('chk-layout-t-marks')
+        ? document.getElementById('chk-layout-t-marks').checked
+        : true;
+      if (STATE.layoutItems && STATE.layoutItems.length > 0) {
+        const itemsSig = STATE.layoutItems.map((it) => {
+          const fn = (it.img && it.img._fileName) || it.name || 'item';
+          const cr = it.crop ? `${it.crop.sx.toFixed(3)},${it.crop.sy.toFixed(3)},${it.crop.sw.toFixed(3)},${it.crop.sh.toFixed(3)}` : 'nocrop';
+          return `${fn}@${Math.round(it.x)},${Math.round(it.y)},${Math.round(it.w)}x${Math.round(it.h)},r${it.rotation || 0},m${it.mirror ? 1 : 0},${cr}`;
+        }).join('|');
+        return `LAYOUT::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${itemsSig}`;
+      }
+      const w = Math.round(parseFloat(document.getElementById('job-w-mm').value) || 50);
+      const h = Math.round(parseFloat(document.getElementById('job-h-mm').value) || 50);
+      const fn = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName || 'job') : 'job';
+      const cr = STATE.activeCrop ? `${STATE.activeCrop.sx.toFixed(3)},${STATE.activeCrop.sy.toFixed(3)},${STATE.activeCrop.sw.toFixed(3)},${STATE.activeCrop.sh.toFixed(3)}` : 'nocrop';
+      return `JOB::${unit}::${activeProfId}::TM${drawTMarks ? 1 : 0}::${fn}@${w}x${h},r${STATE.activeRotation || 0},m${STATE.activeMirror ? 1 : 0},${cr}`;
+    }
+
+    function updateQueueItemCopiesCount(id, newVal) {
+      const copies = Math.max(1, Math.min(500, parseInt(newVal, 10) || 1));
+      const rq = STATE.ripQueue.find((r) => r.id === id);
+      const pq = STATE.printQueue.find((p) => p.id === id);
+      const uid = (rq && rq.jobUid) || (pq && pq.jobUid);
+      if (rq) rq.copies = copies;
+      if (pq) pq.copies = copies;
+      if (uid) {
+        STATE.ripQueue.forEach((r) => { if (r.jobUid === uid) r.copies = copies; });
+        STATE.printQueue.forEach((p) => { if (p.jobUid === uid) p.copies = copies; });
+      }
+      renderQueuesSplitView();
+    }
+
     function enqueueRipAndPrintJobEntries(reuseExisting = null) {
       if (reuseExisting && (reuseExisting.rqItem || reuseExisting.pqItem)) {
         const rq = reuseExisting.rqItem || STATE.ripQueue.find((r) => r.jobUid && r.jobUid === (reuseExisting.pqItem && reuseExisting.pqItem.jobUid));
@@ -5884,9 +5923,32 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         return { rqItem: rq, pqItem: pq, jobName, w, h, printerName };
       }
 
+      const currentSig = computeCurrentJobSignature();
+      const existingRq = STATE.ripQueue.find((r) => r.jobSignature === currentSig && r.compiledData && r.compiledData.bytes);
+      if (existingRq) {
+        const existingPq = STATE.printQueue.find((p) => p.jobUid === existingRq.jobUid);
+        STATE.ripQueue.forEach((x) => (x.selected = x === existingRq));
+        STATE.printQueue.forEach((x) => (x.selected = x === existingPq));
+        renderQueuesSplitView();
+        const printerName = existingRq.unit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
+        return {
+          rqItem: existingRq,
+          pqItem: existingPq,
+          jobName: existingRq.rawJobName || existingRq.name,
+          w: existingRq.widthMm || 50,
+          h: existingRq.heightMm || 50,
+          printerName
+        };
+      }
+
+      const useLayout = STATE.layoutItems && STATE.layoutItems.length > 0;
       const w = parseFloat(document.getElementById('job-w-mm').value) || 50;
       const h = parseFloat(document.getElementById('job-h-mm').value) || 50;
-      const jobName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
+      const baseFileName = STATE.customImage ? (STATE.customImage._fileName || STATE.activeFileName) : 'Trabajo_RIP';
+      const jobName = useLayout && STATE.layoutItems.length > 1
+        ? `${baseFileName} (${STATE.layoutItems.length} copias en Layout)`
+        : baseFileName;
+      const copiesInLayout = useLayout ? STATE.layoutItems.length : 1;
       const printerName = STATE.activeUnit === 'unit2' ? 'Mimaki UJV100-160' : 'Mutoh VJ-1624';
       const uid = 'JOB-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       const nowStr = new Date().toLocaleTimeString();
@@ -5897,10 +5959,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const rqItem = {
         id: 'RQ-' + Date.now() + '-' + Math.floor(Math.random() * 100),
         jobUid: uid,
+        jobSignature: currentSig,
         selected: true,
         status: 'W',
         printCount: 0,
-        copies: 1,
+        copies: copiesInLayout,
         rawJobName: jobName,
         name: `${jobName} (${Math.round(w)}×${Math.round(h)}mm)`,
         source: `${Math.round(w)} × ${Math.round(h)} mm — ${printerName}`,
@@ -5919,10 +5982,11 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       const pqItem = {
         id: 'PQ-' + Date.now() + '-' + Math.floor(Math.random() * 100),
         jobUid: uid,
+        jobSignature: currentSig,
         selected: true,
         status: 'R',
         printCount: 0,
-        copies: 1,
+        copies: copiesInLayout,
         index: String(6660000 + Math.floor(Math.random() * 9000)),
         rawJobName: jobName,
         notes: `${jobName} [${Math.round(w)}×${Math.round(h)}mm] (${printerName})`,
@@ -7234,157 +7298,405 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
       appendRipProgressLog(`ICC Wasatch activo: RGBinput_plus10saturation.icm → Gráfico de 1400 parches.icm + Stochastic 95/92/92/89 (4.97/6.73/14.35 pL)`, 'text-emerald-300');
 
-      for (let y = 0; y < h720; y++) {
-        if (RIP_PROGRESS_STATE.cancelled) {
-          throw new Error('CANCELLED');
+      // ======================================================================
+      // OPTIMIZACIÓN STEP & REPEAT (RIPEAR 1 SOLA VEZ PARA N COPIAS IDÉNTICAS)
+      // ======================================================================
+      const useLayout = STATE.layoutItems && STATE.layoutItems.length > 1;
+      const firstIt = useLayout ? STATE.layoutItems[0] : null;
+      const allIdenticalCopies = useLayout && STATE.layoutItems.every((it) => {
+        const sameImg = (it.img || STATE.customImage) === (firstIt.img || STATE.customImage);
+        const sameSize = Math.abs(it.w - firstIt.w) <= 1 && Math.abs(it.h - firstIt.h) <= 1;
+        const sameRot = (it.rotation || 0) === (firstIt.rotation || 0) && Boolean(it.mirror) === Boolean(firstIt.mirror);
+        const c1 = it.crop ? `${it.crop.sx},${it.crop.sy},${it.crop.sw},${it.crop.sh}` : '';
+        const c0 = firstIt.crop ? `${firstIt.crop.sx},${firstIt.crop.sy},${firstIt.crop.sw},${firstIt.crop.sh}` : '';
+        return sameImg && sameSize && sameRot && c1 === c0;
+      });
+
+      if (allIdenticalCopies) {
+        const copiesCount = STATE.layoutItems.length;
+        const drawTMarks = document.getElementById('chk-layout-t-marks')
+          ? document.getElementById('chk-layout-t-marks').checked
+          : true;
+        const markMarginMm = drawTMarks ? 8 : 0;
+
+        // Renderizar UNA SOLA COPIA (con sus marcas de corte en T si están activas) a resolución de ripeo
+        const singleWmm = firstIt.w + markMarginMm * 2;
+        const singleHmm = firstIt.h + markMarginMm * 2;
+        const tileW = Math.max(4, Math.round((singleWmm * dpiX) / 25.4));
+        const tileH = Math.max(4, Math.round((singleHmm * dpiY) / 25.4));
+
+        const singleCanvas = document.createElement('canvas');
+        const pxPerMm = 360.0 / 25.4;
+        singleCanvas.width = Math.max(32, Math.round(singleWmm * pxPerMm));
+        singleCanvas.height = Math.max(32, Math.round(singleHmm * pxPerMm));
+        const sCtx = singleCanvas.getContext('2d');
+        sCtx.fillStyle = '#ffffff';
+        sCtx.fillRect(0, 0, singleCanvas.width, singleCanvas.height);
+        sCtx.imageSmoothingEnabled = true;
+        sCtx.imageSmoothingQuality = 'high';
+
+        const sdx = markMarginMm * pxPerMm;
+        const sdy = markMarginMm * pxPerMm;
+        const sdw = firstIt.w * pxPerMm;
+        const sdh = firstIt.h * pxPerMm;
+        drawArtworkIntoRect(
+          sCtx,
+          firstIt.art || STATE.activeSampleArt || 'custom',
+          firstIt.img || STATE.customImage,
+          sdx, sdy, sdw, sdh,
+          false,
+          { rotation: firstIt.rotation || 0, mirror: !!firstIt.mirror, crop: firstIt.crop || null }
+        );
+        if (drawTMarks) {
+          const arm = Math.max(8, Math.round(5.5 * pxPerMm));
+          const stem = Math.max(6, Math.round(3.5 * pxPerMm));
+          const lw = Math.max(1.5, Math.round(0.35 * pxPerMm));
+          sCtx.save();
+          sCtx.strokeStyle = '#000000';
+          sCtx.lineWidth = lw;
+          sCtx.lineCap = 'square';
+          [sdy, sdy + sdh].forEach((cy) => {
+            sCtx.beginPath();
+            sCtx.moveTo(sdx - arm, cy); sCtx.lineTo(sdx, cy);
+            sCtx.moveTo(sdx, cy - stem); sCtx.lineTo(sdx, cy + stem);
+            sCtx.stroke();
+            sCtx.beginPath();
+            sCtx.moveTo(sdx + sdw, cy); sCtx.lineTo(sdx + sdw + arm, cy);
+            sCtx.moveTo(sdx + sdw, cy - stem); sCtx.lineTo(sdx + sdw, cy + stem);
+            sCtx.stroke();
+          });
+          sCtx.restore();
         }
-        const srcY = Math.min(srcH - 1, Math.floor((y * srcH) / h720));
-        const rowOffset = srcY * srcW * 4;
 
-        kRow.fill(0);
-        cRow.fill(0);
-        mRow.fill(0);
-        yRow.fill(0);
-        errK1.fill(0);
-        errC1.fill(0);
-        errM1.fill(0);
-        errY1.fill(0);
+        const sW = singleCanvas.width;
+        const sH = singleCanvas.height;
+        const sRgba = sCtx.getImageData(0, 0, sW, sH).data;
+        const sxMap = new Int32Array(tileW);
+        for (let tx = 0; tx < tileW; tx++) {
+          sxMap[tx] = Math.min(sW - 1, Math.floor((tx * sW) / tileW)) * 4;
+        }
 
-        const serp = (y & 1) === 1;
-        const xStart = serp ? (w720 - 1) : 0;
-        const xEnd = serp ? -1 : w720;
-        const xStep = serp ? -1 : 1;
+        appendRipProgressLog(
+          `⚡ Optimización Step & Repeat activa: Ripeando 1 sola vez el patrón maestro (${tileW}×${tileH} px) y clonándolo en las ${copiesCount} copias sin volver a ripear...`,
+          'text-amber-300 font-bold'
+        );
 
-        for (let x = xStart; x !== xEnd; x += xStep) {
-          const idx = rowOffset + xMap[x];
-          const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
-          const xi = x + 1;
+        const tileK = new Uint8Array(tileW * tileH);
+        const tileC = new Uint8Array(tileW * tileH);
+        const tileM = new Uint8Array(tileW * tileH);
+        const tileY = new Uint8Array(tileW * tileH);
 
-          if (r >= 254 && g >= 254 && b >= 254) {
-            errK0[xi] = 0;
-            errC0[xi] = 0;
-            errM0[xi] = 0;
-            errY0[xi] = 0;
-            continue;
+        let tErrK0 = new Int32Array(tileW + 2), tErrK1 = new Int32Array(tileW + 2);
+        let tErrC0 = new Int32Array(tileW + 2), tErrC1 = new Int32Array(tileW + 2);
+        let tErrM0 = new Int32Array(tileW + 2), tErrM1 = new Int32Array(tileW + 2);
+        let tErrY0 = new Int32Array(tileW + 2), tErrY1 = new Int32Array(tileW + 2);
+        const tileBatch = Math.max(20, Math.floor(tileH / 15));
+
+        for (let ty = 0; ty < tileH; ty++) {
+          if (RIP_PROGRESS_STATE.cancelled) throw new Error('CANCELLED');
+          const sy = Math.min(sH - 1, Math.floor((ty * sH) / tileH));
+          const sRowOff = sy * sW * 4;
+          const tRowOff = ty * tileW;
+          tErrK1.fill(0); tErrC1.fill(0); tErrM1.fill(0); tErrY1.fill(0);
+
+          const serp = (ty & 1) === 1;
+          const xStart = serp ? (tileW - 1) : 0;
+          const xEnd = serp ? -1 : tileW;
+          const xStep = serp ? -1 : 1;
+
+          for (let tx = xStart; tx !== xEnd; tx += xStep) {
+            const idx = sRowOff + sxMap[tx];
+            const r = sRgba[idx], g = sRgba[idx + 1], b = sRgba[idx + 2];
+            const xi = tx + 1;
+            if (r >= 254 && g >= 254 && b >= 254) {
+              tErrK0[xi] = 0; tErrC0[xi] = 0; tErrM0[xi] = 0; tErrY0[xi] = 0;
+              continue;
+            }
+            const rf = r * 16, gf = g * 16, bf = b * 16;
+            let r0 = (rf / 255) | 0; if (r0 > 15) r0 = 15;
+            let g0 = (gf / 255) | 0; if (g0 > 15) g0 = 15;
+            let b0 = (bf / 255) | 0; if (b0 > 15) b0 = 15;
+            const dr = rf - r0 * 255, dg = gf - g0 * 255, db = bf - b0 * 255;
+            const dr1 = 255 - dr, dg1 = 255 - dg, db1 = 255 - db;
+
+            const base000 = ((r0 * 289 + g0 * 17 + b0) << 2);
+            const base001 = base000 + 4, base010 = base000 + 68, base011 = base010 + 4;
+            const base100 = base000 + 1156, base101 = base100 + 4, base110 = base100 + 68, base111 = base110 + 4;
+            const w000 = (dr1 * dg1) >> 8, w010 = (dr1 * dg) >> 8, w100 = (dr * dg1) >> 8, w110 = (dr * dg) >> 8;
+
+            const cVal = (
+              ((clut17[base000] * db1 + clut17[base001] * db) >> 8) * w000 +
+              ((clut17[base010] * db1 + clut17[base011] * db) >> 8) * w010 +
+              ((clut17[base100] * db1 + clut17[base101] * db) >> 8) * w100 +
+              ((clut17[base110] * db1 + clut17[base111] * db) >> 8) * w110
+            ) >> 8;
+            const mVal = (
+              ((clut17[base000 + 1] * db1 + clut17[base001 + 1] * db) >> 8) * w000 +
+              ((clut17[base010 + 1] * db1 + clut17[base011 + 1] * db) >> 8) * w010 +
+              ((clut17[base100 + 1] * db1 + clut17[base101 + 1] * db) >> 8) * w100 +
+              ((clut17[base110 + 1] * db1 + clut17[base111 + 1] * db) >> 8) * w110
+            ) >> 8;
+            const yVal = (
+              ((clut17[base000 + 2] * db1 + clut17[base001 + 2] * db) >> 8) * w000 +
+              ((clut17[base010 + 2] * db1 + clut17[base011 + 2] * db) >> 8) * w010 +
+              ((clut17[base100 + 2] * db1 + clut17[base101 + 2] * db) >> 8) * w100 +
+              ((clut17[base110 + 2] * db1 + clut17[base111 + 2] * db) >> 8) * w110
+            ) >> 8;
+            const kVal = (
+              ((clut17[base000 + 3] * db1 + clut17[base001 + 3] * db) >> 8) * w000 +
+              ((clut17[base010 + 3] * db1 + clut17[base011 + 3] * db) >> 8) * w010 +
+              ((clut17[base100 + 3] * db1 + clut17[base101 + 3] * db) >> 8) * w100 +
+              ((clut17[base110 + 3] * db1 + clut17[base111 + 3] * db) >> 8) * w110
+            ) >> 8;
+
+            const tk = Math.max(0, Math.min(765, kLut[kVal] + (tErrK0[xi] >> 4)));
+            const tc = Math.max(0, Math.min(765, cLut[cVal] + (tErrC0[xi] >> 4)));
+            const tm = Math.max(0, Math.min(765, mLut[mVal] + (tErrM0[xi] >> 4)));
+            const tyVal = Math.max(0, Math.min(765, yLut[yVal] + (tErrY0[xi] >> 4)));
+
+            const kv = ((tk + 127) / 255) | 0;
+            const cv = ((tc + 127) / 255) | 0;
+            const mv = ((tm + 127) / 255) | 0;
+            const yv = ((tyVal + 127) / 255) | 0;
+
+            const ek = tk - kv * 255, ec = tc - cv * 255, em = tm - mv * 255, ey = tyVal - yv * 255;
+            const xFwd = xi + xStep, xBack = xi - xStep;
+
+            tErrK0[xFwd] += ek * 7; tErrK1[xBack] += ek * 3; tErrK1[xi] += ek * 5; tErrK1[xFwd] += ek;
+            tErrC0[xFwd] += ec * 7; tErrC1[xBack] += ec * 3; tErrC1[xi] += ec * 5; tErrC1[xFwd] += ec;
+            tErrM0[xFwd] += em * 7; tErrM1[xBack] += em * 3; tErrM1[xi] += em * 5; tErrM1[xFwd] += em;
+            tErrY0[xFwd] += ey * 7; tErrY1[xBack] += ey * 3; tErrY1[xi] += ey * 5; tErrY1[xFwd] += ey;
+
+            tileK[tRowOff + tx] = kv;
+            tileC[tRowOff + tx] = cv;
+            tileM[tRowOff + tx] = mv;
+            tileY[tRowOff + tx] = yv;
           }
 
-          // Interpolación trilineal directa en la 3D CLUT 17x17x17 del perfil "Gráfico de 1400 parches.icm"
-          const rf = r * 16, gf = g * 16, bf = b * 16;
-          let r0 = (rf / 255) | 0; if (r0 > 15) r0 = 15;
-          let g0 = (gf / 255) | 0; if (g0 > 15) g0 = 15;
-          let b0 = (bf / 255) | 0; if (b0 > 15) b0 = 15;
-          const dr = rf - r0 * 255;
-          const dg = gf - g0 * 255;
-          const db = bf - b0 * 255;
-          const dr1 = 255 - dr, dg1 = 255 - dg, db1 = 255 - db;
+          let tmp = tErrK0; tErrK0 = tErrK1; tErrK1 = tmp;
+          tmp = tErrC0; tErrC0 = tErrC1; tErrC1 = tmp;
+          tmp = tErrM0; tErrM0 = tErrM1; tErrM1 = tmp;
+          tmp = tErrY0; tErrY0 = tErrY1; tErrY1 = tmp;
 
-          const base000 = ((r0 * 289 + g0 * 17 + b0) << 2);
-          const base001 = base000 + 4;
-          const base010 = base000 + 68;
-          const base011 = base010 + 4;
-          const base100 = base000 + 1156;
-          const base101 = base100 + 4;
-          const base110 = base100 + 68;
-          const base111 = base110 + 4;
-
-          const w000 = (dr1 * dg1) >> 8, w010 = (dr1 * dg) >> 8;
-          const w100 = (dr * dg1) >> 8,  w110 = (dr * dg) >> 8;
-
-          const cVal = (
-            ((clut17[base000] * db1 + clut17[base001] * db) >> 8) * w000 +
-            ((clut17[base010] * db1 + clut17[base011] * db) >> 8) * w010 +
-            ((clut17[base100] * db1 + clut17[base101] * db) >> 8) * w100 +
-            ((clut17[base110] * db1 + clut17[base111] * db) >> 8) * w110
-          ) >> 8;
-          const mVal = (
-            ((clut17[base000 + 1] * db1 + clut17[base001 + 1] * db) >> 8) * w000 +
-            ((clut17[base010 + 1] * db1 + clut17[base011 + 1] * db) >> 8) * w010 +
-            ((clut17[base100 + 1] * db1 + clut17[base101 + 1] * db) >> 8) * w100 +
-            ((clut17[base110 + 1] * db1 + clut17[base111 + 1] * db) >> 8) * w110
-          ) >> 8;
-          const yVal = (
-            ((clut17[base000 + 2] * db1 + clut17[base001 + 2] * db) >> 8) * w000 +
-            ((clut17[base010 + 2] * db1 + clut17[base011 + 2] * db) >> 8) * w010 +
-            ((clut17[base100 + 2] * db1 + clut17[base101 + 2] * db) >> 8) * w100 +
-            ((clut17[base110 + 2] * db1 + clut17[base111 + 2] * db) >> 8) * w110
-          ) >> 8;
-          const kVal = (
-            ((clut17[base000 + 3] * db1 + clut17[base001 + 3] * db) >> 8) * w000 +
-            ((clut17[base010 + 3] * db1 + clut17[base011 + 3] * db) >> 8) * w010 +
-            ((clut17[base100 + 3] * db1 + clut17[base101 + 3] * db) >> 8) * w100 +
-            ((clut17[base110 + 3] * db1 + clut17[base111 + 3] * db) >> 8) * w110
-          ) >> 8;
-
-          const tk = Math.max(0, Math.min(765, kLut[kVal] + (errK0[xi] >> 4)));
-          const tc = Math.max(0, Math.min(765, cLut[cVal] + (errC0[xi] >> 4)));
-          const tm = Math.max(0, Math.min(765, mLut[mVal] + (errM0[xi] >> 4)));
-          const ty = Math.max(0, Math.min(765, yLut[yVal] + (errY0[xi] >> 4)));
-
-          const kv = ((tk + 127) / 255) | 0;
-          const cv = ((tc + 127) / 255) | 0;
-          const mv = ((tm + 127) / 255) | 0;
-          const yv = ((ty + 127) / 255) | 0;
-
-          const ek = tk - kv * 255;
-          const ec = tc - cv * 255;
-          const em = tm - mv * 255;
-          const ey = ty - yv * 255;
-
-          const xFwd = xi + xStep;
-          const xBack = xi - xStep;
-
-          errK0[xFwd] += ek * 7;
-          errK1[xBack] += ek * 3;
-          errK1[xi] += ek * 5;
-          errK1[xFwd] += ek;
-
-          errC0[xFwd] += ec * 7;
-          errC1[xBack] += ec * 3;
-          errC1[xi] += ec * 5;
-          errC1[xFwd] += ec;
-
-          errM0[xFwd] += em * 7;
-          errM1[xBack] += em * 3;
-          errM1[xi] += em * 5;
-          errM1[xFwd] += em;
-
-          errY0[xFwd] += ey * 7;
-          errY1[xBack] += ey * 3;
-          errY1[xi] += ey * 5;
-          errY1[xFwd] += ey;
-
-          const bx = x >> 2;
-          const shift = 6 - ((x & 3) << 1);
-          if (kv) kRow[bx] |= (kv << shift);
-          if (cv) cRow[bx] |= (cv << shift);
-          if (mv) mRow[bx] |= (mv << shift);
-          if (yv) yRow[bx] |= (yv << shift);
-        }
-
-        // Rotar buffers de error de fila actual y fila siguiente
-        let tmp = errK0; errK0 = errK1; errK1 = tmp;
-        tmp = errC0; errC0 = errC1; errC1 = tmp;
-        tmp = errM0; errM0 = errM1; errM1 = tmp;
-        tmp = errY0; errY0 = errY1; errY1 = tmp;
-
-        const planes = [kRow, cRow, mRow, yRow];
-        for (let pIdx = 0; pIdx < 4; pIdx++) {
-          const rle = encodePackBitsRle(planes[pIdx], rleScratch);
-          const cmdPrefix = asciiToBytes(`\x1b*b${rle.length}${pIdx === 3 ? 'W' : 'V'}`);
-          pushChunk(cmdPrefix);
-          pushChunk(rle);
-        }
-
-        if ((y + 1) % batchRows === 0 || y === h720 - 1) {
-          const ripPct = 8 + Math.round(((y + 1) / h720) * 86);
-          if (onProgress) {
-            onProgress(
-              ripPct,
-              `Ripeando línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()} (720×720 DPI • Planos [K, C, M, Y] 2-Bit FS)...`,
-              totalLength
-            );
+          if ((ty + 1) % tileBatch === 0 || ty === tileH - 1) {
+            const pct = 8 + Math.round(((ty + 1) / tileH) * 52);
+            if (onProgress) {
+              onProgress(pct, `Ripeando 1 sola vez la imagen maestra (${ty + 1}/${tileH} líneas) para ${copiesCount} copias...`, totalLength);
+            }
+            await new Promise((r) => setTimeout(r, 5));
           }
-          await new Promise((r) => setTimeout(r, 8));
+        }
+
+        // Calcular coordenadas de estampado de las N copias sobre el lienzo global (w720 x h720)
+        let minX = Infinity, minY = Infinity;
+        STATE.layoutItems.forEach((it) => {
+          minX = Math.min(minX, it.x);
+          minY = Math.min(minY, it.y);
+        });
+        const originX = Math.max(0, minX);
+        const originY = Math.max(0, minY);
+        const placements = STATE.layoutItems.map((it) => ({
+          px0: Math.max(0, Math.round(((it.x - originX) * dpiX) / 25.4)),
+          py0: Math.max(0, Math.round(((it.y - originY) * dpiY) / 25.4))
+        }));
+
+        // Ensamblar las líneas finales estampando los puntos 2-bit ya ripeados de la copia maestra
+        for (let y = 0; y < h720; y++) {
+          if (RIP_PROGRESS_STATE.cancelled) throw new Error('CANCELLED');
+          kRow.fill(0); cRow.fill(0); mRow.fill(0); yRow.fill(0);
+
+          for (let cIdx = 0; cIdx < placements.length; cIdx++) {
+            const pl = placements[cIdx];
+            const ty = y - pl.py0;
+            if (ty < 0 || ty >= tileH) continue;
+            const tRowOff = ty * tileW;
+            const maxTx = Math.min(tileW, w720 - pl.px0);
+            for (let tx = 0; tx < maxTx; tx++) {
+              const gx = pl.px0 + tx;
+              const bx = gx >> 2;
+              const shift = 6 - ((gx & 3) << 1);
+              const tIdx = tRowOff + tx;
+              const kv = tileK[tIdx], cv = tileC[tIdx], mv = tileM[tIdx], yv = tileY[tIdx];
+              if (kv) kRow[bx] |= (kv << shift);
+              if (cv) cRow[bx] |= (cv << shift);
+              if (mv) mRow[bx] |= (mv << shift);
+              if (yv) yRow[bx] |= (yv << shift);
+            }
+          }
+
+          const planes = [kRow, cRow, mRow, yRow];
+          for (let pIdx = 0; pIdx < 4; pIdx++) {
+            const rle = encodePackBitsRle(planes[pIdx], rleScratch);
+            const cmdPrefix = asciiToBytes(`\x1b*b${rle.length}${pIdx === 3 ? 'W' : 'V'}`);
+            pushChunk(cmdPrefix);
+            pushChunk(rle);
+          }
+
+          if ((y + 1) % batchRows === 0 || y === h720 - 1) {
+            const ripPct = 60 + Math.round(((y + 1) / h720) * 35);
+            if (onProgress) {
+              onProgress(
+                ripPct,
+                `Clonando matriz ya ripeada en las ${copiesCount} copias (línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()})...`,
+                totalLength
+              );
+            }
+            await new Promise((r) => setTimeout(r, 4));
+          }
+        }
+      } else {
+        for (let y = 0; y < h720; y++) {
+          if (RIP_PROGRESS_STATE.cancelled) {
+            throw new Error('CANCELLED');
+          }
+          const srcY = Math.min(srcH - 1, Math.floor((y * srcH) / h720));
+          const rowOffset = srcY * srcW * 4;
+
+          kRow.fill(0);
+          cRow.fill(0);
+          mRow.fill(0);
+          yRow.fill(0);
+          errK1.fill(0);
+          errC1.fill(0);
+          errM1.fill(0);
+          errY1.fill(0);
+
+          const serp = (y & 1) === 1;
+          const xStart = serp ? (w720 - 1) : 0;
+          const xEnd = serp ? -1 : w720;
+          const xStep = serp ? -1 : 1;
+
+          for (let x = xStart; x !== xEnd; x += xStep) {
+            const idx = rowOffset + xMap[x];
+            const r = rgba[idx], g = rgba[idx + 1], b = rgba[idx + 2];
+            const xi = x + 1;
+
+            if (r >= 254 && g >= 254 && b >= 254) {
+              errK0[xi] = 0;
+              errC0[xi] = 0;
+              errM0[xi] = 0;
+              errY0[xi] = 0;
+              continue;
+            }
+
+            // Interpolación trilineal directa en la 3D CLUT 17x17x17 del perfil "Gráfico de 1400 parches.icm"
+            const rf = r * 16, gf = g * 16, bf = b * 16;
+            let r0 = (rf / 255) | 0; if (r0 > 15) r0 = 15;
+            let g0 = (gf / 255) | 0; if (g0 > 15) g0 = 15;
+            let b0 = (bf / 255) | 0; if (b0 > 15) b0 = 15;
+            const dr = rf - r0 * 255;
+            const dg = gf - g0 * 255;
+            const db = bf - b0 * 255;
+            const dr1 = 255 - dr, dg1 = 255 - dg, db1 = 255 - db;
+
+            const base000 = ((r0 * 289 + g0 * 17 + b0) << 2);
+            const base001 = base000 + 4;
+            const base010 = base000 + 68;
+            const base011 = base010 + 4;
+            const base100 = base000 + 1156;
+            const base101 = base100 + 4;
+            const base110 = base100 + 68;
+            const base111 = base110 + 4;
+
+            const w000 = (dr1 * dg1) >> 8, w010 = (dr1 * dg) >> 8;
+            const w100 = (dr * dg1) >> 8,  w110 = (dr * dg) >> 8;
+
+            const cVal = (
+              ((clut17[base000] * db1 + clut17[base001] * db) >> 8) * w000 +
+              ((clut17[base010] * db1 + clut17[base011] * db) >> 8) * w010 +
+              ((clut17[base100] * db1 + clut17[base101] * db) >> 8) * w100 +
+              ((clut17[base110] * db1 + clut17[base111] * db) >> 8) * w110
+            ) >> 8;
+            const mVal = (
+              ((clut17[base000 + 1] * db1 + clut17[base001 + 1] * db) >> 8) * w000 +
+              ((clut17[base010 + 1] * db1 + clut17[base011 + 1] * db) >> 8) * w010 +
+              ((clut17[base100 + 1] * db1 + clut17[base101 + 1] * db) >> 8) * w100 +
+              ((clut17[base110 + 1] * db1 + clut17[base111 + 1] * db) >> 8) * w110
+            ) >> 8;
+            const yVal = (
+              ((clut17[base000 + 2] * db1 + clut17[base001 + 2] * db) >> 8) * w000 +
+              ((clut17[base010 + 2] * db1 + clut17[base011 + 2] * db) >> 8) * w010 +
+              ((clut17[base100 + 2] * db1 + clut17[base101 + 2] * db) >> 8) * w100 +
+              ((clut17[base110 + 2] * db1 + clut17[base111 + 2] * db) >> 8) * w110
+            ) >> 8;
+            const kVal = (
+              ((clut17[base000 + 3] * db1 + clut17[base001 + 3] * db) >> 8) * w000 +
+              ((clut17[base010 + 3] * db1 + clut17[base011 + 3] * db) >> 8) * w010 +
+              ((clut17[base100 + 3] * db1 + clut17[base101 + 3] * db) >> 8) * w100 +
+              ((clut17[base110 + 3] * db1 + clut17[base111 + 3] * db) >> 8) * w110
+            ) >> 8;
+
+            const tk = Math.max(0, Math.min(765, kLut[kVal] + (errK0[xi] >> 4)));
+            const tc = Math.max(0, Math.min(765, cLut[cVal] + (errC0[xi] >> 4)));
+            const tm = Math.max(0, Math.min(765, mLut[mVal] + (errM0[xi] >> 4)));
+            const ty = Math.max(0, Math.min(765, yLut[yVal] + (errY0[xi] >> 4)));
+
+            const kv = ((tk + 127) / 255) | 0;
+            const cv = ((tc + 127) / 255) | 0;
+            const mv = ((tm + 127) / 255) | 0;
+            const yv = ((ty + 127) / 255) | 0;
+
+            const ek = tk - kv * 255;
+            const ec = tc - cv * 255;
+            const em = tm - mv * 255;
+            const ey = ty - yv * 255;
+
+            const xFwd = xi + xStep;
+            const xBack = xi - xStep;
+
+            errK0[xFwd] += ek * 7;
+            errK1[xBack] += ek * 3;
+            errK1[xi] += ek * 5;
+            errK1[xFwd] += ek;
+
+            errC0[xFwd] += ec * 7;
+            errC1[xBack] += ec * 3;
+            errC1[xi] += ec * 5;
+            errC1[xFwd] += ec;
+
+            errM0[xFwd] += em * 7;
+            errM1[xBack] += em * 3;
+            errM1[xi] += em * 5;
+            errM1[xFwd] += em;
+
+            errY0[xFwd] += ey * 7;
+            errY1[xBack] += ey * 3;
+            errY1[xi] += ey * 5;
+            errY1[xFwd] += ey;
+
+            const bx = x >> 2;
+            const shift = 6 - ((x & 3) << 1);
+            if (kv) kRow[bx] |= (kv << shift);
+            if (cv) cRow[bx] |= (cv << shift);
+            if (mv) mRow[bx] |= (mv << shift);
+            if (yv) yRow[bx] |= (yv << shift);
+          }
+
+          // Rotar buffers de error de fila actual y fila siguiente
+          let tmp = errK0; errK0 = errK1; errK1 = tmp;
+          tmp = errC0; errC0 = errC1; errC1 = tmp;
+          tmp = errM0; errM0 = errM1; errM1 = tmp;
+          tmp = errY0; errY0 = errY1; errY1 = tmp;
+
+          const planes = [kRow, cRow, mRow, yRow];
+          for (let pIdx = 0; pIdx < 4; pIdx++) {
+            const rle = encodePackBitsRle(planes[pIdx], rleScratch);
+            const cmdPrefix = asciiToBytes(`\x1b*b${rle.length}${pIdx === 3 ? 'W' : 'V'}`);
+            pushChunk(cmdPrefix);
+            pushChunk(rle);
+          }
+
+          if ((y + 1) % batchRows === 0 || y === h720 - 1) {
+            const ripPct = 8 + Math.round(((y + 1) / h720) * 86);
+            if (onProgress) {
+              onProgress(
+                ripPct,
+                `Ripeando línea ${(y + 1).toLocaleString()} / ${h720.toLocaleString()} (720×720 DPI • Planos [K, C, M, Y] 2-Bit FS)...`,
+                totalLength
+              );
+            }
+            await new Promise((r) => setTimeout(r, 8));
+          }
         }
       }
 
