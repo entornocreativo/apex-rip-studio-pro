@@ -1577,6 +1577,130 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
   </div>
 
   <!-- ========================================================================== -->
+  <!-- MENÚ CONTEXTUAL (CLIC DERECHO EN LA MESA / FUERA DE LAS IMÁGENES)          -->
+  <!-- ========================================================================== -->
+  <div id="layout-board-context-menu" class="ws-ctx-menu" style="min-width: 265px;" role="menu">
+    <div id="board-ctx-menu-title" class="ws-ctx-header">Mesa Layout — Selección Múltiple</div>
+
+    <!-- 1. Imposición inteligente -->
+    <div class="ws-ctx-has-sub">
+      <button type="button" class="ws-ctx-item">
+        <span>🧩 Imposición inteligente</span>
+        <span class="text-[10px] text-sky-400 font-mono">▸</span>
+      </button>
+      <div class="ws-ctx-submenu">
+        <button type="button" class="ws-ctx-item" onclick="layoutImpositionSetMode('simple')">
+          <span><span id="chk-imp-simple" class="inline-block w-4 font-bold text-emerald-400">✓</span>Jerarquización simple</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutImpositionSetMode('tight')">
+          <span><span id="chk-imp-tight" class="inline-block w-4 font-bold text-emerald-400"></span>Ajuste más preciso</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutImpositionSetMode('easy_cut')">
+          <span><span id="chk-imp-easy_cut" class="inline-block w-4 font-bold text-emerald-400"></span>Corte fácil</span>
+          <span class="text-[10px] text-slate-400 font-mono">Marcas T</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutImpositionSetMode('super_easy_cut')">
+          <span><span id="chk-imp-super_easy_cut" class="inline-block w-4 font-bold text-emerald-400"></span>Corte súper fácil</span>
+          <span class="text-[10px] text-slate-400 font-mono">Trincheta</span>
+        </button>
+        <div class="ws-ctx-sep"></div>
+        <button type="button" class="ws-ctx-item" onclick="layoutImpositionToggleRotation()">
+          <span><span id="chk-imp-rotate" class="inline-block w-4 font-bold text-sky-400"></span>Permitir rotación</span>
+          <span class="text-[10px] text-sky-300 font-mono">90° Auto</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Alineación -->
+    <div class="ws-ctx-has-sub">
+      <button type="button" class="ws-ctx-item">
+        <span>📏 Alineación</span>
+        <span class="text-[10px] text-sky-400 font-mono">▸</span>
+      </button>
+      <div class="ws-ctx-submenu">
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('left')">
+          <span>⬅️ Izquierdos</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('center_h')">
+          <span>↔️ Centros Horizontales</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('right')">
+          <span>➡️ Derechos</span>
+        </button>
+        <div class="ws-ctx-sep"></div>
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('top')">
+          <span>⬆️ Superiores</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('center_v')">
+          <span>↕️ Centros verticales</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutAlignSelected('bottom')">
+          <span>⬇️ Inferiores</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Espaciar equitativamente -->
+    <div class="ws-ctx-has-sub">
+      <button type="button" class="ws-ctx-item">
+        <span>⚖️ Espaciar equitativamente</span>
+        <span class="text-[10px] text-sky-400 font-mono">▸</span>
+      </button>
+      <div class="ws-ctx-submenu">
+        <button type="button" class="ws-ctx-item" onclick="layoutSpaceEqually('middle')">
+          <span>↔️ Por el medio</span>
+          <span class="text-[10px] text-slate-400 font-mono">Horizontal</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutSpaceEqually('down')">
+          <span>↕️ Abajo</span>
+          <span class="text-[10px] text-slate-400 font-mono">Vertical</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. Realizar el mismo tamaño -->
+    <div class="ws-ctx-has-sub">
+      <button type="button" class="ws-ctx-item">
+        <span>📐 Realizar el mismo tamaño</span>
+        <span class="text-[10px] text-sky-400 font-mono">▸</span>
+      </button>
+      <div class="ws-ctx-submenu">
+        <button type="button" class="ws-ctx-item" onclick="layoutMakeSameSize('width')">
+          <span>↔️ Anchos</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutMakeSameSize('height')">
+          <span>↕️ Altos</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. Centro de alto -->
+    <div class="ws-ctx-has-sub">
+      <button type="button" class="ws-ctx-item">
+        <span>🎯 Centro de alto</span>
+        <span class="text-[10px] text-sky-400 font-mono">▸</span>
+      </button>
+      <div class="ws-ctx-submenu">
+        <button type="button" class="ws-ctx-item" onclick="layoutCenterInPage('vertical')">
+          <span>↕️ Verticalmente</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutCenterInPage('horizontal')">
+          <span>↔️ Horizontalmente</span>
+        </button>
+        <button type="button" class="ws-ctx-item" onclick="layoutCenterInPage('both')">
+          <span>✚ Ambos</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="ws-ctx-sep"></div>
+    <button type="button" class="ws-ctx-item" onclick="layoutSelectAllItems()">
+      <span>☑️ Seleccionar todas las imágenes</span>
+      <span class="text-[10px] text-slate-400 font-mono">Ctrl+A</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================== -->
   <!-- MENÚ CONTEXTUAL (CLIC DERECHO) — COLA DE RIP (RIP QUEUE)                   -->
   <!-- ========================================================================== -->
   <div id="rip-queue-context-menu" class="ws-ctx-menu" style="min-width: 320px;" role="menu">
@@ -3830,23 +3954,86 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         ctx.restore();
       }
 
+      // Recuadro de selección múltiple (Marquee / Lasso) al arrastrar con clic izquierdo
+      if (STATE.marqueeRect) {
+        const mr = STATE.marqueeRect;
+        const rx = x0 + Math.min(mr.x0, mr.x1) * scale;
+        const ry = y0 + Math.min(mr.y0, mr.y1) * scale;
+        const rw = Math.abs(mr.x1 - mr.x0) * scale;
+        const rh = Math.abs(mr.y1 - mr.y0) * scale;
+        ctx.save();
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.18)';
+        ctx.fillRect(rx, ry, rw, rh);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(Math.round(rx) + 0.5, Math.round(ry) + 0.5, Math.round(rw), Math.round(rh));
+        ctx.restore();
+      }
+
       drawWasatchRulers(ctx, x0, y0, viewW, viewH, rollW_mm, visibleRollLenMm);
 
       const eff = STATE.layoutItems.length > 0
         ? Math.min(99.9, (usedArea / Math.max(1, rollW_mm * maxItemY)) * 100).toFixed(2)
         : '0.00';
       document.getElementById('status-nesting-eff').textContent = `Nesting Efficiency: ${eff}%`;
-      document.getElementById('layout-count-badge').textContent = `Piezas: ${STATE.layoutItems.length}`;
+      const selCount = STATE.layoutItems.filter((it) => it.selected).length;
+      document.getElementById('layout-count-badge').textContent =
+        selCount > 0 ? `Piezas: ${STATE.layoutItems.length} (${selCount} sel.)` : `Piezas: ${STATE.layoutItems.length}`;
     }
 
     // ============================================================================
-    // INTERACCIÓN CON RATÓN, CLIC DERECHO (MENÚ CONTEXTUAL), SNAP 0mm Y RECORTE EN JOB
+    // INTERACCIÓN CON RATÓN, SELECCIÓN POR ARRASTRE, MENÚS CONTEXTUALES Y ALINEACIÓN
     // ============================================================================
+    if (!STATE.impositionMode) STATE.impositionMode = 'simple';
+    if (typeof STATE.impositionAllowRotation !== 'boolean') STATE.impositionAllowRotation = false;
+
     function hideContextMenu() {
-      ['layout-context-menu', 'rip-queue-context-menu', 'print-queue-context-menu'].forEach((id) => {
+      ['layout-context-menu', 'layout-board-context-menu', 'rip-queue-context-menu', 'print-queue-context-menu'].forEach((id) => {
         const menu = document.getElementById(id);
         if (menu) menu.classList.remove('open');
       });
+    }
+
+    function updateImpositionMenuCheckmarks() {
+      const modes = ['simple', 'tight', 'easy_cut', 'super_easy_cut'];
+      modes.forEach((m) => {
+        const el = document.getElementById(`chk-imp-${m}`);
+        if (el) el.textContent = STATE.impositionMode === m ? '✓' : '';
+      });
+      const rotEl = document.getElementById('chk-imp-rotate');
+      if (rotEl) rotEl.textContent = STATE.impositionAllowRotation ? '✓' : '';
+    }
+
+    function showLayoutBoardContextMenuAt(clientX, clientY) {
+      hideContextMenu();
+      const menu = document.getElementById('layout-board-context-menu');
+      if (!menu) return;
+
+      updateImpositionMenuCheckmarks();
+      const selItems = STATE.layoutItems.filter((it) => it.selected);
+      const totalItems = STATE.layoutItems.length;
+      const titleEl = document.getElementById('board-ctx-menu-title');
+      if (titleEl) {
+        if (selItems.length > 0) {
+          titleEl.textContent = `Layout — ${selItems.length} de ${totalItems} pieza(s) seleccionada(s)`;
+        } else {
+          titleEl.textContent = `Layout — ${totalItems} pieza(s) en mesa`;
+        }
+      }
+
+      menu.classList.remove('flip-left');
+      menu.classList.add('open');
+      const mw = menu.offsetWidth || 270;
+      const mh = menu.offsetHeight || 220;
+      const subW = 255;
+      if (clientX + mw + subW > window.innerWidth - 12) {
+        menu.classList.add('flip-left');
+      }
+      const clampedX = Math.max(8, Math.min(window.innerWidth - mw - 10, clientX));
+      const clampedY = Math.max(8, Math.min(window.innerHeight - mh - 10, clientY));
+      menu.style.left = `${clampedX}px`;
+      menu.style.top = `${clampedY}px`;
     }
 
     function showContextMenuAt(clientX, clientY, targetItem) {
@@ -3883,8 +4070,338 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       return STATE.layoutItems.find((it) => it.selected) || STATE.layoutItems[STATE.layoutItems.length - 1] || null;
     }
 
+    function getTargetLayoutItemsForOperation() {
+      const sel = STATE.layoutItems.filter((it) => it.selected);
+      if (sel.length > 0) return sel;
+      return STATE.layoutItems.slice();
+    }
+
+    function layoutSelectAllItems() {
+      hideContextMenu();
+      if (STATE.layoutItems.length === 0) {
+        showToast('ℹ️ No hay imágenes en el Layout todavía.');
+        return;
+      }
+      STATE.layoutItems.forEach((it) => (it.selected = true));
+      syncSelectedLayoutItemInputs(STATE.layoutItems[STATE.layoutItems.length - 1]);
+      renderLayoutCanvas();
+      showToast(`☑️ ${STATE.layoutItems.length} pieza(s) seleccionada(s)`);
+    }
+
+    function rotateItem90IfNeeded(it, shouldRotate) {
+      const isRotated = !!it._impRotated;
+      if (shouldRotate !== isRotated) {
+        const tmp = it.w;
+        it.w = it.h;
+        it.h = tmp;
+        it.aspectRatio = it.w / it.h;
+        it.rotation = ((it.rotation || 0) + (shouldRotate ? 90 : 270)) % 360;
+        it._impRotated = shouldRotate;
+      }
+    }
+
+    // 1. Submenú: Imposición inteligente
+    function layoutImpositionSetMode(mode) {
+      STATE.impositionMode = mode;
+      updateImpositionMenuCheckmarks();
+      applySmartImpositionToLayout(mode, STATE.impositionAllowRotation);
+      hideContextMenu();
+    }
+
+    function layoutImpositionToggleRotation() {
+      STATE.impositionAllowRotation = !STATE.impositionAllowRotation;
+      updateImpositionMenuCheckmarks();
+      applySmartImpositionToLayout(STATE.impositionMode || 'simple', STATE.impositionAllowRotation);
+      hideContextMenu();
+    }
+
+    function applySmartImpositionToLayout(mode, allowRot) {
+      const items = getTargetLayoutItemsForOperation();
+      if (items.length === 0) {
+        showToast('ℹ️ Añade imágenes al Layout primero.');
+        return;
+      }
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+      const baseGap = getLayoutGapMm();
+
+      if (!allowRot) {
+        items.forEach((it) => rotateItem90IfNeeded(it, false));
+      }
+
+      if (mode === 'simple') {
+        let curX = 0, curY = 0, rowH = 0;
+        items.forEach((it) => {
+          if (allowRot) {
+            const fitsNormal = curX + it.w <= rollW;
+            const fitsRot = curX + it.h <= rollW;
+            if (!fitsNormal && fitsRot) {
+              rotateItem90IfNeeded(it, !it._impRotated);
+            } else if (curX === 0 && it.w < it.h && it.h <= rollW) {
+              rotateItem90IfNeeded(it, !it._impRotated);
+            }
+          }
+          if (curX > 0 && curX + it.w > rollW) {
+            curX = 0;
+            curY += rowH + baseGap;
+            rowH = 0;
+          }
+          it.x = Math.round(curX);
+          it.y = Math.round(curY);
+          curX += it.w + baseGap;
+          if (it.h > rowH) rowH = it.h;
+        });
+        showToast(`🧩 Imposición: Jerarquización simple aplicada (${items.length} piezas${allowRot ? ' • Rotación activa' : ''})`);
+      } else if (mode === 'tight') {
+        if (allowRot) {
+          items.forEach((it) => {
+            if (it.h > it.w && it.h <= rollW) {
+              rotateItem90IfNeeded(it, !it._impRotated);
+            }
+          });
+        }
+        const sorted = items.slice().sort((a, b) => (b.h * b.w) - (a.h * a.w) || b.h - a.h);
+        const placed = [];
+        sorted.forEach((it) => {
+          let bestX = 0, bestY = Infinity, bestRot = false;
+          const candidatesY = [0];
+          placed.forEach((p) => {
+            candidatesY.push(p.y);
+            candidatesY.push(p.y + p.h + baseGap);
+          });
+          const candidatesX = [0];
+          placed.forEach((p) => {
+            candidatesX.push(p.x);
+            candidatesX.push(p.x + p.w + baseGap);
+          });
+          candidatesY.sort((a, b) => a - b);
+          candidatesX.sort((a, b) => a - b);
+
+          const orientations = allowRot ? [false, true] : [false];
+          for (const rotFlag of orientations) {
+            const tw = rotFlag ? it.h : it.w;
+            const th = rotFlag ? it.w : it.h;
+            if (tw > rollW) continue;
+            for (const cy of candidatesY) {
+              if (cy >= bestY) break;
+              for (const cx of candidatesX) {
+                if (cx + tw > rollW) continue;
+                const overlaps = placed.some((p) =>
+                  !(cx + tw + baseGap <= p.x || cx >= p.x + p.w + baseGap || cy + th + baseGap <= p.y || cy >= p.y + p.h + baseGap)
+                );
+                if (!overlaps) {
+                  bestX = cx;
+                  bestY = cy;
+                  bestRot = rotFlag;
+                  break;
+                }
+              }
+            }
+          }
+          if (bestRot) {
+            rotateItem90IfNeeded(it, !it._impRotated);
+          }
+          if (!isFinite(bestY)) {
+            const maxB = placed.reduce((m, p) => Math.max(m, p.y + p.h), 0);
+            bestX = 0;
+            bestY = placed.length ? maxB + baseGap : 0;
+          }
+          it.x = Math.round(bestX);
+          it.y = Math.round(bestY);
+          placed.push(it);
+        });
+        showToast(`🧩 Imposición: Ajuste más preciso aplicado (${items.length} piezas)`);
+      } else if (mode === 'easy_cut') {
+        const chkT = document.getElementById('chk-layout-t-marks');
+        if (chkT) chkT.checked = true;
+        const cutGap = Math.max(baseGap, 0);
+        if (allowRot) {
+          const refH = items[0].h;
+          items.forEach((it) => {
+            if (Math.abs(it.w - refH) < Math.abs(it.h - refH) && it.h <= rollW) {
+              rotateItem90IfNeeded(it, !it._impRotated);
+            }
+          });
+        }
+        const sorted = items.slice().sort((a, b) => b.h - a.h || b.w - a.w);
+        let curX = 0, curY = 0, rowH = 0;
+        sorted.forEach((it) => {
+          if (curX > 0 && curX + it.w > rollW) {
+            curX = 0;
+            curY += rowH + cutGap;
+            rowH = 0;
+          }
+          it.x = Math.round(curX);
+          it.y = Math.round(curY);
+          curX += it.w + cutGap;
+          if (it.h > rowH) rowH = it.h;
+        });
+        showToast(`✂️ Imposición: Corte fácil con Marcas T aplicado (${items.length} piezas)`);
+      } else if (mode === 'super_easy_cut') {
+        const chkT = document.getElementById('chk-layout-t-marks');
+        if (chkT) chkT.checked = true;
+        const trinchetaGap = Math.max(baseGap, 12);
+        const maxW = Math.max(...items.map((it) => it.w));
+        const cols = Math.max(1, Math.floor((rollW + trinchetaGap) / (maxW + trinchetaGap)));
+        let curY = 0;
+        for (let i = 0; i < items.length; i += cols) {
+          const rowSlice = items.slice(i, i + cols);
+          const rowMaxH = Math.max(...rowSlice.map((it) => it.h));
+          rowSlice.forEach((it, cIdx) => {
+            it.x = Math.round(cIdx * (maxW + trinchetaGap));
+            it.y = Math.round(curY);
+          });
+          curY += rowMaxH + trinchetaGap;
+        }
+        showToast(`🔪 Imposición: Corte súper fácil para trincheta aplicado (${items.length} piezas en grilla de corte recto)`);
+      }
+
+      syncPaperAndRender();
+    }
+
+    // 2. Submenú: Alineación (Izquierdos, Centros Horizontales, Derechos, Superiores, Centros verticales, Inferiores)
+    function layoutAlignSelected(alignType) {
+      hideContextMenu();
+      const items = getTargetLayoutItemsForOperation();
+      if (items.length < 2) {
+        showToast('ℹ️ Selecciona al menos 2 imágenes (arrastrando con el ratón) para alinearlas entre sí.');
+        return;
+      }
+      const minX = Math.min(...items.map((it) => it.x));
+      const maxRight = Math.max(...items.map((it) => it.x + it.w));
+      const centerX = (minX + maxRight) / 2;
+      const minY = Math.min(...items.map((it) => it.y));
+      const maxBottom = Math.max(...items.map((it) => it.y + it.h));
+      const centerY = (minY + maxBottom) / 2;
+
+      items.forEach((it) => {
+        if (alignType === 'left') it.x = Math.round(minX);
+        else if (alignType === 'center_h') it.x = Math.round(Math.max(0, centerX - it.w / 2));
+        else if (alignType === 'right') it.x = Math.round(Math.max(0, maxRight - it.w));
+        else if (alignType === 'top') it.y = Math.round(minY);
+        else if (alignType === 'center_v') it.y = Math.round(Math.max(0, centerY - it.h / 2));
+        else if (alignType === 'bottom') it.y = Math.round(Math.max(0, maxBottom - it.h));
+      });
+
+      syncSelectedLayoutItemInputs(items[items.length - 1]);
+      syncPaperAndRender();
+      const labels = {
+        left: 'Izquierdos',
+        center_h: 'Centros Horizontales',
+        right: 'Derechos',
+        top: 'Superiores',
+        center_v: 'Centros Verticales',
+        bottom: 'Inferiores'
+      };
+      showToast(`📏 Alineación aplicada: ${labels[alignType]} (${items.length} piezas)`);
+    }
+
+    // 3. Submenú: Espaciar equitativamente (Por el medio / Abajo)
+    function layoutSpaceEqually(dir) {
+      hideContextMenu();
+      const items = getTargetLayoutItemsForOperation();
+      if (items.length < 2) {
+        showToast('ℹ️ Selecciona al menos 2 imágenes para espaciarlas equitativamente.');
+        return;
+      }
+      const rollW = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
+
+      if (dir === 'middle') {
+        const sorted = items.slice().sort((a, b) => a.x - b.x);
+        const minX = sorted[0].x;
+        const maxRight = Math.max(...sorted.map((it) => it.x + it.w));
+        const totalItemsW = sorted.reduce((acc, it) => acc + it.w, 0);
+        const spanW = Math.max(totalItemsW, (maxRight - minX) > totalItemsW + 5 ? (maxRight - minX) : Math.min(rollW - minX, totalItemsW + (sorted.length - 1) * 15));
+        const gap = sorted.length > 1 ? (spanW - totalItemsW) / (sorted.length - 1) : 0;
+        let curX = minX;
+        sorted.forEach((it) => {
+          it.x = Math.round(Math.max(0, curX));
+          curX += it.w + gap;
+        });
+        showToast(`⚖️ Espaciado equitativo: Por el medio (${items.length} piezas)`);
+      } else if (dir === 'down') {
+        const sorted = items.slice().sort((a, b) => a.y - b.y);
+        const minY = sorted[0].y;
+        const maxBottom = Math.max(...sorted.map((it) => it.y + it.h));
+        const totalItemsH = sorted.reduce((acc, it) => acc + it.h, 0);
+        const spanH = Math.max(totalItemsH, (maxBottom - minY) > totalItemsH + 5 ? (maxBottom - minY) : (totalItemsH + (sorted.length - 1) * 15));
+        const gap = sorted.length > 1 ? (spanH - totalItemsH) / (sorted.length - 1) : 0;
+        let curY = minY;
+        sorted.forEach((it) => {
+          it.y = Math.round(Math.max(0, curY));
+          curY += it.h + gap;
+        });
+        showToast(`⚖️ Espaciado equitativo: Abajo (${items.length} piezas)`);
+      }
+
+      syncSelectedLayoutItemInputs(items[items.length - 1]);
+      syncPaperAndRender();
+    }
+
+    // 4. Submenú: Realizar el mismo tamaño (Anchos / Altos)
+    function layoutMakeSameSize(dim) {
+      hideContextMenu();
+      const items = getTargetLayoutItemsForOperation();
+      if (items.length < 2) {
+        showToast('ℹ️ Selecciona al menos 2 imágenes para igualar su tamaño.');
+        return;
+      }
+      const refItem = items[0];
+      const targetW = refItem.w;
+      const targetH = refItem.h;
+
+      items.forEach((it) => {
+        if (dim === 'width') {
+          it.w = Math.round(targetW);
+        } else if (dim === 'height') {
+          it.h = Math.round(targetH);
+        }
+        it.aspectRatio = it.w / Math.max(1, it.h);
+      });
+
+      syncSelectedLayoutItemInputs(refItem);
+      syncPaperAndRender();
+      showToast(`📐 Mismo tamaño aplicado: ${dim === 'width' ? 'Anchos = ' + Math.round(targetW) + ' mm' : 'Altos = ' + Math.round(targetH) + ' mm'} (${items.length} piezas)`);
+    }
+
+    // 5. Submenú: Centro de alto (Verticalmente, Horizontalmente, Ambos)
+    function layoutCenterInPage(axis) {
+      hideContextMenu();
+      const items = getTargetLayoutItemsForOperation();
+      if (items.length === 0) {
+        showToast('ℹ️ No hay imágenes en el Layout para centrar.');
+        return;
+      }
+      const { rollW_mm, visibleRollLenMm, maxItemY } = getLayoutGeometry();
+      const minX = Math.min(...items.map((it) => it.x));
+      const maxRight = Math.max(...items.map((it) => it.x + it.w));
+      const groupW = maxRight - minX;
+
+      const minY = Math.min(...items.map((it) => it.y));
+      const maxBottom = Math.max(...items.map((it) => it.y + it.h));
+      const groupH = maxBottom - minY;
+
+      const activeBoardH = Math.max(groupH + 40, Math.min(visibleRollLenMm, Math.max(maxItemY + 40, 600)));
+      const dx = Math.round((rollW_mm - groupW) / 2 - minX);
+      const dy = Math.round((activeBoardH - groupH) / 2 - minY);
+
+      items.forEach((it) => {
+        if (axis === 'horizontal' || axis === 'both') {
+          it.x = Math.max(0, Math.min(Math.max(0, rollW_mm - it.w), it.x + dx));
+        }
+        if (axis === 'vertical' || axis === 'both') {
+          it.y = Math.max(0, it.y + dy);
+        }
+      });
+
+      syncSelectedLayoutItemInputs(items[items.length - 1]);
+      syncPaperAndRender();
+      const lbl = axis === 'vertical' ? 'Verticalmente' : (axis === 'horizontal' ? 'Horizontalmente' : 'Ambos (Centro Horizontal y Vertical)');
+      showToast(`🎯 Centrado en mesa: ${lbl} (${items.length} piezas)`);
+    }
+
     function bindLayoutMouseAndKeyboardEvents() {
       const canvas = document.getElementById('layout-canvas');
+      const scrollContainer = document.getElementById('layout-scroll-container');
       const jobCanvas = document.getElementById('job-canvas');
 
       function getMouseMm(ev) {
@@ -3922,6 +4439,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
       window.addEventListener('mousedown', (ev) => {
         if (
           !ev.target.closest('#layout-context-menu') &&
+          !ev.target.closest('#layout-board-context-menu') &&
           !ev.target.closest('#rip-queue-context-menu') &&
           !ev.target.closest('#print-queue-context-menu')
         ) {
@@ -3929,25 +4447,35 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         }
       });
 
-      // Clic Derecho en Layout -> Selecciona pieza bajo el cursor y abre menú contextual
+      // Clic Derecho en cualquier parte fuera de la mesa (#layout-scroll-container)
+      if (scrollContainer) {
+        scrollContainer.addEventListener('contextmenu', (ev) => {
+          if (ev.target !== canvas) {
+            ev.preventDefault();
+            showLayoutBoardContextMenuAt(ev.clientX, ev.clientY);
+          }
+        });
+      }
+
+      // Clic Derecho en el canvas del Layout:
+      // - Si se hace clic derecho FUERA de las imágenes (en el fondo de la mesa o en las reglas), abre el menú de Mesa / Selección Múltiple.
+      // - Si se hace clic derecho SOBRE una imagen, abre el menú de esa imagen.
       canvas.addEventListener('contextmenu', (ev) => {
         ev.preventDefault();
         const { mmX, mmY, scale } = getMouseMm(ev);
         const { hitItem } = hitTestLayoutItem(mmX, mmY, scale);
-        if (hitItem) {
-          STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
-          STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
-          syncSelectedLayoutItemInputs(hitItem);
-          renderLayoutCanvas();
-          showContextMenuAt(ev.clientX, ev.clientY, hitItem);
-        } else {
-          const sel = STATE.layoutItems.find((x) => x.selected);
-          if (sel) {
-            showContextMenuAt(ev.clientX, ev.clientY, sel);
-          } else {
-            showToast('ℹ️ Haz clic derecho sobre una imagen en el Layout para ver sus opciones.');
-          }
+        if (!hitItem) {
+          showLayoutBoardContextMenuAt(ev.clientX, ev.clientY);
+          return;
         }
+        const selectedCount = STATE.layoutItems.filter((x) => x.selected).length;
+        if (!hitItem.selected && selectedCount <= 1) {
+          STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
+        }
+        STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
+        syncSelectedLayoutItemInputs(hitItem);
+        renderLayoutCanvas();
+        showContextMenuAt(ev.clientX, ev.clientY, hitItem);
       });
 
       // Clic Derecho también soportado en la vista Job
@@ -3958,7 +4486,6 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           showContextMenuAt(ev.clientX, ev.clientY, sel);
         });
 
-        // Interacción de Recorte con Ratón en la pestaña Job (Dimensionar / Cortar)
         jobCanvas.addEventListener('mousedown', (ev) => {
           if (ev.button !== 0 || !STATE.jobCropMode) return;
           const rect = jobCanvas.getBoundingClientRect();
@@ -3973,20 +4500,47 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         });
       }
 
+      // Iniciar arrastre en el área fuera de la mesa también permite trazar recuadro de selección (Marquee)
+      if (scrollContainer) {
+        scrollContainer.addEventListener('mousedown', (ev) => {
+          if (ev.button !== 0 || ev.target === canvas) return;
+          canvas.focus();
+          const { mmX, mmY } = getMouseMm(ev);
+          if (!ev.shiftKey && !ev.ctrlKey) {
+            STATE.layoutItems.forEach((x) => (x.selected = false));
+          }
+          const initialSelectedIds = new Set(STATE.layoutItems.filter((x) => x.selected).map((x) => x.id));
+          STATE.dragState = {
+            mode: 'marquee',
+            startMmX: mmX,
+            startMmY: mmY,
+            initialSelectedIds
+          };
+          STATE.marqueeRect = { x0: mmX, y0: mmY, x1: mmX, y1: mmY };
+          renderLayoutCanvas();
+        });
+      }
+
       canvas.addEventListener('mousedown', (ev) => {
-        if (ev.button !== 0) return; // Solo botón izquierdo arrastra/selecciona
+        if (ev.button !== 0) return;
         canvas.focus();
         const { mmX, mmY, scale } = getMouseMm(ev);
         const { hitItem, hitMode } = hitTestLayoutItem(mmX, mmY, scale);
 
         if (hitItem) {
-          STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
+          if (ev.shiftKey || ev.ctrlKey) {
+            hitItem.selected = !hitItem.selected;
+          } else if (!hitItem.selected) {
+            STATE.layoutItems.forEach((x) => (x.selected = x === hitItem));
+          }
           STATE.currentAspectRatio = hitItem.aspectRatio || (hitItem.w / hitItem.h);
           STATE.customImage = hitItem.img || STATE.customImage;
           STATE.activeFileName = hitItem.name;
           STATE.activeRotation = hitItem.rotation || 0;
           STATE.activeMirror = !!hitItem.mirror;
           STATE.activeCrop = hitItem.crop ? { ...hitItem.crop } : null;
+
+          const selectedGroup = STATE.layoutItems.filter((x) => x.selected);
           STATE.dragState = {
             mode: hitMode,
             item: hitItem,
@@ -3995,18 +4549,28 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
             origX: hitItem.x,
             origY: hitItem.y,
             origW: hitItem.w,
-            origH: hitItem.h
+            origH: hitItem.h,
+            groupOrigins: selectedGroup.map((it) => ({ item: it, origX: it.x, origY: it.y }))
           };
           syncSelectedLayoutItemInputs(hitItem);
           renderLayoutCanvas();
         } else {
-          STATE.layoutItems.forEach((x) => (x.selected = false));
+          if (!ev.shiftKey && !ev.ctrlKey) {
+            STATE.layoutItems.forEach((x) => (x.selected = false));
+          }
+          const initialSelectedIds = new Set(STATE.layoutItems.filter((x) => x.selected).map((x) => x.id));
+          STATE.dragState = {
+            mode: 'marquee',
+            startMmX: mmX,
+            startMmY: mmY,
+            initialSelectedIds
+          };
+          STATE.marqueeRect = { x0: mmX, y0: mmY, x1: mmX, y1: mmY };
           renderLayoutCanvas();
         }
       });
 
       window.addEventListener('mousemove', (ev) => {
-        // Arrastre de recorte en Job
         if (STATE.jobCropDrag && jobCanvas) {
           const rect = jobCanvas.getBoundingClientRect();
           const { padLeft, padTop, viewW, viewH, cssW, cssH, jobWMm, jobHMm } = getJobCanvasGeometry();
@@ -4028,9 +4592,31 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         if (!STATE.dragState) return;
         const { mmX, mmY } = getMouseMm(ev);
         const ds = STATE.dragState;
+
+        if (ds.mode === 'marquee') {
+          STATE.marqueeRect = { x0: ds.startMmX, y0: ds.startMmY, x1: mmX, y1: mmY };
+          const minX = Math.min(ds.startMmX, mmX);
+          const maxX = Math.max(ds.startMmX, mmX);
+          const minY = Math.min(ds.startMmY, mmY);
+          const maxY = Math.max(ds.startMmY, mmY);
+
+          STATE.layoutItems.forEach((it) => {
+            const intersects =
+              it.x + it.w >= minX &&
+              it.x <= maxX &&
+              it.y + it.h >= minY &&
+              it.y <= maxY;
+            it.selected = intersects || (ds.initialSelectedIds && ds.initialSelectedIds.has(it.id));
+          });
+          const lastSel = STATE.layoutItems.filter((it) => it.selected).pop();
+          if (lastSel) syncSelectedLayoutItemInputs(lastSel);
+          renderLayoutCanvas();
+          return;
+        }
+
         const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
         const snapEnabled = document.getElementById('chk-layout-snap')?.checked !== false;
-        const snapDist = 12; // mm de atracción magnética para pegar bordes a 0 mm
+        const snapDist = 12;
         STATE.snapGuides = [];
 
         if (ds.mode === 'move') {
@@ -4039,8 +4625,7 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           let targetX = Math.max(0, Math.min(Math.max(0, rollW_mm - ds.item.w), Math.round(ds.origX + dx)));
           let targetY = Math.max(0, Math.min(MAX_COIL_MM - ds.item.h, Math.round(ds.origY + dy)));
 
-          // Imán magnético para pegar una imagen justo al lado de la otra (0 mm) o a los bordes del rollo
-          if (snapEnabled) {
+          if (snapEnabled && (!ds.groupOrigins || ds.groupOrigins.length <= 1)) {
             if (Math.abs(targetX) <= snapDist) {
               targetX = 0;
               STATE.snapGuides.push({ type: 'v', val: 0 });
@@ -4055,44 +4640,47 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
 
             STATE.layoutItems.forEach((other) => {
               if (other === ds.item) return;
-              // Pegar borde izquierdo al borde derecho de otra imagen (0 mm)
               if (Math.abs(targetX - (other.x + other.w)) <= snapDist) {
                 targetX = other.x + other.w;
                 STATE.snapGuides.push({ type: 'v', val: targetX });
-              }
-              // Pegar borde derecho al borde izquierdo de otra imagen (0 mm)
-              else if (Math.abs(targetX + ds.item.w - other.x) <= snapDist) {
+              } else if (Math.abs(targetX + ds.item.w - other.x) <= snapDist) {
                 targetX = other.x - ds.item.w;
                 STATE.snapGuides.push({ type: 'v', val: other.x });
-              }
-              // Alinear bordes izquierdos
-              else if (Math.abs(targetX - other.x) <= snapDist) {
+              } else if (Math.abs(targetX - other.x) <= snapDist) {
                 targetX = other.x;
                 STATE.snapGuides.push({ type: 'v', val: other.x });
               }
 
-              // Pegar borde superior al borde inferior de otra imagen (0 mm)
               if (Math.abs(targetY - (other.y + other.h)) <= snapDist) {
                 targetY = other.y + other.h;
                 STATE.snapGuides.push({ type: 'h', val: targetY });
-              }
-              // Pegar borde inferior al borde superior de otra imagen (0 mm)
-              else if (Math.abs(targetY + ds.item.h - other.y) <= snapDist) {
+              } else if (Math.abs(targetY + ds.item.h - other.y) <= snapDist) {
                 targetY = other.y - ds.item.h;
                 STATE.snapGuides.push({ type: 'h', val: other.y });
-              }
-              // Alinear parte superior de la fila
-              else if (Math.abs(targetY - other.y) <= snapDist) {
+              } else if (Math.abs(targetY - other.y) <= snapDist) {
                 targetY = other.y;
                 STATE.snapGuides.push({ type: 'h', val: other.y });
               }
             });
           }
 
-          ds.item.x = Math.max(0, targetX);
-          ds.item.y = Math.max(0, targetY);
-          if (ds.item.y + ds.item.h + 250 > STATE.extraRollViewMm) {
-            STATE.extraRollViewMm = Math.min(MAX_COIL_MM, ds.item.y + ds.item.h + 500);
+          const appliedDx = targetX - ds.origX;
+          const appliedDy = targetY - ds.origY;
+
+          if (ds.groupOrigins && ds.groupOrigins.length > 1) {
+            ds.groupOrigins.forEach((g) => {
+              g.item.x = Math.max(0, Math.min(Math.max(0, rollW_mm - g.item.w), Math.round(g.origX + appliedDx)));
+              g.item.y = Math.max(0, Math.min(MAX_COIL_MM - g.item.h, Math.round(g.origY + appliedDy)));
+              if (g.item.y + g.item.h + 250 > STATE.extraRollViewMm) {
+                STATE.extraRollViewMm = Math.min(MAX_COIL_MM, g.item.y + g.item.h + 500);
+              }
+            });
+          } else {
+            ds.item.x = Math.max(0, targetX);
+            ds.item.y = Math.max(0, targetY);
+            if (ds.item.y + ds.item.h + 250 > STATE.extraRollViewMm) {
+              STATE.extraRollViewMm = Math.min(MAX_COIL_MM, ds.item.y + ds.item.h + 500);
+            }
           }
         } else if (ds.mode === 'resize') {
           const dw = mmX - ds.startMmX;
@@ -4113,12 +4701,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
         }
         if (STATE.dragState) {
           STATE.dragState = null;
+          STATE.marqueeRect = null;
           STATE.snapGuides = [];
           syncPaperAndRender();
         }
       });
 
-      // Teclas Globales: Suprimir / Delete / Backspace + Escape + Flechas
+      // Teclas Globales: Ctrl+A (Seleccionar todo en Layout), Suprimir / Delete / Backspace + Escape + Flechas
       window.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') {
           hideContextMenu();
@@ -4137,6 +4726,13 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           return;
         }
 
+        const isLayoutVisible = !document.getElementById('tab-layout').classList.contains('hidden');
+        if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'a' || ev.key === 'A') && isLayoutVisible) {
+          ev.preventDefault();
+          layoutSelectAllItems();
+          return;
+        }
+
         if (ev.key === 'Delete' || ev.key === 'Backspace' || ev.key === 'Del') {
           const hasSelectedInLayout = STATE.layoutItems.some((it) => it.selected);
           if (hasSelectedInLayout) {
@@ -4146,17 +4742,18 @@ SER-2026-006 | EXPORTACIÓN PLANTA SUR | LOTE B-08</textarea>
           return;
         }
 
-        const sel = STATE.layoutItems.find((it) => it.selected);
-        const isLayoutVisible = !document.getElementById('tab-layout').classList.contains('hidden');
-        if (sel && isLayoutVisible && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) {
+        const selectedList = STATE.layoutItems.filter((it) => it.selected);
+        if (selectedList.length > 0 && isLayoutVisible && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) {
           ev.preventDefault();
           const step = ev.shiftKey ? 10 : 1;
           const rollW_mm = parseFloat(document.getElementById('quick-paper-width').value) || 1050;
-          if (ev.key === 'ArrowLeft') sel.x = Math.max(0, sel.x - step);
-          if (ev.key === 'ArrowRight') sel.x = Math.min(Math.max(0, rollW_mm - sel.w), sel.x + step);
-          if (ev.key === 'ArrowUp') sel.y = Math.max(0, sel.y - step);
-          if (ev.key === 'ArrowDown') sel.y = Math.min(MAX_COIL_MM - sel.h, sel.y + step);
-          syncSelectedLayoutItemInputs(sel);
+          selectedList.forEach((sel) => {
+            if (ev.key === 'ArrowLeft') sel.x = Math.max(0, sel.x - step);
+            if (ev.key === 'ArrowRight') sel.x = Math.min(Math.max(0, rollW_mm - sel.w), sel.x + step);
+            if (ev.key === 'ArrowUp') sel.y = Math.max(0, sel.y - step);
+            if (ev.key === 'ArrowDown') sel.y = Math.min(MAX_COIL_MM - sel.h, sel.y + step);
+          });
+          syncSelectedLayoutItemInputs(selectedList[selectedList.length - 1]);
           syncPaperAndRender();
         }
       });
