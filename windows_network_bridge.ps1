@@ -301,22 +301,56 @@ while ($Listener.IsListening) {
 
             Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes por Red TCP/IP a $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
             $Tcp = New-Object System.Net.Sockets.TcpClient
-            $Tcp.SendBufferSize = 65536
+            $Tcp.SendBufferSize = 32768
+            $Tcp.NoDelay = $true
             try {
                 $Async = $Tcp.BeginConnect($TargetHost, $TargetPort, $null, $null)
-                $Wait = $Async.AsyncWaitHandle.WaitOne(4000, $false)
+                $Wait = $Async.AsyncWaitHandle.WaitOne(8000, $false)
                 if ($Wait -and $Tcp.Connected) {
                     $Tcp.EndConnect($Async)
+                    try {
+                        $Tcp.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::KeepAlive, $true)
+                    } catch {}
                     $Stream = $Tcp.GetStream()
-                    $Stream.WriteTimeout = 120000
-                    $ChunkSize = 65536
+                    # Sin timeout corto (2 horas = 7200000 ms) porque cuando se imprimen 10+ copias o trabajos largos (>100 MB),
+                    # la memoria RAM interna de la Mutoh (32-64 MB) se llena y la impresora pausa la ventana TCP (ZeroWindow)
+                    # hasta que el cabezal fisico va avanzando y liberando memoria.
+                    $Stream.WriteTimeout = 7200000
+                    $Tcp.SendTimeout = 7200000
+
+                    $ChunkSize = 16384
                     $Offset = 0
-                    while ($Offset -lt $PrnBytes.Length) {
-                        $Count = [Math]::Min($ChunkSize, $PrnBytes.Length - $Offset)
-                        $Stream.Write($PrnBytes, $Offset, $Count)
+                    $TotalLen = $PrnBytes.Length
+                    $LastPctShown = -1
+
+                    while ($Offset -lt $TotalLen) {
+                        $Count = [Math]::Min($ChunkSize, $TotalLen - $Offset)
+                        $WriteOk = $false
+                        $RetryCount = 0
+                        while (-not $WriteOk) {
+                            try {
+                                $Stream.Write($PrnBytes, $Offset, $Count)
+                                $WriteOk = $true
+                            } catch {
+                                $RetryCount++
+                                if ($RetryCount -gt 120 -or -not $Tcp.Connected) {
+                                    throw $_
+                                }
+                                Write-Host "  [BUFFER PLOTTER LLENO] Esperando avance fisico del cabezal ($Offset / $TotalLen bytes)..." -ForegroundColor Yellow
+                                Start-Sleep -Milliseconds 1500
+                            }
+                        }
                         $Offset += $Count
+                        $Pct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
+                        if ($Pct -ge ($LastPctShown + 5) -or $Offset -eq $TotalLen) {
+                            $LastPctShown = $Pct
+                            $MbSent = [Math]::Round($Offset / 1048576.0, 2)
+                            $MbTot  = [Math]::Round($TotalLen / 1048576.0, 2)
+                            Write-Host ("  -> Progreso envio a Plotter: {0}% ({1} MB / {2} MB)" -f $Pct, $MbSent, $MbTot) -ForegroundColor DarkCyan
+                        }
                     }
                     $Stream.Flush()
+                    Start-Sleep -Milliseconds 300
                     $Stream.Close()
                     $Tcp.Close()
                     Write-Host "  -> IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes)" -ForegroundColor Green
@@ -355,9 +389,9 @@ while ($Listener.IsListening) {
                         tcp_delivered = $false
                         mode = "Error Conexion TCP/IP"
                         target = "$TargetHost`:$TargetPort"
-                        bytes_sent = 0
+                        bytes_sent = $Offset
                         spool_backup = $PrnFile
-                        message = "Error de red hacia $TargetHost`:$TargetPort ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
+                        message = "Error de red hacia $TargetHost`:$TargetPort tras enviar $Offset de $($PrnBytes.Length) bytes ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
                     }
                 }
             }
