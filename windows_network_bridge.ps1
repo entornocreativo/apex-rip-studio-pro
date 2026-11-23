@@ -87,6 +87,10 @@ function Parse-LargeJsonBody($InputStream) {
     }
 }
 
+$CancelFlagFile = Join-Path $SpoolDir "_cancel_active_spool.flag"
+if (Test-Path $CancelFlagFile) { Remove-Item $CancelFlagFile -Force -ErrorAction SilentlyContinue }
+$Global:ActiveTcpClient = $null
+
 while ($Listener.IsListening) {
     try {
         $Context = $Listener.GetContext()
@@ -108,6 +112,26 @@ while ($Listener.IsListening) {
                 online = $true
                 bridge = "Puente Nativo Windows TCP/IP Puerto 9100"
                 local_ip = (Get-LocalLanIp)
+            }
+            continue
+        }
+
+        if ($Path -eq "/api/spool/cancel") {
+            Write-Host "[CANCEL] Solicitud de cancelacion inmediata de envio TCP recibida..." -ForegroundColor Yellow
+            try {
+                [System.IO.File]::WriteAllText($CancelFlagFile, "CANCEL_$(Get-Date -Format 'HHmmss')")
+            } catch {}
+            try {
+                if ($Global:ActiveTcpClient -ne $null) {
+                    try {
+                        $Global:ActiveTcpClient.Client.LingerState = New-Object System.Net.Sockets.LingerOption($true, 0)
+                    } catch {}
+                    try { $Global:ActiveTcpClient.Close() } catch {}
+                }
+            } catch {}
+            Send-JsonResponse $Res @{
+                cancelled = $true
+                message = "Senal de envio TCP abortada inmediatamente (Socket cerrado con TCP RST)."
             }
             continue
         }
@@ -279,6 +303,9 @@ while ($Listener.IsListening) {
         }
 
         if ($Path -eq "/api/spool/send-raw" -and $Req.HttpMethod -eq "POST") {
+            # Limpiar cualquier bandera de cancelacion previa al iniciar un nuevo trabajo
+            if (Test-Path $CancelFlagFile) { Remove-Item $CancelFlagFile -Force -ErrorAction SilentlyContinue }
+
             $ContentType = ([string]$Req.ContentType).ToLower()
             $TargetHost = ""
             $TargetPort = 9100
@@ -335,6 +362,9 @@ while ($Listener.IsListening) {
                 continue
             }
 
+            # Ejecutar la transmision TCP en un Runspace paralelo o bucle con deteccion de desconexion HTTP (xhr.abort)
+            # para que si el usuario pulsa "Cancelar" en ApexRIP, el socket TCP se corte al instante con TCP RST (Linger 0)
+            # y deje de enviar bytes a la impresora inmediatamente.
             $StreamProgress = ($Req.QueryString["stream_progress"] -eq "1")
             if ($StreamProgress) {
                 $Res.StatusCode = 200
@@ -354,8 +384,11 @@ while ($Listener.IsListening) {
 
             Write-Host "[PRINT] Enviando $($PrnBytes.Length) bytes por Red TCP/IP a $TargetHost`:$TargetPort ..." -ForegroundColor Cyan
             $Tcp = New-Object System.Net.Sockets.TcpClient
-            $Tcp.SendBufferSize = 32768
+            $Global:ActiveTcpClient = $Tcp
+            # Buffer pequeno (8 KB) para que el sistema operativo de Windows no acumule megabytes en cola tras cancelar
+            $Tcp.SendBufferSize = 8192
             $Tcp.NoDelay = $true
+            $WasCancelled = $false
             try {
                 $Async = $Tcp.BeginConnect($TargetHost, $TargetPort, $null, $null)
                 $Wait = $Async.AsyncWaitHandle.WaitOne(8000, $false)
@@ -365,57 +398,99 @@ while ($Listener.IsListening) {
                         $Tcp.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::KeepAlive, $true)
                     } catch {}
                     $Stream = $Tcp.GetStream()
-                    # Sin timeout corto (2 horas = 7200000 ms) porque cuando se imprimen 10+ copias o trabajos largos (>100 MB),
-                    # la memoria RAM interna de la Mutoh (32-64 MB) se llena y la impresora pausa la ventana TCP (ZeroWindow)
-                    # hasta que el cabezal fisico va avanzando y liberando memoria.
-                    $Stream.WriteTimeout = 7200000
-                    $Tcp.SendTimeout = 7200000
+                    # Timeout corto por intento (1500 ms) para verificar en cada pausa si el usuario cancelo desde el navegador
+                    $Stream.WriteTimeout = 1500
+                    $Tcp.SendTimeout = 1500
 
-                    $ChunkSize = 16384
+                    $ChunkSize = 8192
                     $Offset = 0
                     $TotalLen = $PrnBytes.Length
                     $LastPctShown = -1
                     $LastPctStreamed = -1
+                    $ChunkCounter = 0
 
                     while ($Offset -lt $TotalLen) {
+                        # Verificar si se pulso Cancelar (/api/spool/cancel creó bandera o cerró socket)
+                        if ((Test-Path $CancelFlagFile)) {
+                            $WasCancelled = $true
+                            break
+                        }
+
                         $Count = [Math]::Min($ChunkSize, $TotalLen - $Offset)
                         $WriteOk = $false
                         $RetryCount = 0
                         while (-not $WriteOk) {
+                            if ((Test-Path $CancelFlagFile)) {
+                                $WasCancelled = $true
+                                break
+                            }
                             try {
                                 $Stream.Write($PrnBytes, $Offset, $Count)
                                 $WriteOk = $true
                             } catch {
                                 $RetryCount++
-                                if ($RetryCount -gt 120 -or -not $Tcp.Connected) {
-                                    throw $_
-                                }
-                                Write-Host "  [BUFFER PLOTTER LLENO] Esperando avance fisico del cabezal ($Offset / $TotalLen bytes)..." -ForegroundColor Yellow
+                                # Si el navegador aborto la conexion HTTP (xhr.abort()), Write-StreamJsonLine fallara al hacer Flush en OutputStream
                                 if ($StreamProgress) {
-                                    $CurPct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
-                                    Write-StreamJsonLine $Res @{
-                                        event = "tcp_progress"
-                                        pct = $CurPct
-                                        bytes_sent = $Offset
-                                        total_bytes = $TotalLen
-                                        buffer_full = $true
+                                    try {
+                                        $CurPct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
+                                        $ProbeLine = (@{
+                                            event = "tcp_progress"
+                                            pct = $CurPct
+                                            bytes_sent = $Offset
+                                            total_bytes = $TotalLen
+                                            buffer_full = $true
+                                        } | ConvertTo-Json -Depth 4 -Compress) + "`n"
+                                        $ProbeBytes = [System.Text.Encoding]::UTF8.GetBytes($ProbeLine)
+                                        $Res.OutputStream.Write($ProbeBytes, 0, $ProbeBytes.Length)
+                                        $Res.OutputStream.Flush()
+                                    } catch {
+                                        # El navegador cerro la conexion HTTP (Cancelado por el usuario)
+                                        $WasCancelled = $true
+                                        break
                                     }
                                 }
-                                Start-Sleep -Milliseconds 1500
+                                if ($WasCancelled -or (Test-Path $CancelFlagFile)) {
+                                    $WasCancelled = $true
+                                    break
+                                }
+                                # Hasta 4800 reintentos de 1.5s (~2 horas) mientras el plotter tenga buffer lleno pero el usuario NO haya cancelado
+                                if ($RetryCount -gt 4800 -or -not $Tcp.Connected) {
+                                    throw $_
+                                }
+                                if ($RetryCount -eq 1 -or ($RetryCount % 5 -eq 0)) {
+                                    Write-Host "  [BUFFER PLOTTER LLENO] Esperando avance fisico del cabezal ($Offset / $TotalLen bytes)... (Pulsa Cancelar en ApexRIP para abortar)" -ForegroundColor Yellow
+                                }
+                                Start-Sleep -Milliseconds 500
                             }
                         }
+
+                        if ($WasCancelled) { break }
+
                         $Offset += $Count
+                        $ChunkCounter++
                         $Pct = [int][Math]::Floor(($Offset * 100.0) / $TotalLen)
-                        if ($StreamProgress -and ($Pct -gt $LastPctStreamed -or $Offset -eq $TotalLen)) {
+
+                        # Cada 8 bloques (64 KB) o al cambiar de %, enviar telemetria al navegador y comprobar que la conexion HTTP sigue viva
+                        if ($StreamProgress -and ($Pct -gt $LastPctStreamed -or ($ChunkCounter % 8 -eq 0) -or $Offset -eq $TotalLen)) {
                             $LastPctStreamed = $Pct
-                            Write-StreamJsonLine $Res @{
-                                event = "tcp_progress"
-                                pct = $Pct
-                                bytes_sent = $Offset
-                                total_bytes = $TotalLen
-                                buffer_full = $false
+                            try {
+                                $Line = (@{
+                                    event = "tcp_progress"
+                                    pct = $Pct
+                                    bytes_sent = $Offset
+                                    total_bytes = $TotalLen
+                                    buffer_full = $false
+                                } | ConvertTo-Json -Depth 4 -Compress) + "`n"
+                                $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Line)
+                                $Res.OutputStream.Write($Bytes, 0, $Bytes.Length)
+                                $Res.OutputStream.Flush()
+                            } catch {
+                                # El usuario pulso Cancelar en el navegador (xhr.abort() cerro el stream HTTP)
+                                $WasCancelled = $true
+                                break
                             }
                         }
+
                         if ($Pct -ge ($LastPctShown + 5) -or $Offset -eq $TotalLen) {
                             $LastPctShown = $Pct
                             $MbSent = [Math]::Round($Offset / 1048576.0, 2)
@@ -423,10 +498,27 @@ while ($Listener.IsListening) {
                             Write-Host ("  -> Progreso envio a Plotter: {0}% ({1} MB / {2} MB)" -f $Pct, $MbSent, $MbTot) -ForegroundColor DarkCyan
                         }
                     }
+
+                    if ($WasCancelled) {
+                        Write-Host "  -> [CANCELADO POR EL USUARIO] Cortando senal TCP inmediatamente con RST ($Offset / $TotalLen bytes)..." -ForegroundColor Yellow
+                        try {
+                            # LingerOption(true, 0) fuerza un paquete TCP RST inmediato y descarta el buffer de salida de Windows
+                            # para que la impresora deje de recibir datos en el acto.
+                            $Tcp.Client.LingerState = New-Object System.Net.Sockets.LingerOption($true, 0)
+                        } catch {}
+                        try { $Stream.Close() } catch {}
+                        try { $Tcp.Close() } catch {}
+                        $Global:ActiveTcpClient = $null
+                        if (Test-Path $CancelFlagFile) { Remove-Item $CancelFlagFile -Force -ErrorAction SilentlyContinue }
+                        try { $Res.Abort() } catch {}
+                        continue
+                    }
+
                     $Stream.Flush()
                     Start-Sleep -Milliseconds 300
                     $Stream.Close()
                     $Tcp.Close()
+                    $Global:ActiveTcpClient = $null
                     Write-Host "  -> IMPRESION ENVIADA CON EXITO a $TargetHost`:$TargetPort ($($PrnBytes.Length) bytes)" -ForegroundColor Green
                     $FinalObj = @{
                         event = "done"
@@ -448,6 +540,7 @@ while ($Listener.IsListening) {
                     }
                 } else {
                     $Tcp.Close()
+                    $Global:ActiveTcpClient = $null
                     Write-Host "  -> ERROR: La impresora en $TargetHost`:$TargetPort no respondio." -ForegroundColor Red
                     $ErrObj = @{
                         event = "done"
@@ -469,8 +562,12 @@ while ($Listener.IsListening) {
                     }
                 }
             } catch {
-                $Tcp.Close()
-                Write-Host "  -> ERROR TCP: $($_.Exception.Message)" -ForegroundColor Red
+                try {
+                    $Tcp.Client.LingerState = New-Object System.Net.Sockets.LingerOption($true, 0)
+                } catch {}
+                try { $Tcp.Close() } catch {}
+                $Global:ActiveTcpClient = $null
+                Write-Host "  -> ERROR / CORTE TCP: $($_.Exception.Message)" -ForegroundColor Red
                 $CatchObj = @{
                     event = "done"
                     spool = @{
@@ -480,7 +577,7 @@ while ($Listener.IsListening) {
                         target = "$TargetHost`:$TargetPort"
                         bytes_sent = $Offset
                         spool_backup = $PrnFile
-                        message = "Error de red hacia $TargetHost`:$TargetPort tras enviar $Offset de $($PrnBytes.Length) bytes ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
+                        message = "Transmision detenida hacia $TargetHost`:$TargetPort tras enviar $Offset de $($PrnBytes.Length) bytes ($($_.Exception.Message)). Respaldo .PRN en: $PrnFile"
                     }
                 }
                 if ($StreamProgress) {
