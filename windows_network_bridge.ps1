@@ -39,8 +39,23 @@ $Listener.Prefixes.Add("http://localhost:$Port/")
 try {
     $Listener.Start()
 } catch {
-    Write-Host "[AVISO] El puerto $Port ya esta en uso (posiblemente ya tienes el puente o Python abierto)." -ForegroundColor Yellow
-    exit 0
+    $firstErr = $_.Exception.Message
+    try { $Listener.Close() } catch {}
+    # Reintentar solo con 127.0.0.1 (a veces Windows bloquea localhost por permisos URLACL)
+    $Listener = New-Object System.Net.HttpListener
+    $Listener.Prefixes.Add("http://127.0.0.1:$Port/")
+    try {
+        $Listener.Start()
+        Write-Host "[OK] Puente iniciado en http://127.0.0.1:$Port/ (modo compatible)." -ForegroundColor Green
+    } catch {
+        $errMsg = $_.Exception.Message
+        Write-Host "[ERROR] No se pudo abrir el puerto $Port en Windows." -ForegroundColor Red
+        Write-Host "Detalle real: $errMsg" -ForegroundColor Yellow
+        if ($errMsg -match "denegado|denied|acceso|access" -or $firstErr -match "denegado|denied|acceso|access") {
+            Write-Host "Solucion: Haz clic derecho en CONECTAR_IMPRESORAS_RED_WINDOWS.bat -> Ejecutar como administrador." -ForegroundColor Cyan
+        }
+        exit 1
+    }
 }
 
 # Abrir la interfaz automaticamente
